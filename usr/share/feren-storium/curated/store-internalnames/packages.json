@@ -1,0 +1,26 @@
+{
+  "feren-extra-backgrounds": {
+    "apt": "feren-extra-backgrounds",
+    "flatpak": "",
+    "snap": "",
+    "appstream": ""
+  },
+  "feren-store": {
+    "apt": "feren-store",
+    "flatpak": "",
+    "snap": "",
+    "appstream": "feren-store.desktop"
+  },
+  "google-chromium": {
+    "apt": "chromium-browser",
+    "flatpak": "",
+    "snap": "chromium",
+    "appstream": "chromium.desktop"
+  },
+  "mozilla-firefox": {
+    "apt": "firefox",
+    "flatpak": "org.mozilla.firefox",
+    "snap": "firefox",
+    "appstream": "firefox.desktop"
+  }
+}

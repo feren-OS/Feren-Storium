@@ -1,0 +1,13 @@
+#!/usr/bin/env xdg-open
+
+[Desktop Entry]
+Terminal=false
+Type=Application
+StartupNotify=false
+Name=Feren Storium
+Exec=/usr/bin/feren-storium
+Icon=softwarecenter
+Comment=Modular Package Management Backend
+Encoding=UTF-8
+Keywords=store;package;synaptic;themes;get;new;hot;stuff;cool;application;more;discover;muon
+Categories=PackageManager;GTK;System;Settings;

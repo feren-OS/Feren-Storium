@@ -1,0 +1,26 @@
+{
+  "feren-extra-backgrounds": {
+    "apt": "standard",
+    "flatpak": "",
+    "snap": "",
+    "order-of-importance": ["apt"]
+  },
+  "feren-store": {
+    "apt": "standard",
+    "flatpak": "",
+    "snap": "",
+    "order-of-importance": ["apt"]
+  },
+  "google-chromium": {
+    "apt": "standard",
+    "flatpak": "",
+    "snap": "snapstore",
+    "order-of-importance": ["snap", "apt"]
+  },
+  "mozilla-firefox": {
+    "apt": "standard",
+    "flatpak": "flatpak-flathub",
+    "snap": "snapstore",
+    "order-of-importance": ["flatpak", "apt", "snap"]
+  }
+}

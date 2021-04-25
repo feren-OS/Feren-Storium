@@ -1,0 +1,4 @@
+#!/bin/bash
+
+echo "$(apt rdepends $1)
+$(apt depends $1)" | sed 's/Suggests: .*//g' | sed 's/Enhances: .*//g' | sed 's/Recommends: .*//g' | sed 's/Conflicts: .*//g' | sed 's/  / /g' | sed 's/   / /g' | sed 's/Pre-Depends: //g' | sed 's/Post-Depends: //g' | sed 's/PreDepends: //g' | sed 's/PostDepends: //g' | sed 's/Depends: //g' | sed 's/,//g' | sed 's/ |//g' | sed 's/ (.*)//g' | sed 's/Reverse Depends://g' | sed 's/<//g' | sed 's/>//g' | xargs -n1 | sort -u | xargs
