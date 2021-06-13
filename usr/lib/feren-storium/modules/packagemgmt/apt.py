@@ -43,7 +43,11 @@ class PackageMgmtModule():
         # 0 - Uninstalled
         # 1 - Installed
         # 2 - Updatable
+        # 403 - Not in repositories
         pass
+    
+    def get_exists_in_database(self, packagename):
+        #Return True/False depending on if the package exists in our curated database
     
     def install_package(self, packagename):
         #Install package and return exit code
@@ -57,13 +61,18 @@ class PackageMgmtModule():
         #Update package and return exit code
         pass
     
+    def get_package_changes(self, pkgsinstalled, pkgsupdated, pkgsremoved):
+        #Examine the package changes - pkgsinstalled, pkgsupdated and pkgsremoved are lists
+        pass
+    
     def get_configs(self):
         #Get configs and their current gsettings/file values and return them as a dictionary
-        gsettingsschemas=[]
+        gsettingsschemas={} # e.g.: {org.cinnamon.theme: [name]}
         configfiles={} # {config file: [config names]}
         
         for schema in gsettingsschemas:
-            pass
+            for configname in gsettingsschemas[schema]:
+                pass
         for configfile in configfiles:
             for configname in configfiles[configname]:
                 pass
@@ -71,11 +80,13 @@ class PackageMgmtModule():
         #{value: [type (gsettings/file), schema (gsettings schema/file path), current value]}
         pass
 
-    def callback(self, data):
-        subprocess.run(["/usr/bin/feren-majorupdate-gui"])
-        # reload
-        return True
+    def enable_appsource(self, appsource):
+        #Enable an Application Source
+        pass
+    
+    def disable_appsource(self, appsource):
+        #Disable an Application Source
+        pass
 
 if __name__ == "__main__":
-    report = Report()
-    print(report.is_pertinent())
+    module = PackageMgmtModule()
