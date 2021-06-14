@@ -158,24 +158,76 @@ class LocalPackageMgmtModule():
         self.packagemgmtbusy = True
         
         #Install package and return exit code
-        self.currentpackagefile = self.packagefile
-        self.pk_client.install_files(0, [packagefile], None, self.progress_callback, None)
+        self.currentpackagefile = packagefile
+        try:
+            outcome = self.pk_client.install_files(0, [packagefile], None, self.progress_callback, None)
+        except:
+            return False
         
         #Clean up after management
         self.currentpackagefile = ""
         self.packagemgmtbusy = False
+        return outcome.get_exit_code() == PackageKitGlib.ExitEnum.SUCCESS
     
-    def remove_package(self, packagename):
+    def remove_package(self, packagefile):
+        self.packagemgmtbusy = True
+        
+        packagename = self.packagestorage[packagefile].name
+        
         #Remove package and return exit code
-        pass
+        self.currentpackagefile = packagefile
+        try:
+            res=pk_client.resolve(PackageKitGlib.FilterEnum.NONE, [packagename], None, lambda p, t, d: True, None)
+            package_ids=res.get_package_array()
+            if not len(package_ids) > 0:
+                return False
+            
+            outcome = self.pk_client.remove_packages(0, [package_ids[0].get_id()], True, True, None, self.progress_callback, None)
+        except:
+            return False
+        
+        #Clean up after management
+        self.currentpackagefile = ""
+        self.packagemgmtbusy = False
+        return outcome.get_exit_code() == PackageKitGlib.ExitEnum.SUCCESS
     
-    def update_package(self, packagename):
+    def update_package(self, packagefile):
+        self.packagemgmtbusy = True
+        
+        packagename = self.packagestorage[packagefile].name
+        
         #Update package and return exit code
-        pass
+        self.currentpackagefile = packagefile
+        try:
+            res=pk_client.resolve(PackageKitGlib.FilterEnum.NONE, [packagename], None, lambda p, t, d: True, None)
+            package_ids=res.get_package_array()
+            if not len(package_ids) > 0:
+                return False
+            
+            outcome = self.pk_client.update_packages(0, [package_ids[0].get_id()], True, True, None, self.progress_callback, None)
+        except:
+            return False
+        
+        #Clean up after management
+        self.currentpackagefile = ""
+        self.packagemgmtbusy = False
+        return outcome.get_exit_code() == PackageKitGlib.ExitEnum.SUCCESS
     
-    def get_package_changes(self, pkgsinstalled, pkgsupdated, pkgsremoved):
+    def get_package_changes(self, packagefile, operationtype):
+        #operationtype must be: 1: Install, 2: Update, 3: Remove
+        pkgsinstalled=[]
+        pkgsupdated=[]
+        pkgsremoved=[]
         #Examine the package changes - pkgsinstalled, pkgsupdated and pkgsremoved are lists
-        pass
+        #TODO: Figure out a means of getting package dependencies of .debs in PackageKit - right now we'll just have to output that the .deb's package name is being installed, removed or updated according to the arguments
+        if operationtype == 1:
+            pkgsinstalled.append(self.packagestorage[packagefile].name)
+        elif operationtype == 2:
+            pkgsupdated.append(self.packagestorage[packagefile].name)
+        elif operationtype == 3:
+            pkgsremoved.append(self.packagestorage[packagefile].name)
+        
+        return pkgsinstalled, pkgsupdated, pkgsremoved
     
     def get_configs(self):
         #Get configs and their current gsettings/file values and return them as a dictionary
