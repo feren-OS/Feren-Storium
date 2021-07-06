@@ -154,12 +154,6 @@ class LocalPackageMgmtModule():
             pass
     
     
-    def install_package(self, packagefile):
-        self.packagemgmtbusy = True
-        
-        #Install package and return exit code
-        self.currentpackagefile = packagefile
-        try:
             outcome = self.pk_client.install_files(0, [packagefile], None, self.progress_callback, None)
         except:
             return False
@@ -246,11 +240,13 @@ class LocalPackageMgmtModule():
 
     def enable_appsource(self, appsource):
         #Enable an Application Source
-        pass
+        #TODO: Change this for storemain once we have proper storemain module storage var.
+        self.storemain.modules_apt.enable_appsource(appsource)
     
     def disable_appsource(self, appsource):
         #Disable an Application Source
-        pass
+        #TODO: Change this for storemain once we have proper storemain module storage var.
+        self.storemain.modules_apt.disable_appsource(appsource)
 
 if __name__ == "__main__":
     module = PackageMgmtModule()

@@ -1,0 +1,59 @@
+#!/usr/bin/python3
+
+import sys
+
+#This class here is the main brains that connect the pieces of code together per each module
+class StoreModuleContainer():
+    def __init__(self, path):
+        self.path = path
+        sys.path.insert(0, path)
+        import module
+        #Imports the 'module.py' file of the folder
+
+
+
+
+
+
+gui_module = StoreModuleContainer("/usr/lib/feren-storium/modules/gui/gtk3-demo")
+# TODO: Have it be determined by gsettings
+settings_gui_module = StoreModuleContainer("/usr/lib/feren-storium/modules/settings-gui/gtk3-demo")
+# TODO: Have it be determined by gsettings
+localpkgmgmt_modules = {}
+pkgmgmt_modules = {}
+pkginfo_modules = {}
+settings_modules = {}
+
+
+#Load the initial modules
+def load_modules():
+    MODULES_DIR = "/usr/lib/feren-storium/modules"
+    if os.path.exists(MODULES_DIR):
+        for dir_name in sorted(os.listdir(MODULES_DIR+"/localpackagemgmt")):
+            path = os.path.join(MODULES_DIR, dir_name)
+            try:
+                module = StoreModuleContainer(path)
+                localpkgmgmt_modules[dir_name] = module
+            except Exception as e:
+                print("Failed to load local package management module %s: \n%s\n" % (dir_name, e))
+        for dir_name in sorted(os.listdir(MODULES_DIR+"/packagemgmt")):
+            path = os.path.join(MODULES_DIR, dir_name)
+            try:
+                module = StoreModuleContainer(path)
+                pkgmgmt_modules[dir_name] = module
+            except Exception as e:
+                print("Failed to load package management module %s: \n%s\n" % (dir_name, e))
+        for dir_name in sorted(os.listdir(MODULES_DIR+"/packageinfo")):
+            path = os.path.join(MODULES_DIR, dir_name)
+            try:
+                module = StoreModuleContainer(path)
+                pkginfo_modules[dir_name] = module
+            except Exception as e:
+                print("Failed to load package information module %s: \n%s\n" % (dir_name, e))
+        for dir_name in sorted(os.listdir(MODULES_DIR+"/settings")):
+            path = os.path.join(MODULES_DIR, dir_name)
+            try:
+                module = StoreModuleContainer(path)
+                settings_modules[dir_name] = module
+            except Exception as e:
+                print("Failed to load settings module %s: \n%s\n" % (dir_name, e))
