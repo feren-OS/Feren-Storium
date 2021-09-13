@@ -6,14 +6,21 @@ import gi
 
 
 #Dependencies
-import apt
-import apt.debfile
+import sys
+import getpass
+import math
+import os
+import re
+
+gi.require_version('Gtk', '3.0')
+gi.require_version('Flatpak', '1.0')
+from gi.repository import Flatpak, Gtk, GLib, Gio
 import gi
 gi.require_version('PackageKitGlib', '1.0')
 from gi.repository import PackageKitGlib
 
 
-class DebModuleException(Exception): # Name this according to the module to allow easier debugging
+class FlatpakModuleException(Exception): # Name this according to the module to allow easier debugging
     pass
 
 
@@ -39,20 +46,20 @@ class LocalPackageMgmtModule():
         gettext.install("feren-storium", "/usr/share/locale", names="ngettext")
 
         #Name to be used in Debugging output
-        self.title = _("deb Package Management Module")
+        self.title = _("flatpakref Package Management Module")
         #Name to be shown in the GUI
-        self.humanreadabletitle = _("Local Package Files Management")
+        self.humanreadabletitle = _("Local Flatpakref Files Management")
         
         #Mimetypes this works with
         self.mimetypessupported = ["application/vnd.debian.binary-package"]
         
         #Generic header title for when there's no header
-        self.genericheader = _("Local Package File")
+        self.genericheader = _("Flatpakref File")
         
         #Does this manage the application sources of a package management module?
-        self.managesmodulesources = False
+        self.managesmodulesources = True
         #If so, what modules does it manage? (e.g.: [flatpak])
-        self.modulessourcemanaged = []
+        self.modulessourcemanaged = ["flatpak"]
         
         #Configs (obtained by get_configs)
         self.moduleconfigs={}
@@ -65,8 +72,7 @@ class LocalPackageMgmtModule():
         self.lastpkgviewed = ""
         
         #APT Cache for memory
-        self.apt_cache = apt.Cache()
-        self.pk_client = PackageKitGlib.Client()
+        pass
         
         #Lock to keep stuff from happening while memory is refreshing
         self.memory_refreshing = False
@@ -80,9 +86,13 @@ class LocalPackageMgmtModule():
     def refresh_memory(self): # Function to refresh some memory values
         self.memory_refreshing = True
         
-        self.apt_cache = apt.Cache()
+        pass
         
         self.memory_refreshing = False
+        
+    def check_package_in_repos(self, packagefile):
+        #TODO: Check if packagefile's source repository exists in available repos, if yes return True if no return False
+        return False
         
     def check_package_in_storage(self, packagefile):
         if packagefile not in self.packagestorage:

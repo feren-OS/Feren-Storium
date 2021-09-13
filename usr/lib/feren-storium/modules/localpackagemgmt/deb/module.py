@@ -154,6 +154,23 @@ class LocalPackageMgmtModule():
             pass
     
     
+            
+        except:
+            return False
+        
+        #Clean up after management
+        self.currentpackagefile = ""
+        self.packagemgmtbusy = False
+        return outcome.get_exit_code() == PackageKitGlib.ExitEnum.SUCCESS
+    
+    def install_package(self, packagefile):
+        self.packagemgmtbusy = True
+        
+        packagename = self.packagestorage[packagefile].name
+        
+        #Install package and return exit code
+        self.currentpackagefile = packagefile
+        try:            
             outcome = self.pk_client.install_files(0, [packagefile], None, self.progress_callback, None)
         except:
             return False

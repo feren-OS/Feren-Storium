@@ -1,14 +1,16 @@
 #!/usr/bin/python3
 
 import sys
+import os
 
 #This class here is the main brains that connect the pieces of code together per each module
 class StoreModuleContainer():
     def __init__(self, path):
         self.path = path
-        sys.path.insert(0, path)
+        sys.path.insert(0, path) #Adds the module directory to the path for this class, so the next part knows where module.py is
         import module
         #Imports the 'module.py' file of the folder
+        self.module = module.Module()
 
 
 
@@ -57,3 +59,9 @@ def load_modules():
                 settings_modules[dir_name] = module
             except Exception as e:
                 print("Failed to load settings module %s: \n%s\n" % (dir_name, e))
+                
+                
+                
+load_modules()
+
+gui_module.module.init()

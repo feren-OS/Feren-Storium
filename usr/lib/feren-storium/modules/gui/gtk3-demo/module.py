@@ -23,11 +23,24 @@ from notify2 import Notification, init as NotifyInit
 
 
 ####Application Details Header
-class AppDetailsHeader(Gtk.Box):
+class AppDetailsHeader(Gtk.VBox):
 
     def __init__(self):
         
         Gtk.Box.__init__(self)
+        
+        self.app_icon = Gtk.Image()
+        self.app_icon.set_from_icon_name("deb", Gtk.IconSize.DND)
+        
+        self.app_title = Gtk.Label()
+        self.app_title.set_label("APPLICATION TITLE")
+        
+        self.app_shortdesc = Gtk.Label()
+        self.app_shortdesc.set_label("APPLICATION SHORT DESCRIPTION")
+        
+        self.pack_start(self.app_icon, False, False, 4)
+        self.pack_start(self.app_title, True, False, 4)
+        self.pack_start(self.app_shortdesc, True, False, 4)
         
         pass
 
@@ -247,7 +260,7 @@ class StoreWindow(object):
         mainwindow.pack_start(maintoolbar, False, True, 0)
         mainwindow.pack_start(box_application_header, False, True, 0)
         mainwindow.pack_end(b, True, True, 0)
-        file = os.path.abspath(os.path.join("/usr/share/feren-storium/home.html"))
+        file = os.path.abspath("/usr/share/feren-storium/home.html")
         uri = 'file://' + urllib.request.pathname2url(file)
         mv.load_uri(uri)
         mv.AppDetailsHeader = box_application_header
@@ -520,6 +533,8 @@ class StoreWindow(object):
         pass
     
 
-if __name__ == "__main__":    
-    app = StoreWindow()
-    app.run()
+class Module():
+    def init(self):
+        global app
+        app = StoreWindow()
+        app.run()
