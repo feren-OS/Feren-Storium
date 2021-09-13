@@ -38,111 +38,38 @@ class AppDetailsHeader(Gtk.VBox):
         self.app_shortdesc = Gtk.Label()
         self.app_shortdesc.set_label("APPLICATION SHORT DESCRIPTION")
         
+        self.app_source_dropdown = Gtk.ComboBox()
+        
+        self.app_mgmt_progress = Gtk.ProgressBar()
+        
+        buttonsbox = Gtk.Box()
+        
+        self.installapp_btn = Gtk.Button(label=("Install"))
+        self.installappnosource_btn = Gtk.Button(label=("Install..."))
+        self.updateapp_btn = Gtk.Button(label=("Update"))
+        self.removeapp_btn = Gtk.Button(label=("Remove"))
+        
+        buttonsbox.pack_start(self.installapp_btn, False, False, 4)
+        buttonsbox.pack_start(self.installappnosource_btn, False, False, 4)
+        buttonsbox.pack_start(self.updateapp_btn, False, False, 4)
+        buttonsbox.pack_start(self.removeapp_btn, False, False, 4)
+        
         self.pack_start(self.app_icon, False, False, 4)
         self.pack_start(self.app_title, True, False, 4)
         self.pack_start(self.app_shortdesc, True, False, 4)
+        self.pack_start(self.app_source_dropdown, False, False, 4)
+        self.pack_start(self.app_mgmt_progress, True, False, 4)
+        self.pack_start(buttonsbox, True, False, 4)
         
         pass
 
 
 
-####AppView (the website)
-class AppView(WebKit2.WebView):
+####AppView
+class AppMainView(Gtk.Stack):
 
     def __init__(self):
-        WebKit2.WebView.__init__(self)
-
-        self.connect('load-changed', self._load_changed_cb)
-        self.connect('context-menu', self._context_menu_cb)
-        self.connect('notify::status', self.on_load_status_change)
-        
-        self.status_btn = None
-        self.back_btn = None
-
-        #For the back button
-        #TODO: Check this more rigorously
-        self.back_button_history = ["home.html"]
-
-        self.back_signal_handler = None
-        
-        self.current_package = ""
-    
-        
-    def on_load_status_change(download, status):
-        print(download, status)
-        
-        #self._push_config()
-        
-    def refresh_gtk_colors(self):
-        """
-        Updates the CSS on the page to use the colours from GTK.
-        """
-        window = Gtk.Window()
-        style_context = window.get_style_context()
-
-        def _rgba_to_hex(color):
-           """
-           Return hexadecimal string for :class:`Gdk.RGBA` `color`.
-           """
-           return "#{0:02x}{1:02x}{2:02x}".format(
-                                            int(color.red   * 255),
-                                            int(color.green * 255),
-                                            int(color.blue  * 255))
-
-        def _get_color(style_context, preferred_color, fallback_color):
-            color = _rgba_to_hex(style_context.lookup_color(preferred_color)[1])
-            if color == "#000000":
-                color = _rgba_to_hex(style_context.lookup_color(fallback_color)[1])
-            return color
-
-        def _get_hex_variant(string, offset):
-            """
-            Converts hex input #RRGGBB to RGB and HLS to increase lightness independently
-            """
-            string = string.lstrip("#")
-            rgb = list(int(string[i:i+2], 16) for i in (0, 2 ,4))
-
-            # colorsys module converts to HLS to brighten/darken
-            hls = colorsys.rgb_to_hls(rgb[0], rgb[1], rgb[2])
-            newbright = hls[1] + offset
-            newbright = min([255, max([0, newbright])])
-            hls = (hls[0], newbright, hls[2])
-
-            # Re-convert to rgb and hex
-            newrgb = colorsys.hls_to_rgb(hls[0], hls[1], hls[2])
-
-            def _validate(value):
-                value = int(value)
-                if value > 255:
-                    return 255
-                elif value < 0:
-                    return 0
-                return value
-
-            newrgb = [_validate(newrgb[0]), _validate(newrgb[1]), _validate(newrgb[2])]
-            newhex = '#%02x%02x%02x' % (newrgb[0], newrgb[1], newrgb[2])
-            return newhex
-
-        bg_color = _get_color(style_context, "theme_base_color_breeze", "theme_base_color")
-        text_color = _get_color(style_context, "theme_fg_color_breeze", "theme_fg_color")
-        selected_bg_color = _get_color(style_context, "theme_selected_bg_color_breeze", "theme_selected_bg_color")
-        selected_text_color = _get_color(style_context, "theme_selected_fg_color_breeze", "theme_selected_fg_color")
-        button_bg_color = _get_color(style_context, "theme_button_background_normal_breeze", "theme_bg_color")
-
-        css = []
-        css.append("--bg: " + bg_color)
-        css.append("--text: " + text_color)
-        css.append("--selected_bg: " + selected_bg_color)
-        css.append("--selected_text: " + selected_text_color)
-        css.append("--button_bg: linear-gradient(to bottom, {0}, {1})".format(
-                                          _get_hex_variant(button_bg_color, 8),
-                                          _get_hex_variant(button_bg_color, -8)))
-
-        app.update_page("body", "append", "<style>:root {" + ";".join(css) + "}</style>")
-
-        # For High Contrast theme
-        if bg_color in ["#000", "#000000"]:
-            app.update_page("body", "addClass", "bg-is-black")
+        Gtk.Stack.__init__(self)
 
     def toggle_back(self, newstate):
         backbtnthread = Thread(target=self._toggle_back,
@@ -159,17 +86,16 @@ class AppView(WebKit2.WebView):
         self.toggle_back(False)
         #Remove from back history
         self.back_button_history = self.back_button_history[:-1]
-        self.run_javascript('gotopage("'+self.back_button_history[-1]+'")')
+        pass
+        #TODO
         
     def _goto_page(self, page):
-        #file = os.path.abspath(os.path.join(translations.get_pages_path(), page+".html"))
-        file = os.path.abspath(os.path.join("/usr/share/feren-storium/"+page+".html"))
-        uri = 'file://' + urllib.request.pathname2url(file)
-        self.load_uri(uri)
+        #TODO
+        pass
         
     def _goto_packageview(self, packagename):
-        #file = os.path.abspath(os.path.join(translations.get_pages_path(), "packagepage.html"))
-        self.run_javascript('gotopackage("'+packagename+'")')
+        #TODO
+        pass
 
     def _btn_goto_packageview(self, btn, packagename):
         self._goto_packageview(packagename)
@@ -186,52 +112,20 @@ class AppView(WebKit2.WebView):
     def packagepagestuff(self):
         pass
 
-    def _push_config(self):
-        # TODO: push notification should be connected to angularjs and use a
-        # broadcast event any suitable controllers will be able to listen and
-        # respond accordingly, for now we just use jQuery to manually toggle
-        current_page = app.current_page
+    #def _push_config(self):
+        ## TODO: push notification should be connected to angularjs and use a
+        ## broadcast event any suitable controllers will be able to listen and
+        ## respond accordingly, for now we just use jQuery to manually toggle
+        #current_page = app.current_page
                 
-        #Toggle block buttons first
-        self.StoreGUI.gohome_btn.handler_block(self.StoreGUI.gohome_handle_id)
-        self.StoreGUI.status_btn.handler_block(self.StoreGUI.status_handle_id)
-        #Do their toggles and then unblock
-        self.StoreGUI.gohome_btn.set_active(False)
-        self.StoreGUI.status_btn.set_active(False)
-        self.StoreGUI.gohome_btn.handler_unblock(self.StoreGUI.gohome_handle_id)
-        self.StoreGUI.status_btn.handler_unblock(self.StoreGUI.status_handle_id)
-
-        ### Index Page ###
-        if current_page == 'statuspage.html':
-            pass
-
-        if current_page.startswith('packagepage.html'):
-            pass
-
-    def _load_changed_cb(self, view, frame):
-        self.refresh_gtk_colors()
-        uri = str(self.get_uri())
-        
-        #By making this only run on a fully loaded page we prevent this thing running multiple times in one page load
-        if self.get_estimated_load_progress() == 1.0:
-            self.toggle_back(uri.rsplit('/', 1)[1] != "home.html")
-            #Add page to history if it isn't the latest page in history
-            if self.back_button_history[-1] != uri.rsplit('/', 1)[1] and uri.rsplit('/', 1)[1] != "splash.html":
-                self.back_button_history.append(uri.rsplit('/', 1)[1])
-                
-
-            if uri.rsplit('/', 1)[1] == "splash.html":
-                self.back_button_history = ["home.html"]
-                self.run_javascript('gotopage("'+self.StoreGUI._start_page+'")')
-                return
-            else:
-                self.mainwindowstack.set_visible_child(self.mainwindow)
-            app.current_page = uri.rsplit('/', 1)[1]
-            self._push_config()
-
-    def _context_menu_cb(self, webview, menu, event, htr, user_data=None):
-        # Disable context menu.
-        return True
+        ##Toggle block buttons first
+        #self.StoreGUI.gohome_btn.handler_block(self.StoreGUI.gohome_handle_id)
+        #self.StoreGUI.status_btn.handler_block(self.StoreGUI.status_handle_id)
+        ##Do their toggles and then unblock
+        #self.StoreGUI.gohome_btn.set_active(False)
+        #self.StoreGUI.status_btn.set_active(False)
+        #self.StoreGUI.gohome_btn.handler_unblock(self.StoreGUI.gohome_handle_id)
+        #self.StoreGUI.status_btn.handler_unblock(self.StoreGUI.status_handle_id)
 
 
 
@@ -260,9 +154,6 @@ class StoreWindow(object):
         mainwindow.pack_start(maintoolbar, False, True, 0)
         mainwindow.pack_start(box_application_header, False, True, 0)
         mainwindow.pack_end(b, True, True, 0)
-        file = os.path.abspath("/usr/share/feren-storium/home.html")
-        uri = 'file://' + urllib.request.pathname2url(file)
-        mv.load_uri(uri)
         mv.AppDetailsHeader = box_application_header
         self.w.show_all()
 
@@ -420,10 +311,9 @@ class StoreWindow(object):
         
         mainwindowstack.add_named(mainwindow, "window")
         
-        # build webkit container
-        mv = AppView()
+        # build page container
+        mv = AppMainView()
         mv.get_style_context().add_class(Gtk.STYLE_CLASS_VIEW)
-        mv.set_zoom_level(1.0)
 
         mv.back_btn = back_btn
         mv.back_signal_handler = mv.back_btn.connect("clicked", mv._back_action)
