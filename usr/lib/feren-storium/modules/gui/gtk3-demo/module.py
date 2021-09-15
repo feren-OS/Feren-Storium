@@ -15,7 +15,7 @@ import colorsys #Used for page recolourisation
 
 import os
 
-from gi.repository import WebKit2, Gtk, Gio, Gdk, GLib, Pango, GObject, GdkPixbuf
+from gi.repository import Gtk, Gio, Gdk, GLib, Pango, GObject, GdkPixbuf
 from threading import Thread
 from queue import Queue, Empty
 from notify2 import Notification, init as NotifyInit
@@ -70,6 +70,107 @@ class AppMainView(Gtk.Stack):
 
     def __init__(self):
         Gtk.Stack.__init__(self)
+        
+        sw = Gtk.ScrolledWindow()
+        sw.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        
+        mainbox = Gtk.VBox()
+        
+        mainlbl = Gtk.Label(label=("Application Listings"))
+        
+        #TODO: Turn these into a box and do the math https://python-gtk-3-tutorial.readthedocs.io/en/latest/layout.html
+        self.applistbox = Gtk.FlowBox()
+        
+        
+        
+        themeslbl = Gtk.Label(label=("Themes Listings"))
+        
+        #TODO: Turn these into a box and do the math https://python-gtk-3-tutorial.readthedocs.io/en/latest/layout.html
+        self.themelistbox = Gtk.FlowBox()
+        
+        
+        
+        websiteslbl = Gtk.Label(label=("Websites Listings"))
+        
+        #TODO: Turn these into a box and do the math https://python-gtk-3-tutorial.readthedocs.io/en/latest/layout.html
+        self.websiteslistbox = Gtk.FlowBox()
+        
+        
+        
+        sw.add(mainbox)
+        self.add_named(sw, "mainbox")
+        mainbox.pack_start(mainlbl, True, False, 4)
+        mainbox.pack_start(self.applistbox, True, True, 4)
+        mainbox.pack_start(themeslbl, True, False, 4)
+        mainbox.pack_start(self.themelistbox, True, True, 4)
+        mainbox.pack_start(websiteslbl, True, False, 4)
+        mainbox.pack_start(self.websiteslistbox, True, True, 4)
+        mainbox.pack_end(Gtk.Box(), True, True, 4)
+        
+        
+        
+        # build tasks page
+        taskspage = Gtk.VBox(spacing=8)
+        
+        taskslabel_box = Gtk.Box()
+        taskslabel = Gtk.Label(label="Currently working on these tasks:")
+        taskslabel_box.pack_start(taskslabel, False, False, 0)
+        
+        self.tasksitems = Gtk.FlowBox()
+        self.tasksitems.set_margin_top(4)
+        self.tasksitems.set_margin_bottom(4)
+        self.tasksitems.set_min_children_per_line(1)
+        self.tasksitems.set_max_children_per_line(1)
+        self.tasksitems.set_row_spacing(4)
+        self.tasksitems.set_homogeneous(True)
+        self.tasksitems.set_valign(Gtk.Align.START)
+        
+        updateslabel_box = Gtk.Box()
+        updateslabel = Gtk.Label(label="Updates are available for:")
+        updateslabel_box.pack_start(updateslabel, False, False, 0)
+        
+        self.updatesitems = Gtk.FlowBox()
+        self.updatesitems.set_margin_top(4)
+        self.updatesitems.set_margin_bottom(4)
+        self.updatesitems.set_min_children_per_line(1)
+        self.updatesitems.set_max_children_per_line(1)
+        self.updatesitems.set_row_spacing(4)
+        self.updatesitems.set_homogeneous(True)
+        self.updatesitems.set_valign(Gtk.Align.START)
+        
+        installedlabel_box = Gtk.Box()
+        installedlabel = Gtk.Label(label="Currently installed:")
+        installedlabel_box.pack_start(installedlabel, False, False, 0)
+        
+        self.installeditems = Gtk.FlowBox()
+        self.installeditems.set_margin_top(4)
+        self.installeditems.set_margin_bottom(4)
+        self.installeditems.set_min_children_per_line(1)
+        self.installeditems.set_max_children_per_line(1)
+        self.installeditems.set_row_spacing(4)
+        self.installeditems.set_homogeneous(True)
+        self.installeditems.set_valign(Gtk.Align.START)
+                
+        taskspage.pack_start(taskslabel_box, False, True, 0)
+        taskspage.pack_start(self.tasksitems, False, True, 0)
+        taskspage.pack_start(updateslabel_box, False, True, 0)
+        taskspage.pack_start(self.updatesitems, False, True, 0)
+        taskspage.pack_start(installedlabel_box, False, True, 0)
+        taskspage.pack_start(self.installeditems, False, True, 0)
+        
+        # build another scrolled window widget and add our tasks view
+        sw2 = Gtk.ScrolledWindow()
+        sw2.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        
+        taskspage.set_margin_bottom(8)
+        taskspage.set_margin_top(8)
+        taskspage.set_margin_left(10)
+        taskspage.set_margin_right(10)
+        
+        sw2.add(taskspage)
+        
+        
+        self.add_named(sw2, "tasks")
 
     def toggle_back(self, newstate):
         backbtnthread = Thread(target=self._toggle_back,
@@ -142,10 +243,10 @@ class StoreWindow(object):
 
         self._build_app()
 
-    def build_app_post_splashscreen(self, mainwindow, maintoolbar, mv, b):
-        GLib.idle_add(self._build_app_post_splashscreen, mainwindow, maintoolbar, mv, b)
+    def build_app_post_splashscreen(self, mainwindow, maintoolbar, mv):
+        GLib.idle_add(self._build_app_post_splashscreen, mainwindow, maintoolbar, mv)
 
-    def _build_app_post_splashscreen(self, mainwindow, maintoolbar, mv, b):
+    def _build_app_post_splashscreen(self, mainwindow, maintoolbar, mv):
         # build rest of window
         box_application_header = AppDetailsHeader()
         #box_application_header.set_visible(False)
@@ -153,7 +254,7 @@ class StoreWindow(object):
         # add the box to the parent window and show
         mainwindow.pack_start(maintoolbar, False, True, 0)
         mainwindow.pack_start(box_application_header, False, True, 0)
-        mainwindow.pack_end(b, True, True, 0)
+        mainwindow.pack_end(mv, True, True, 0)
         mv.AppDetailsHeader = box_application_header
         self.w.show_all()
 
@@ -249,66 +350,6 @@ class StoreWindow(object):
         
         header.pack_end(buttoncentering, False, False, 0)
         
-        # build tasks page
-        taskspage = Gtk.VBox(spacing=8)
-        
-        taskslabel_box = Gtk.Box()
-        taskslabel = Gtk.Label(label="Currently working on these tasks:")
-        taskslabel_box.pack_start(taskslabel, False, False, 0)
-        
-        self.tasksitems = Gtk.FlowBox()
-        self.tasksitems.set_margin_top(4)
-        self.tasksitems.set_margin_bottom(4)
-        self.tasksitems.set_min_children_per_line(1)
-        self.tasksitems.set_max_children_per_line(1)
-        self.tasksitems.set_row_spacing(4)
-        self.tasksitems.set_homogeneous(True)
-        self.tasksitems.set_valign(Gtk.Align.START)
-        
-        updateslabel_box = Gtk.Box()
-        updateslabel = Gtk.Label(label="Updates are available for:")
-        updateslabel_box.pack_start(updateslabel, False, False, 0)
-        
-        self.updatesitems = Gtk.FlowBox()
-        self.updatesitems.set_margin_top(4)
-        self.updatesitems.set_margin_bottom(4)
-        self.updatesitems.set_min_children_per_line(1)
-        self.updatesitems.set_max_children_per_line(1)
-        self.updatesitems.set_row_spacing(4)
-        self.updatesitems.set_homogeneous(True)
-        self.updatesitems.set_valign(Gtk.Align.START)
-        
-        installedlabel_box = Gtk.Box()
-        installedlabel = Gtk.Label(label="Currently installed:")
-        installedlabel_box.pack_start(installedlabel, False, False, 0)
-        
-        self.installeditems = Gtk.FlowBox()
-        self.installeditems.set_margin_top(4)
-        self.installeditems.set_margin_bottom(4)
-        self.installeditems.set_min_children_per_line(1)
-        self.installeditems.set_max_children_per_line(1)
-        self.installeditems.set_row_spacing(4)
-        self.installeditems.set_homogeneous(True)
-        self.installeditems.set_valign(Gtk.Align.START)
-                
-        taskspage.pack_start(taskslabel_box, False, True, 0)
-        taskspage.pack_start(self.tasksitems, False, True, 0)
-        taskspage.pack_start(updateslabel_box, False, True, 0)
-        taskspage.pack_start(self.updatesitems, False, True, 0)
-        taskspage.pack_start(installedlabel_box, False, True, 0)
-        taskspage.pack_start(self.installeditems, False, True, 0)
-        
-        
-        # build 404 page
-        self.nfpage = Gtk.VBox(spacing=8)
-        
-        nfpage_box = Gtk.VBox()
-        nfpagelabel = Gtk.Label(label="Not Available")
-        nfpagelabel2 = Gtk.Label(label="This item is currently not available or does not exist.")
-        nfpage_box.pack_start(nfpagelabel, False, False, 5)
-        nfpage_box.pack_end(nfpagelabel2, False, False, 5)
-        self.nfpage.set_center_widget(nfpage_box)
-        
         mainwindowstack.add_named(mainwindow, "window")
         
         # build page container
@@ -321,52 +362,25 @@ class StoreWindow(object):
         
         mv.StoreGUI = self
         
+        mv.connect("notify::visible-child", self.page_changed)
+        
         #handle_id is needed to block events as otherwise the button active state changes cause button press events to occur (for whatever stupid reason) which ultimately leads to a Stack Overflow as the event code retriggers the event by triggering the button press yet again looping the cycle indefinitely
 
         # build scrolled window widget and add our appview stack
         sw = Gtk.ScrolledWindow()
         sw.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
         
-        # build another scrolled window widget and add our tasks view
-        sw2 = Gtk.ScrolledWindow()
-        sw2.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
-        sw2.get_style_context().add_class(Gtk.STYLE_CLASS_VIEW)
-        
-        self.pages = Gtk.Stack()
-        self.pages.get_style_context().add_class(Gtk.STYLE_CLASS_VIEW)
-        self.pages.add_named(sw, "webkit")
-        self.pages.add_named(sw2, "tasks")
-        self.pages.add_named(self.nfpage, "404")
-        taskspage.set_margin_bottom(8)
-        taskspage.set_margin_top(8)
-        taskspage.set_margin_left(10)
-        taskspage.set_margin_right(10)
-        
-        sw.add(mv)
-        sw2.add(taskspage)
-
-        # build a an autoexpanding box and add our scrolled window
-        b = Gtk.Box(homogeneous=False, spacing=0)
-        b.pack_start(self.pages, expand=True, fill=True, padding=0)
-        
         self.w.add(mainwindowstack)
         
         self.w.connect('delete-event', self.close)
 
         self._window = self.w
-        self.webkit = mv
+        self.mainpage = mv
 
         self.w.show_all()
         
-        #Add more variables to mv
-        mv.sw = sw
-        mv.sw2 = sw2
-        mv.pages = self.pages
-        mv.mainwindow = mainwindow
-        mv.mainwindowstack = mainwindowstack
-        
         thread = Thread(target=self.build_app_post_splashscreen,
-                        args=(mainwindow, maintoolbar, mv, b))
+                        args=(mainwindow, maintoolbar, mv))
         thread.daemon = True
         thread.start()
 
@@ -374,10 +388,10 @@ class StoreWindow(object):
         Gtk.main()
 
     def _gohome_pressed(self, gtk_widget):
-        self.webkit._goto_page("home")
+        self.mainpage._goto_page("home")
 
     def _status_pressed(self, gtk_widget):
-        self.webkit._goto_page("statuspage")
+        self.mainpage._goto_page("statuspage")
 
     def close(self, p1 = None, p2 = None):
         try:
@@ -386,38 +400,8 @@ class StoreWindow(object):
             pass
         Gtk.main_quit(p1, p2)
 
-    def update_page(self, element, function, parm1=None, parm2=None):
-        """ Runs a JavaScript jQuery function on the page,
-            ensuring correctly parsed quotes. """
-        if parm1 and parm2:
-            self.run_javascript('$("' + element + '").' + function + "('" + parm1.replace("'", '\\\'') + "', '" + parm2.replace("'", '\\\'') + "')")
-        if parm1:
-            if not function == 'src':
-                self.run_javascript('$("' + element + '").' + function + "('" + parm1.replace("'", '\\\'') + "')")
-            else:
-                #Image replacing requires a special code modification
-                self.run_javascript('$("' + element + '").attr' + "('src', '" + parm1.replace("'", '\\\'') + "')")
-        else:
-            self.run_javascript('$("' + element + '").' + function + '()')
-
-    def run_javascript(self, script):
-        thread = Thread(target=self._run_javascript,
-                        args=(script,))
-        thread.start()
-
-    def _run_javascript(self, script):
-        """
-        Runs a JavaScript function on the page, regardless of which thread it is called from.
-        GTK+ operations must be performed on the same thread to prevent crashes.
-        """
-        GLib.idle_add(self.__run_javascript, script)
-
-    def __run_javascript(self, script):
-        """
-        Runs a JavaScript script on the page when invoked from run_javascript()
-        """
-        self.webkit.run_javascript(script)
-        return GLib.SOURCE_REMOVE
+    def page_changed(self, gtk_widget, value):
+        pass
 
     def _check_first_run(self):
         pass
