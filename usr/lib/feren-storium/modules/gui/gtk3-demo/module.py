@@ -71,15 +71,15 @@ class AppMainView(Gtk.Stack):
     def __init__(self):
         Gtk.Stack.__init__(self)
         
-        sw = Gtk.ScrolledWindow()
-        sw.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        self.sw = Gtk.ScrolledWindow()
+        self.sw.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
         
         mainbox = Gtk.VBox()
         
         mainlbl = Gtk.Label(label=("Application Listings"))
         
-        #TODO: Turn these into a box and do the math https://python-gtk-3-tutorial.readthedocs.io/en/latest/layout.html
         self.applistbox = Gtk.FlowBox()
+        self.applistbox.set_valign(Gtk.Align.START)
         
         
         
@@ -87,6 +87,7 @@ class AppMainView(Gtk.Stack):
         
         #TODO: Turn these into a box and do the math https://python-gtk-3-tutorial.readthedocs.io/en/latest/layout.html
         self.themelistbox = Gtk.FlowBox()
+        self.themelistbox.set_valign(Gtk.Align.START)
         
         
         
@@ -94,11 +95,12 @@ class AppMainView(Gtk.Stack):
         
         #TODO: Turn these into a box and do the math https://python-gtk-3-tutorial.readthedocs.io/en/latest/layout.html
         self.websiteslistbox = Gtk.FlowBox()
+        self.websiteslistbox.set_valign(Gtk.Align.START)
         
         
         
-        sw.add(mainbox)
-        self.add_named(sw, "mainbox")
+        self.sw.add(mainbox)
+        self.add_named(self.sw, "mainbox")
         mainbox.pack_start(mainlbl, True, False, 4)
         mainbox.pack_start(self.applistbox, True, True, 4)
         mainbox.pack_start(themeslbl, True, False, 4)
@@ -159,18 +161,75 @@ class AppMainView(Gtk.Stack):
         taskspage.pack_start(self.installeditems, False, True, 0)
         
         # build another scrolled window widget and add our tasks view
-        sw2 = Gtk.ScrolledWindow()
-        sw2.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        self.sw2 = Gtk.ScrolledWindow()
+        self.sw2.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
         
         taskspage.set_margin_bottom(8)
         taskspage.set_margin_top(8)
         taskspage.set_margin_left(10)
         taskspage.set_margin_right(10)
         
-        sw2.add(taskspage)
+        self.sw2.add(taskspage)
         
         
-        self.add_named(sw2, "tasks")
+        self.add_named(self.sw2, "tasks")
+        
+        
+        
+        # build search page
+        searchpage = Gtk.VBox(spacing=8)
+        
+        self.searchresults = Gtk.FlowBox()
+        self.searchresults.set_margin_top(4)
+        self.searchresults.set_margin_bottom(4)
+        self.searchresults.set_min_children_per_line(1)
+        self.searchresults.set_max_children_per_line(1)
+        self.searchresults.set_row_spacing(4)
+        self.searchresults.set_homogeneous(True)
+        self.searchresults.set_valign(Gtk.Align.START)
+        
+        searchpage.pack_start(self.searchresults, False, True, 0)
+        
+        # build another scrolled window widget and add our search view
+        self.sw3 = Gtk.ScrolledWindow()
+        self.sw3.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        
+        searchpage.set_margin_bottom(8)
+        searchpage.set_margin_top(8)
+        searchpage.set_margin_left(10)
+        searchpage.set_margin_right(10)
+        
+        self.sw3.add(searchpage)
+        
+        
+        self.add_named(self.sw3, "search")
+        
+        
+        
+        # build package page
+        packagepage = Gtk.VBox(spacing=8)
+        
+        templabel_box = Gtk.Box()
+        templabel = Gtk.Label(label="Package Page Placeholder")
+        templabel_box.pack_start(templabel, False, False, 0)
+        
+        packagepage.pack_start(templabel, False, True, 0)
+        
+        # build another scrolled window widget and add our search view
+        self.sw4 = Gtk.ScrolledWindow()
+        self.sw4.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        
+        packagepage.set_margin_bottom(8)
+        packagepage.set_margin_top(8)
+        packagepage.set_margin_left(10)
+        packagepage.set_margin_right(10)
+        
+        self.sw4.add(packagepage)
+        
+        
+        self.add_named(self.sw4, "packagepage")
+    
+
 
     def toggle_back(self, newstate):
         backbtnthread = Thread(target=self._toggle_back,
@@ -191,8 +250,7 @@ class AppMainView(Gtk.Stack):
         #TODO
         
     def _goto_page(self, page):
-        #TODO
-        pass
+        self.set_visible_child(page)
         
     def _goto_packageview(self, packagename):
         #TODO
@@ -218,15 +276,6 @@ class AppMainView(Gtk.Stack):
         ## broadcast event any suitable controllers will be able to listen and
         ## respond accordingly, for now we just use jQuery to manually toggle
         #current_page = app.current_page
-                
-        ##Toggle block buttons first
-        #self.StoreGUI.gohome_btn.handler_block(self.StoreGUI.gohome_handle_id)
-        #self.StoreGUI.status_btn.handler_block(self.StoreGUI.status_handle_id)
-        ##Do their toggles and then unblock
-        #self.StoreGUI.gohome_btn.set_active(False)
-        #self.StoreGUI.status_btn.set_active(False)
-        #self.StoreGUI.gohome_btn.handler_unblock(self.StoreGUI.gohome_handle_id)
-        #self.StoreGUI.status_btn.handler_unblock(self.StoreGUI.status_handle_id)
 
 
 
@@ -286,8 +335,9 @@ class StoreWindow(object):
         
         search_img = Gtk.Image()
         search_img.set_from_icon_name("edit-find-symbolic", Gtk.IconSize.BUTTON);
-        search_btn = Gtk.ToggleButton(image=search_img)
-        search_btn.set_name("search-btn")
+        self.search_btn = Gtk.ToggleButton(image=search_img)
+        self.search_btn.set_name("search-btn")
+        self.search_handle_id = self.search_btn.connect("clicked", self._search_pressed)
         
         mainmenu = Gio.Menu()
         mainmenu.append("hello")
@@ -345,7 +395,7 @@ class StoreWindow(object):
         
         buttoncenteringbtns.pack_start(self.gohome_btn, False, True, 0)
         buttoncenteringbtns.pack_start(self.status_btn, False, True, 0)
-        buttoncenteringbtns.pack_start(search_btn, False, True, 0)
+        buttoncenteringbtns.pack_start(self.search_btn, False, True, 0)
         buttoncenteringbtns.pack_start(menu_btn, False, True, 0)
         
         header.pack_end(buttoncentering, False, False, 0)
@@ -388,10 +438,13 @@ class StoreWindow(object):
         Gtk.main()
 
     def _gohome_pressed(self, gtk_widget):
-        self.mainpage._goto_page("home")
+        self.mainpage._goto_page(self.mainpage.sw)
+
+    def _search_pressed(self, gtk_widget):
+        self.mainpage._goto_page(self.mainpage.sw3)
 
     def _status_pressed(self, gtk_widget):
-        self.mainpage._goto_page("statuspage")
+        self.mainpage._goto_page(self.mainpage.sw2)
 
     def close(self, p1 = None, p2 = None):
         try:
@@ -401,7 +454,31 @@ class StoreWindow(object):
         Gtk.main_quit(p1, p2)
 
     def page_changed(self, gtk_widget, value):
-        pass
+        #Toggle block buttons first
+        self.gohome_btn.handler_block(self.gohome_handle_id)
+        self.status_btn.handler_block(self.status_handle_id)
+        self.search_btn.handler_block(self.search_handle_id)
+        
+        #Do their toggles and then unblock
+        self.gohome_btn.set_active(False)
+        self.status_btn.set_active(False)
+        self.search_btn.set_active(False)
+        
+        
+        if self.mainpage.get_visible_child() == self.mainpage.sw2: # Tasks
+            self.status_btn.set_active(True)
+        elif self.mainpage.get_visible_child() == self.mainpage.sw3: # Search
+            self.search_btn.set_active(True)
+        elif self.mainpage.get_visible_child() == self.mainpage.sw4: # Package Page
+            pass
+        else:
+            self.gohome_btn.set_active(True)
+            
+        #Now unblock the signals
+        self.gohome_btn.handler_unblock(self.gohome_handle_id)
+        self.status_btn.handler_unblock(self.status_handle_id)
+        self.search_btn.handler_unblock(self.search_handle_id)
+            
 
     def _check_first_run(self):
         pass
