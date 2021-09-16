@@ -345,6 +345,7 @@ class StoreWindow(object):
         back_btn = Gtk.Button(image=back_img)
         back_btn.set_sensitive(False)
         back_btn.set_name("back-btn")
+        back_btn.set_tooltip_text("Back")
         
         status_img = Gtk.Image()
         status_img.set_from_icon_name("folder-download-symbolic", Gtk.IconSize.BUTTON);
@@ -352,12 +353,14 @@ class StoreWindow(object):
         self.status_btn.set_name("status-btn")
         self.status_btn.set_always_show_image(True)
         self.status_handle_id = self.status_btn.connect("clicked", self._status_pressed)
+        self.status_btn.set_tooltip_text("See tasks and updates...")
         
         search_img = Gtk.Image()
         search_img.set_from_icon_name("edit-find-symbolic", Gtk.IconSize.BUTTON);
         self.search_btn = Gtk.ToggleButton(image=search_img)
         self.search_btn.set_name("search-btn")
         self.search_handle_id = self.search_btn.connect("clicked", self._search_pressed)
+        self.search_btn.set_tooltip_text("Search for applications...")
         
         mainmenu = Gio.Menu()
         mainmenu.append("Settings... (TBD)")
@@ -369,6 +372,7 @@ class StoreWindow(object):
         menu_btn = Gtk.MenuButton(image=menu_btn_img)
         menu_btn.set_use_popover(False)
         menu_btn.set_menu_model(mainmenu)
+        menu_btn.set_tooltip_text("More options...")
         
         self.gohome_btn = Gtk.ToggleButton(label=("Items Page"))
         self.gohome_btn.set_name("gohome-btn")
