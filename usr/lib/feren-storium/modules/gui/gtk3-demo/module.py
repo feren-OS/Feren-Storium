@@ -72,41 +72,63 @@ class AppMainView(Gtk.Stack):
         self.sw = Gtk.ScrolledWindow()
         self.sw.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
         
-        mainbox = Gtk.VBox()
+        mainpage = Gtk.VBox(spacing=8)
         
-        mainlbl = Gtk.Label(label=("Application Listings"))
+        mainlabel_box = Gtk.Box()
+        mainlabel = Gtk.Label(label="Application Listings:")
+        mainlabel_box.pack_start(mainlabel, False, False, 0)
         
-        self.applistbox = Gtk.FlowBox()
-        self.applistbox.set_valign(Gtk.Align.START)
+        self.appsitems = Gtk.FlowBox()
+        self.appsitems.set_margin_top(4)
+        self.appsitems.set_margin_bottom(4)
+        #self.appsitems.set_min_children_per_line(1)
+        #self.appsitems.set_max_children_per_line(1)
+        self.appsitems.set_row_spacing(4)
+        self.appsitems.set_homogeneous(True)
+        self.appsitems.set_valign(Gtk.Align.START)
+        
+        themeslabel_box = Gtk.Box()
+        themeslabel = Gtk.Label(label="Themes Listings:")
+        themeslabel_box.pack_start(themeslabel, False, False, 0)
+        
+        self.themesitems = Gtk.FlowBox()
+        self.themesitems.set_margin_top(4)
+        self.themesitems.set_margin_bottom(4)
+        #self.themesitems.set_min_children_per_line(1)
+        #self.themesitems.set_max_children_per_line(1)
+        self.themesitems.set_row_spacing(4)
+        self.themesitems.set_homogeneous(True)
+        self.themesitems.set_valign(Gtk.Align.START)
+        
+        websiteslabel_box = Gtk.Box()
+        websiteslabel = Gtk.Label(label="Websites Listings:")
+        websiteslabel_box.pack_start(websiteslabel, False, False, 0)
+        
+        self.websitesitems = Gtk.FlowBox()
+        self.websitesitems.set_margin_top(4)
+        self.websitesitems.set_margin_bottom(4)
+        #self.websitesitems.set_min_children_per_line(1)
+        #self.websitesitems.set_max_children_per_line(1)
+        self.websitesitems.set_row_spacing(4)
+        self.websitesitems.set_homogeneous(True)
+        self.websitesitems.set_valign(Gtk.Align.START)
+                
+        mainpage.pack_start(mainlabel_box, False, True, 0)
+        mainpage.pack_start(self.appsitems, False, True, 0)
+        mainpage.pack_start(themeslabel_box, False, True, 0)
+        mainpage.pack_start(self.themesitems, False, True, 0)
+        mainpage.pack_start(websiteslabel_box, False, True, 0)
+        mainpage.pack_start(self.websitesitems, False, True, 0)
+        
+        mainpage.set_margin_bottom(8)
+        mainpage.set_margin_top(8)
+        mainpage.set_margin_left(10)
+        mainpage.set_margin_right(10)
+        
+        self.sw.add(mainpage)
         
         
-        
-        themeslbl = Gtk.Label(label=("Themes Listings"))
-        
-        #TODO: Turn these into a box and do the math https://python-gtk-3-tutorial.readthedocs.io/en/latest/layout.html
-        self.themelistbox = Gtk.FlowBox()
-        self.themelistbox.set_valign(Gtk.Align.START)
-        
-        
-        
-        websiteslbl = Gtk.Label(label=("Websites Listings"))
-        
-        #TODO: Turn these into a box and do the math https://python-gtk-3-tutorial.readthedocs.io/en/latest/layout.html
-        self.websiteslistbox = Gtk.FlowBox()
-        self.websiteslistbox.set_valign(Gtk.Align.START)
-        
-        
-        
-        self.sw.add(mainbox)
-        self.add_named(self.sw, "mainbox")
-        mainbox.pack_start(mainlbl, True, False, 4)
-        mainbox.pack_start(self.applistbox, True, True, 4)
-        mainbox.pack_start(themeslbl, True, False, 4)
-        mainbox.pack_start(self.themelistbox, True, True, 4)
-        mainbox.pack_start(websiteslbl, True, False, 4)
-        mainbox.pack_start(self.websiteslistbox, True, True, 4)
-        mainbox.pack_end(Gtk.Box(), True, True, 4)
-        
+        self.add_named(self.sw, "home")
         
         
         # build tasks page
@@ -309,7 +331,7 @@ class StoreWindow(object):
         # build window
         self.w = Gtk.Window()
         self.w.set_position(Gtk.WindowPosition.CENTER)
-        self.w.set_title("Store")
+        self.w.set_title("Storium Demo - GUI Module")
         self.w.set_default_size(850, 640)
         self.w.set_size_request(850, 540)
         #self.w.set_resizable(False)
@@ -338,8 +360,10 @@ class StoreWindow(object):
         self.search_handle_id = self.search_btn.connect("clicked", self._search_pressed)
         
         mainmenu = Gio.Menu()
-        mainmenu.append("hello")
-        mainmenu.append("world")
+        mainmenu.append("Settings... (TBD)")
+        mainmenu.append("Export Application Playlist... (TBD)")
+        mainmenu.append("Import Application Playlist... (TBD)")
+        mainmenu.append("About Feren Storium (TBD)")
         menu_btn_img = Gtk.Image()
         menu_btn_img.set_from_icon_name("open-menu-symbolic", Gtk.IconSize.BUTTON);
         menu_btn = Gtk.MenuButton(image=menu_btn_img)
