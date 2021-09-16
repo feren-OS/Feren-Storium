@@ -11,14 +11,12 @@ import urllib.error
 import locale #Translations go brrr
 import gettext #Translations go brrr
 import getpass #Used for finding username
-import colorsys #Used for page recolourisation
 
 import os
 
 from gi.repository import Gtk, Gio, Gdk, GLib, Pango, GObject, GdkPixbuf
 from threading import Thread
 from queue import Queue, Empty
-from notify2 import Notification, init as NotifyInit
 
 
 
@@ -484,7 +482,7 @@ class StoreWindow(object):
         pass
     
 
-class Module():
+class main():
     def init(self):
         global app
         app = StoreWindow()

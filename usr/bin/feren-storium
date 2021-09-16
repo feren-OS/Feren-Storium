@@ -10,7 +10,7 @@ class StoreModuleContainer():
         sys.path.insert(0, path) #Adds the module directory to the path for this class, so the next part knows where module.py is
         import module
         #Imports the 'module.py' file of the folder
-        self.module = module.Module()
+        self.main = module.main()
 
 
 
@@ -64,4 +64,4 @@ def load_modules():
                 
 load_modules()
 
-gui_module.module.init()
+gui_module.main.init()
