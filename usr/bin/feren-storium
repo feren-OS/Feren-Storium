@@ -2,66 +2,96 @@
 
 import sys
 import os
+import importlib
+import signal
+from threading import Thread
+import gi
+from gi.repository import GLib
 
 #This class here is the main brains that connect the pieces of code together per each module
 class StoreModuleContainer():
-    def __init__(self, path):
+    def __init__(self, storebrain, path):
         self.path = path
         sys.path.insert(0, path) #Adds the module directory to the path for this class, so the next part knows where module.py is
         import module
+        importlib.reload(module) #Otherwise only one module will be loaded across all variables
         #Imports the 'module.py' file of the folder
-        self.main = module.main()
+        self.main = module.main(storebrain)
 
 
 
+class StoreBrain():
+    #Load the initial modules
+    def load_modules(self):
+        MODULES_DIR = "/usr/lib/feren-storium/modules"
+        if os.path.exists(MODULES_DIR):
+            for dir_name in sorted(os.listdir(MODULES_DIR+"/localpackagemgmt")):
+                path = os.path.join(MODULES_DIR, dir_name)
+                try:
+                    module = StoreModuleContainer(self, path)
+                    self.localpkgmgmt_modules[dir_name] = module
+                except Exception as e:
+                    print("Failed to load local package management module %s: \n%s\n" % (dir_name, e))
+            for dir_name in sorted(os.listdir(MODULES_DIR+"/packagemgmt")):
+                path = os.path.join(MODULES_DIR, dir_name)
+                try:
+                    module = StoreModuleContainer(self, path)
+                    self.pkgmgmt_modules[dir_name] = module
+                except Exception as e:
+                    print("Failed to load package management module %s: \n%s\n" % (dir_name, e))
+            for dir_name in sorted(os.listdir(MODULES_DIR+"/packageinfo")):
+                path = os.path.join(MODULES_DIR, dir_name)
+                try:
+                    module = StoreModuleContainer(self, path)
+                    self.pkginfo_modules[dir_name] = module
+                except Exception as e:
+                    print("Failed to load package information module %s: \n%s\n" % (dir_name, e))
+            for dir_name in sorted(os.listdir(MODULES_DIR+"/settings")):
+                path = os.path.join(MODULES_DIR, dir_name)
+                try:
+                    module = StoreModuleContainer(self, path)
+                    self.settings_modules[dir_name] = module
+                except Exception as e:
+                    print("Failed to load settings module %s: \n%s\n" % (dir_name, e))
+    
+    
+    def __init__(self):
+        self.gui_module = StoreModuleContainer(self, "/usr/lib/feren-storium/modules/gui/gtk3-demo")
+        # TODO: Have it be determined by gsettings
+        self.settings_gui_module = StoreModuleContainer(self, "/usr/lib/feren-storium/modules/settings-gui/gtk3-demo")
+        # TODO: Have it be determined by gsettings
+        self.localpkgmgmt_modules = {}
+        self.pkgmgmt_modules = {}
+        self.pkginfo_modules = {}
+        self.settings_modules = {}
+        
+        #TODO: Remove this later on
+        self.debug_module = StoreModuleContainer(self, "/usr/lib/feren-storium/modules/tempdebug")
+        
+        self.load_modules()
+        
+    def run_module(self, module):
+        thread = Thread(target=self._run_module,
+                        args=(module,))
+        thread.daemon = True
+        thread.start()
 
-
-
-gui_module = StoreModuleContainer("/usr/lib/feren-storium/modules/gui/gtk3-demo")
-# TODO: Have it be determined by gsettings
-settings_gui_module = StoreModuleContainer("/usr/lib/feren-storium/modules/settings-gui/gtk3-demo")
-# TODO: Have it be determined by gsettings
-localpkgmgmt_modules = {}
-pkgmgmt_modules = {}
-pkginfo_modules = {}
-settings_modules = {}
-
-
-#Load the initial modules
-def load_modules():
-    MODULES_DIR = "/usr/lib/feren-storium/modules"
-    if os.path.exists(MODULES_DIR):
-        for dir_name in sorted(os.listdir(MODULES_DIR+"/localpackagemgmt")):
-            path = os.path.join(MODULES_DIR, dir_name)
-            try:
-                module = StoreModuleContainer(path)
-                localpkgmgmt_modules[dir_name] = module
-            except Exception as e:
-                print("Failed to load local package management module %s: \n%s\n" % (dir_name, e))
-        for dir_name in sorted(os.listdir(MODULES_DIR+"/packagemgmt")):
-            path = os.path.join(MODULES_DIR, dir_name)
-            try:
-                module = StoreModuleContainer(path)
-                pkgmgmt_modules[dir_name] = module
-            except Exception as e:
-                print("Failed to load package management module %s: \n%s\n" % (dir_name, e))
-        for dir_name in sorted(os.listdir(MODULES_DIR+"/packageinfo")):
-            path = os.path.join(MODULES_DIR, dir_name)
-            try:
-                module = StoreModuleContainer(path)
-                pkginfo_modules[dir_name] = module
-            except Exception as e:
-                print("Failed to load package information module %s: \n%s\n" % (dir_name, e))
-        for dir_name in sorted(os.listdir(MODULES_DIR+"/settings")):
-            path = os.path.join(MODULES_DIR, dir_name)
-            try:
-                module = StoreModuleContainer(path)
-                settings_modules[dir_name] = module
-            except Exception as e:
-                print("Failed to load settings module %s: \n%s\n" % (dir_name, e))
-                
-                
-                
-load_modules()
-
-gui_module.main.init()
+    def _run_module(self, module):
+        GLib.idle_add(self.__run_module, module)
+        
+    def __run_module(self, module):
+        module.main.init()
+        
+    def run(self):
+        signal.signal(signal.SIGINT, signal.SIG_DFL)
+        
+        self.run_module(self.debug_module)
+        
+        self.gui_module.main.init()
+     
+     
+     
+if __name__ == "__main__":
+    app = StoreBrain()
+    app.run()
+    

@@ -233,7 +233,7 @@ class AppMainView(Gtk.Stack):
         templabel = Gtk.Label(label="Package Page Placeholder")
         templabel_box.pack_start(templabel, False, False, 0)
         
-        packagepage.pack_start(templabel, False, True, 0)
+        packagepage.pack_start(templabel_box, False, True, 0)
         
         # build another scrolled window widget and add our search view
         self.sw4 = Gtk.ScrolledWindow()
@@ -274,7 +274,8 @@ class AppMainView(Gtk.Stack):
         
     def _goto_packageview(self, packagename):
         #TODO
-        pass
+        self.set_visible_child(self.sw4)
+        
 
     def _btn_goto_packageview(self, btn, packagename):
         self._goto_packageview(packagename)
@@ -300,8 +301,9 @@ class AppMainView(Gtk.Stack):
 
 
 ####Store Window
-class StoreWindow(object):
-    def __init__(self):
+class main(object):    
+    def __init__(self, storebrain):
+        self.storebrain = storebrain
 
         self.current_page = ""
 
@@ -309,8 +311,6 @@ class StoreWindow(object):
         #systemstate.first_run = True
 
         self._start_page = 'home.html'
-
-        self._build_app()
 
     def build_app_post_splashscreen(self, mainwindow, maintoolbar, mv):
         GLib.idle_add(self._build_app_post_splashscreen, mainwindow, maintoolbar, mv)
@@ -460,7 +460,8 @@ class StoreWindow(object):
         thread.daemon = True
         thread.start()
 
-    def run(self):
+    def init(self):
+        self._build_app()
         Gtk.main()
 
     def _gohome_pressed(self, gtk_widget):
@@ -508,10 +509,3 @@ class StoreWindow(object):
 
     def _check_first_run(self):
         pass
-    
-
-class main():
-    def init(self):
-        global app
-        app = StoreWindow()
-        app.run()
