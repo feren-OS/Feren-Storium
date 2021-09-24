@@ -18,9 +18,9 @@
     "order-of-importance": ["snap", "apt"]
   },
   "mozilla-firefox": {
-    "apt": "standard",
+    "apt": "",
     "flatpak": "flatpak-flathub",
     "snap": "snapstore",
-    "order-of-importance": ["flatpak", "apt", "snap"]
+    "order-of-importance": ["flatpak", "snap"]
   }
 }

@@ -12,7 +12,7 @@ import subprocess
 
 
 #[1]: Profile directory
-#[2]: Browser (chrome, vivaldi, brave, msedge, epiphany (Flatpak))
+#[2]: Browser (chrome, vivaldi, brave, msedge)
 #[3]: Website URL
 #[4]: Window Class
 #[5]: uBlock Origin? TRUE/FALSE

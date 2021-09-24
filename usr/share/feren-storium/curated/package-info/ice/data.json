@@ -1,0 +1,37 @@
+{
+  "google-youtube": {
+    "keywords": "Google;You;Videos;Broadcast;",
+    "author": "Google",
+    "bugreporturl": "",
+    "tos": "",
+    "privpol": ""
+  },
+  "microsoft-office-online": {
+    "keywords": "Microsoft;Office;Word;PowerPoint;Excel;OneNote;SharePoint;Outlook;Sway;Yammer;Project;Delve;",
+    "author": "Microsoft Corporation",
+    "bugreporturl": "",
+    "tos": "",
+    "privpol": ""
+  },
+  "facebook-facebook": {
+    "keywords": "Facebook;Messenger;Zucc;Stories;Social;",
+    "author": "Facebook",
+    "bugreporturl": "",
+    "tos": "",
+    "privpol": ""
+  },
+  "twitter-twitter": {
+    "keywords": "Twitter;Tweet;Social;",
+    "author": "Twitter",
+    "bugreporturl": "",
+    "tos": "",
+    "privpol": ""
+  },
+  "reddit-reddit": {
+    "keywords": "Subreddits;Karma;Social;",
+    "author": "Reddit",
+    "bugreporturl": "",
+    "tos": "",
+    "privpol": ""
+  }
+}

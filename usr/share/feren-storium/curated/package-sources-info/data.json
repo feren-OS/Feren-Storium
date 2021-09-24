@@ -1,0 +1,112 @@
+{
+  "apt": {
+    "standard-ubuntu": {
+        "sourcename": "Standard Install",
+        "name": "Ubuntu Repositories",
+        "repository": "",
+        "repository-file": "sources.list",
+        "forced": true,
+        "key-from-ubuntu": false,
+        "key-location": "",
+        "arch": ["all"]
+    },
+    "standard": {
+        "sourcename": "Standard Install",
+        "name": "Feren OS Repository",
+        "repository": "",
+        "repository-file": "feren-os.list",
+        "forced": true,
+        "key-from-ubuntu": false,
+        "key-location": "",
+        "arch": ["all"]
+    },
+    "standard": {
+        "sourcename": "Standard Install",
+        "name": "Feren OS KDE neon Repository Mirror",
+        "repository": "",
+        "repository-file": "feren-os-neon.list",
+        "forced": true,
+        "key-from-ubuntu": false,
+        "key-location": "",
+        "arch": ["all"]
+    },
+    "google-chrome": {
+        "sourcename": "Google",
+        "name": "Google Chrome Repository",
+        "repository": "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main",
+        "repository-file": "google-chrome.list",
+        "forced": false,
+        "key-from-ubuntu": false,
+        "key-location": "https://dl.google.com/linux/linux_signing_key.pub",
+        "arch": ["amd64"]
+    },
+    "brave": {
+        "sourcename": "Brave",
+        "name": "Brave Browser Repository",
+        "repository": "deb [arch=amd64] https://brave-browser-apt-release.s3.brave.com/ stable main",
+        "repository-file": "brave.list",
+        "forced": false,
+        "key-from-ubuntu": false,
+        "key-location": "https://brave-browser-apt-release.s3.brave.com/brave-core.asc",
+        "arch": ["amd64"]
+    },
+    "microsoft-edge": {
+        "sourcename": "Microsoft",
+        "name": "Microsoft Edge Repository",
+        "repository": "deb [arch=amd64] https://packages.microsoft.com/repos/edge stable main",
+        "repository-file": "microsoft-edge-beta.list",
+        "forced": false,
+        "key-from-ubuntu": false,
+        "key-location": "https://packages.microsoft.com/keys/microsoft.asc",
+        "arch": ["amd64"]
+    },
+    "opera-browser": {
+        "sourcename": "Opera",
+        "name": "Opera Browser Repository",
+        "repository": "deb https://deb.opera.com/opera-stable/ stable non-free",
+        "repository-file": "opera-stable.list",
+        "forced": false,
+        "key-from-ubuntu": false,
+        "key-location": "https://deb.opera.com/archive.key",
+        "arch": ["amd64"]
+    },
+    "vivaldi": {
+        "sourcename": "Vivaldi",
+        "name": "Vivaldi Browser Repository",
+        "repository": "deb http://repo.vivaldi.com/stable/deb/ stable main",
+        "repository-file": "vivaldi.list",
+        "forced": false,
+        "key-from-ubuntu": false,
+        "key-location": "http://repo.vivaldi.com/stable/linux_signing_key.pub",
+        "arch": ["amd64"]
+    }
+  },
+  "flatpak": {
+    "flathub": {
+        "sourcename": "Flathub",
+        "name": "Flathub",
+        "repository": "https://flatpak.elementary.io/repo.flatpakrepo",
+        "repository-file": "TBD",
+        "forced": false,
+        "arch": ["all"]
+    },
+    "elementary-appcenter": {
+        "sourcename": "AppCenter",
+        "name": "elementary OS AppCenter",
+        "repository": "https://flatpak.elementary.io/repo.flatpakrepo",
+        "repository-file": "TBD",
+        "forced": false,
+        "arch": ["all"]
+    }
+  },
+  "snap": {
+    "snapstore": {
+        "sourcename": "Snap Store",
+        "name": "Snap Store",
+        "repository": "",
+        "repository-file": "",
+        "forced": true,
+        "arch": ["all"]
+    }
+  }
+}

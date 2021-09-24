@@ -18,7 +18,7 @@
     "appstream": "chromium.desktop"
   },
   "mozilla-firefox": {
-    "apt": "firefox",
+    "apt": "",
     "flatpak": "org.mozilla.firefox",
     "snap": "firefox",
     "appstream": "firefox.desktop"
