@@ -98,19 +98,16 @@ class PackageInfoModule():
         privpolurl = self.getPrivPolURL(packagename, packagetype, translatedpackagename)
         
         #Application compatibility
-        
-        
-        
-        #Current plans for checks
-        # Does it support themes?
-        # Touch Screen support?
-        # Accessibility support?
-        # Original Dev publishes it?
-        # DPI/Scaling support?
+        canusethemes = self.getCanTheme(packagename, packagetype, translatedpackagename)
+        canusetouchscreen = self.getCanTouchScreen(packagename, packagetype, translatedpackagename)
+        canuseaccessibility = self.getCanUseAccessibility(packagename, packagetype, translatedpackagename)
+        canusedpiscaling = self.getCanUseDPI(packagename, packagetype, translatedpackagename)
+        canuseonphone = self.getCanUseOnPhone(packagename, packagetype, translatedpackagename)
+        isofficial = self.getIsOfficial(packagename, packagetype, translatedpackagename)
         
         
         #Return values
-        return {"keywords": keywords}
+        return {"author": author, "pkgsource": pkgsource, "bugsurl": bugsurl, "tosurl": tosurl, "privpolurl": privpolurl, "canusethemes": canusethemes, "canusetouchscreen": canusetouchscreen, "canuseaccessibility": canuseaccessibility, "canusedpiscaling": canusedpiscaling, "canuseonphone": canuseonphone, "isofficial": isofficial}
         
 
     def getAuthor(self, packagename, packagetype, translatedpackagename=self.getNameFromInternal(packagename, packagetype), typejson=self.json_storage["package-info/" + packagetype]):
@@ -148,6 +145,62 @@ class PackageInfoModule():
         except:
             privpolurl = ""
         return privpolurl
+      
+    def getCanTheme(self, packagename, packagetype, translatedpackagename=self.getNameFromInternal(packagename, packagetype), typejson=self.json_storage["package-info/" + packagetype]):
+        # Return values:
+        # 0: No
+        # 1: Yes
+        # 2: Yes, but manually enabled
+        # 3: Yes, except for Feren OS's style
+        # 4: Has own themes system
+        # 5: No because LibAdwaita
+        # 6: No because LibGranite
+        
+        try:
+            canusethemes = typejson[translatedpackagename]["canihasthemes"]
+        except:
+            canusethemes = 1 # Use fallback of Yes when unknown to hide the message
+        return canusethemes
+      
+    def getCanTouchScreen(self, packagename, packagetype, translatedpackagename=self.getNameFromInternal(packagename, packagetype), typejson=self.json_storage["package-info/" + packagetype]):
+        # Return values:
+        # 0: No
+        # 1: Yes
+        # 2: Partially
+        
+        try:
+            canusetouchscreen = typejson[translatedpackagename]["canihastouch"]
+        except:
+            canusetouchscreen = 1 # Use fallback of Yes when unknown to hide the message
+        return canusetouchscreen
+      
+    def getCanUseAccessibility(self, packagename, packagetype, translatedpackagename=self.getNameFromInternal(packagename, packagetype), typejson=self.json_storage["package-info/" + packagetype]):
+        try:
+            canuseaccessibility = typejson[translatedpackagename]["canihasaccessibility"]
+        except:
+            canuseaccessibility = True # Use fallback of True when unknown to hide the message
+        return canuseaccessibility
+      
+    def getCanUseDPI(self, packagename, packagetype, translatedpackagename=self.getNameFromInternal(packagename, packagetype), typejson=self.json_storage["package-info/" + packagetype]):
+        try:
+            canusedpiscaling = typejson[translatedpackagename]["canihasdpiscaling"]
+        except:
+            canusedpiscaling = True # Use fallback of True when unknown to hide the message
+        return canusedpiscaling
+      
+    def getCanUseOnPhone(self, packagename, packagetype, translatedpackagename=self.getNameFromInternal(packagename, packagetype), typejson=self.json_storage["package-info/" + packagetype]):
+        try:
+            canuseonphone = typejson[translatedpackagename]["canihasphoneadapting"]
+        except:
+            canuseonphone = True # Use fallback of True when unknown to hide the message
+        return canuseonphone
+      
+    def getIsOfficial(self, packagename, packagetype, translatedpackagename=self.getNameFromInternal(packagename, packagetype), typejson=self.json_storage["package-info/" + packagetype]):
+        try:
+            isofficial = typejson[translatedpackagename]["officialpackage"]
+        except:
+            isofficial = True # Use fallback of True when unknown to hide the message
+        return isofficial
 
 
 if __name__ == "__main__":

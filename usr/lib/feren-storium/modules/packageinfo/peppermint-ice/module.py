@@ -72,6 +72,7 @@ class PackageInfoModule():
         #Ice-specific stuff
         keywords = self.getKeywords(packagename)
         
+        
         #Return values
         return {"author": author, "bugsurl": bugsurl, "tosurl": tosurl, "privpolurl": privpolurl, "keywords": keywords}
         

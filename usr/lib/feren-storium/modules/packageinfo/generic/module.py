@@ -74,6 +74,10 @@ class PackageInfoModule():
         website = self.getWebsite(packagename, packagetype, translatedpackagename)
         donateurl = self.getDonateURL(packagename, packagetype, translatedpackagename)
         
+        
+        #Return values
+        return {"realname": realname, "iconuri": iconuri, "shortdescription": shortdescription, "description": description, "category": category, "images": images, "website": website, "donateurl": donateurl}
+        
       
     def getRealName(self, packagename, packagetype, translatedpackagename=self.getNameFromInternal(packagename, packagetype)):
         try:
