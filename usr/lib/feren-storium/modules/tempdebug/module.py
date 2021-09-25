@@ -52,6 +52,9 @@ class DebugWindow(object):
         self.storebrain.pkgmgmt_modules["peppermint-ice"].main.pkgstorage_add(self.textboxicepkgname.get_text())
         
         self.storebrain.pkgmgmt_modules[self.storebrain.package_module("peppermint-ice")].main.remove_package(self.textboxicepkgname.get_text(), self.textboxicesource.get_text())
+        
+    def testiceinfo_pressed(self, gtk_widget):
+        print(self.storebrain.get_item_info(self.textboxicepkgname.get_text(), "peppermint-ice"))
 
     def _build_app(self):
         # build window
@@ -81,6 +84,7 @@ class DebugWindow(object):
         self.checkboxdarkread = Gtk.CheckButton(label="add darkreader")
         self.iceinstall = Gtk.Button(label="ice install")
         self.iceremove = Gtk.Button(label="ice remove")
+        self.icegetinfo = Gtk.Button(label="ice get info")
         
         yeet.pack_start(self.textboxicepkgname, True, False, 4)
         yeet.pack_start(self.textboxicesource, True, False, 4)
@@ -89,9 +93,11 @@ class DebugWindow(object):
         yeet.pack_start(self.checkboxdarkread, True, False, 4)
         yeet.pack_start(self.iceinstall, True, False, 4)
         yeet.pack_start(self.iceremove, True, False, 4)
+        yeet.pack_start(self.icegetinfo, True, False, 4)
         
         self.iceinstall.connect("clicked", self.testiceinstall_pressed)
         self.iceremove.connect("clicked", self.testiceremove_pressed)
+        self.icegetinfo.connect("clicked", self.testiceinfo_pressed)
         
         #back_img = Gtk.Image()
         #back_img.set_from_icon_name("go-previous-symbolic", Gtk.IconSize.BUTTON);

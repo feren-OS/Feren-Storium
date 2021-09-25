@@ -97,6 +97,13 @@ class StoreBrain():
                 return module
         raise StoreBrainException(_("No package module was found for managing %s") % packagetype)
         
+    def local_package_module(self, packagetype):
+        #Return the first one we find's name
+        for module in self.localpkgmgmt_modules:
+            if packagetype in self.localpkgmgmt_modules[module].main.types_managed:
+                return module
+        raise StoreBrainException(_("No local package module was found for managing %s") % packagetype)
+        
         
     def run_module(self, module):
         thread = Thread(target=self._run_module,

@@ -118,7 +118,7 @@ class main():
         # Return package installation status
         # 0 - Uninstalled
         # 1 - Installed
-        if os.path.isfile(os.path.expanduser("~") + "/.local/share/applications/feren-storium-ice/%s.desktop" % packagename):
+        if os.path.isfile(os.path.expanduser("~") + "/.local/share/applications/%s.desktop" % packagename) and os.path.isdir(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/icon" % packagename):
             return 1
         else:
             return 0
@@ -139,10 +139,13 @@ class main():
         self.packagemgmtbusy = True
         self.currentpackagename = packagename
         
+        #First remove the files just in case
+        self.remove_package(packagename, source, True)
+        
         #Create the .desktop file's home if it doesn't exist
-        if not os.path.isdir(os.path.expanduser("~") + "/.local/share/applications/feren-storium-ice"):
+        if not os.path.isdir(os.path.expanduser("~") + "/.local/share/applications"):
             try:
-                os.mkdir(os.path.expanduser("~") + "/.local/share/applications/feren-storium-ice")
+                os.mkdir(os.path.expanduser("~") + "/.local/share/applications")
             except Exception as exceptionstr:
                 raise ICEModuleException(_("Failed to install {0}: {1} was encountered when trying to create the shortcut's location").format(packagename, exceptionstr))
             
@@ -162,10 +165,12 @@ class main():
             with open(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/First Run" % packagename, 'w') as fp:
                 pass
         except Exception as exceptionstr:
+            self.remove_package(packagename, source, True) #Remove profile's files/folders on failure
             raise ICEModuleException(_("Failed to install {0}: {1} was encountered when making the Chromium-based profile").format(packagename, exceptionstr))
         try:
             os.mkdir(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/Default" % packagename)
         except Exception as exceptionstr:
+            self.remove_package(packagename, source, True) #Remove profile's files/folders on failure
             raise ICEModuleException(_("Failed to install {0}: {1} was encountered when making the Chromium-based profile").format(packagename, exceptionstr))
         
         usefallbackicon = False
@@ -199,6 +204,7 @@ class main():
             with open(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/Default/Preferences" % packagename, 'w') as fp:
                 fp.write(json.dumps(profiletomake, separators=(',', ':')))
         except Exception as exceptionstr:
+            self.remove_package(packagename, source, True) #Remove profile's files/folders on failure
             raise ICEModuleException(_("Failed to install {0}: {1} was encountered when writing the Chromium-based profile").format(packagename, exceptionstr))
         
         
@@ -217,7 +223,7 @@ class main():
             darkreadarg = "false"
         try:
 
-            with open(os.path.expanduser("~") + "/.local/share/applications/feren-storium-ice/%s.desktop" % packagename, 'w') as fp:
+            with open(os.path.expanduser("~") + "/.local/share/applications/%s.desktop" % packagename, 'w') as fp:
                 fp.write("[Desktop Entry]\n")
                 fp.write("Version=1.0\n")
                 fp.write("Name={0}\n".format(self.packagestorage[packagename].realname))
@@ -259,35 +265,40 @@ class main():
                 fp.write("StartupWMClass=%s\n" % packagename)
                 fp.write("StartupNotify=true\n")
         except Exception as exceptionstr:
+            self.remove_package(packagename, source, True) #Remove profile's files/folders on failure
             raise ICEModuleException(_("Failed to install {0}: {1} was encountered when creating a shortcut in the Applications Menu").format(packagename, exceptionstr))
         
-        os.system("chmod +x " + os.path.expanduser("~") + "/.local/share/applications/feren-storium-ice/%s.desktop" % packagename)
+        os.system("chmod +x " + os.path.expanduser("~") + "/.local/share/applications/%s.desktop" % packagename)
         
         #Clean up after management
         self.currentpackagename = ""
         self.packagemgmtbusy = False
         return True
     
-    def remove_package(self, packagename, source):
+    def remove_package(self, packagename, source, forinstall=False):
         if packagename not in self.packagestorage:
             raise ICEModuleException(_("%s is not in the Package Storage (packagestorage) yet - make sure it's in the packagestorage variable before obtaining package information.") % packagename)
         
-        self.packagemgmtbusy = True
-        self.currentpackagename = packagename
+        if not forinstall:
+            self.packagemgmtbusy = True
+            self.currentpackagename = packagename
         
         #Delete the files and the folders and done        
         try:
-            os.remove(os.path.expanduser("~") + "/.local/share/applications/feren-storium-ice/%s.desktop" % packagename)
+            os.remove(os.path.expanduser("~") + "/.local/share/applications/%s.desktop" % packagename)
         except Exception as exceptionstr:
-            raise ICEModuleException(_("Failed to uninstall {0}: {1} was encountered when removing the shortcut from the Applications Menu").format(packagename, exceptionstr))
+            if not forinstall:
+                raise ICEModuleException(_("Failed to uninstall {0}: {1} was encountered when removing the shortcut from the Applications Menu").format(packagename, exceptionstr))
         try:
             shutil.rmtree(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s" % packagename)
         except Exception as exceptionstr:
-            raise ICEModuleException(_("Failed to uninstall {0}: {1} was encountered when deleting the Chromium-based profile").format(packagename, exceptionstr))
+            if not forinstall:
+                raise ICEModuleException(_("Failed to uninstall {0}: {1} was encountered when deleting the Chromium-based profile").format(packagename, exceptionstr))
         
         #Clean up after management
-        self.currentpackagename = ""
-        self.packagemgmtbusy = False
+        if not forinstall:
+            self.currentpackagename = ""
+            self.packagemgmtbusy = False
         return True
     
     def update_package(self, packagename):
