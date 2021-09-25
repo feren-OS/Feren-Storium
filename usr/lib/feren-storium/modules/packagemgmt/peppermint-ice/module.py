@@ -123,7 +123,7 @@ class main():
         else:
             return 0
         
-    def dict_recurupdate(self, d, u):
+    def dict_recurupdate(self, d, u): # I'm sure it's a recursive dictionary updater function, from what I can read of this function
         for k, v in u.items():
             if isinstance(v, collections.abc.Mapping):
                 d[k] = self.dict_recurupdate(d.get(k, {}), v)
@@ -139,7 +139,7 @@ class main():
         self.packagemgmtbusy = True
         self.currentpackagename = packagename
         
-        #First remove the files just in case
+        #First remove the files just in case there's a partial installation
         self.remove_package(packagename, source, True)
         
         #Create the .desktop file's home if it doesn't exist
@@ -161,6 +161,7 @@ class main():
             except Exception as exceptionstr:
                 raise ICEModuleException(_("Failed to install {0}: {1} was encountered when trying to create the profile's folder").format(packagename, exceptionstr))
             
+        #First Run existing skips the initial Welcome to Google Chrome dialog, which is very useful here to have a skip in place for
         try:
             with open(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/First Run" % packagename, 'w') as fp:
                 pass
@@ -187,7 +188,8 @@ class main():
         
         if "nekocap" in bonuses:
             with open("/usr/share/feren-storium/modules/packagemgmt-ice/chromium-profile/and-nekocap", 'r') as fp:
-                profiletomakeextra = json.loads(fp.read())
+                profiletomakeextra = json.loads(fp.read()) #This is how you make json.load work with file paths, I guess
+            #FIXME: In python3 you're meant to dict.update(newdict), but the pythonic way gets RID of our other Extensions in the process from the Preferences, hence this in-house function's used instead, here
             profiletomake = self.dict_recurupdate(profiletomake, profiletomakeextra)
         if "ublock" in bonuses:
             with open("/usr/share/feren-storium/modules/packagemgmt-ice/chromium-profile/and-ublock", 'r') as fp:
@@ -202,7 +204,7 @@ class main():
         #Write profile
         try:
             with open(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/Default/Preferences" % packagename, 'w') as fp:
-                fp.write(json.dumps(profiletomake, separators=(',', ':')))
+                fp.write(json.dumps(profiletomake, separators=(',', ':'))) # This dumps minified json (how convenient), which is EXACTLY what Chrome uses for Preferences, so it's literally pre-readied
         except Exception as exceptionstr:
             self.remove_package(packagename, source, True) #Remove profile's files/folders on failure
             raise ICEModuleException(_("Failed to install {0}: {1} was encountered when writing the Chromium-based profile").format(packagename, exceptionstr))
@@ -224,6 +226,7 @@ class main():
         try:
 
             with open(os.path.expanduser("~") + "/.local/share/applications/%s.desktop" % packagename, 'w') as fp:
+                # I mean, this needs no explanation, it's a .desktop file
                 fp.write("[Desktop Entry]\n")
                 fp.write("Version=1.0\n")
                 fp.write("Name={0}\n".format(self.packagestorage[packagename].realname))
@@ -240,6 +243,7 @@ class main():
                 else:
                     fp.write("Icon={0}\n".format(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/icon" % packagename))
 
+                #Ice stuff will have their own categories to allow for easier sectioning of items in Store overall
                 if self.packagestorage[packagename].category == "ice-accessories":
                     location = "Utility;"
                 elif self.packagestorage[packagename].category == "ice-games":
@@ -268,6 +272,7 @@ class main():
             self.remove_package(packagename, source, True) #Remove profile's files/folders on failure
             raise ICEModuleException(_("Failed to install {0}: {1} was encountered when creating a shortcut in the Applications Menu").format(packagename, exceptionstr))
         
+        #Otherwise they'll refuse to launch from the Applications Menu (bug seen in Mint's own Ice code fork)
         os.system("chmod +x " + os.path.expanduser("~") + "/.local/share/applications/%s.desktop" % packagename)
         
         #Clean up after management
@@ -279,7 +284,7 @@ class main():
         if packagename not in self.packagestorage:
             raise ICEModuleException(_("%s is not in the Package Storage (packagestorage) yet - make sure it's in the packagestorage variable before obtaining package information.") % packagename)
         
-        if not forinstall:
+        if not forinstall: # We call this in the install process to clear out partial installs, so for those times we want to skip THIS code to not confuse Store's Brain or anything that could get confused from this module 'unlocking' temporarily
             self.packagemgmtbusy = True
             self.currentpackagename = packagename
         
