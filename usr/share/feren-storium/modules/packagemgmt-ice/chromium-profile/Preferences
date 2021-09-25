@@ -1,0 +1,77 @@
+{
+    "default_apps_install_state": 3,
+    "brave": {
+        "new_tab_page": { "hide_all_widgets": true, "show_branded_background_image": false, "show_brave_today": false },
+        "shields_settings_version": 2,
+        "hide_brave_rewards_button": true
+    },
+    "browser": { "custom_chrome_frame": true, "has_seen_welcome_page": true },
+    "extensions": {
+        "settings": {
+            "pdcjjgefkpoemmlcjfcfkeminneboaob": {
+                "location": 1,
+                "manifest": {
+                    "key": "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCEetbb+aZag1Su2EOp1gOdRwJd2mBJo5HqX6cdZzXOZ3Ag1eoXzMFVikqDH8dgOEyWUTwGXh5ruDHy9Nztg8oPIFfx6xPi5mrDjuENAK9GtBHEvHOdmwx8jU+dUNB/5Vx+Fs6ngIQLy9cFRQegVP8P9zwc6rO8w/KL1R8RQaLJDwIDAQAB",
+                    "name": "Modern Flat",
+                    "permissions": [],
+                    "update_url": "http://clients2.google.com/service/update2/crx",
+                    "version": "0.0",
+                    "manifest_version": 2,
+                    "theme": {
+                        "colors": {
+                            "bookmark_text": [33, 38, 41],
+                            "button_background": [0, 0, 0, 0],
+                            "frame": [33, 38, 41],
+                            "ntp_background": [255, 255, 255],
+                            "ntp_text": [104, 104, 104],
+                            "tab_background_text": [228, 228, 228],
+                            "tab_text": [33, 38, 41],
+                            "toolbar": [223, 223, 223]
+                        },
+                        "images": { "theme_frame": "images/theme_frame.png", "theme_tab_background": "images/theme_tab_background.png", "theme_toolbar": "images/theme_toolbar.png" },
+                        "properties": { "ntp_background_alignment": "bottom", "ntp_background_repeat": "no-repeat" },
+                        "tints": { "buttons": [0, 0, 0.5] }
+                    }
+                },
+                "path": "pdcjjgefkpoemmlcjfcfkeminneboaob\\0.0",
+                "state": 1
+            }
+        },
+        "theme": { "id": "pdcjjgefkpoemmlcjfcfkeminneboaob" }
+    },
+    "privacy_sandbox": { "apis_enabled": false, "floc_enabled": false, "manually_controlled": true },
+    "session": { "restore_on_startup": 5 },
+    "sessions": { "session_data_status": 3 },
+    "signin": { "allowed": false },
+    "sync": { "requested": false },
+    "unified_consent": { "migration_state": 10 },
+    "vivaldi": {
+        "address_bar": { "search": { "display": 2 } },
+        "panels": {
+            "list": [
+                { "available": false, "forMailOnly": false, "format": 7, "id": "format", "resizable": false, "width": -1 },
+                { "available": false, "forMailOnly": false, "id": "bookmarks", "resizable": false, "width": -1 },
+                { "available": true, "forMailOnly": false, "id": "downloads", "resizable": false, "width": -1 },
+                { "available": true, "forMailOnly": false, "id": "history", "resizable": false, "width": -1 },
+                { "available": false, "forMailOnly": false, "id": "notes", "resizable": false, "width": -1 },
+                { "available": false, "forMailOnly": false, "id": "tabs", "resizable": false, "width": -1 },
+                { "available": false, "forMailOnly": true, "id": "mail", "resizable": false, "width": -1 },
+                { "available": false, "forMailOnly": true, "id": "feeds", "resizable": false, "width": -1 },
+                { "available": false, "forMailOnly": true, "id": "contacts", "resizable": false, "width": -1 },
+                { "available": false, "forMailOnly": false, "id": "calendar", "resizable": false, "width": -1 },
+                { "available": false, "forMailOnly": false, "id": "chat", "resizable": false, "width": 290 }
+            ],
+            "state": { "barVisible": true, "panelVisible": false },
+            "web": { "items": [], "modified": ["ckmam0bsw00002y5xoafpww5i", "ckn7fhhqx0000hc2roo8jshm4"], "removed_items": [{ "id": "ckmam0bsw00002y5xoafpww5i" }, { "id": "ckn7fhhqx0000hc2roo8jshm4" }], "version": "99999.0.0001.01" },
+            "window": { "single_click_opens": true }
+        },
+        "menu": { "icon_type": 1 },
+        "startpage": { "navigation": 2, "speed_dial": { "add_button_visible": false, "allow_dnd": false, "controls_visible": false, "delete_visible": false, "favicon_visible": false, "titles_visible": 1 } },
+        "startup": { "has_seen_feature": 1, "last_seen_version": "99999.0.0001.01" },
+        "status_bar": { "display": 2, "minimized": 1 },
+        "system": { "show_exit_confirmation_dialog": false },
+        "tabs": { "at_edge": true, "dim_hibernated": true, "focus_webview": true, "page_load_info": 3 },
+        "toolbars": { "navigation": ["Back", "Forward", "Reload", "CaptureImages"] },
+        "windows": { "show_window_close_confirmation_dialog": false, "use_native_decoration": true }
+    }
+}

@@ -34,6 +34,24 @@ class DebugWindow(object):
         
     def gotopkgpagebtn_pressed(self, gtk_widget):
         self.storebrain.gui_module.main.mainpage._goto_packageview(self.textboxpkgpage.get_text())
+        
+    def testiceinstall_pressed(self, gtk_widget):
+        bonuses = []
+        if self.checkboxnekocap.get_active() == True:
+            bonuses.append("nekocap")
+        if self.checkboxdarkread.get_active() == True:
+            bonuses.append("darkreader")
+        if self.checkboxublock.get_active() == True:
+            bonuses.append("ublock")
+        
+        self.storebrain.pkgmgmt_modules["peppermint-ice"].main.pkgstorage_add(self.textboxicepkgname.get_text())
+        
+        self.storebrain.pkgmgmt_modules[self.storebrain.package_module("peppermint-ice")].main.install_package(self.textboxicepkgname.get_text(), self.textboxicesource.get_text(), bonuses)
+        
+    def testiceremove_pressed(self, gtk_widget):
+        self.storebrain.pkgmgmt_modules["peppermint-ice"].main.pkgstorage_add(self.textboxicepkgname.get_text())
+        
+        self.storebrain.pkgmgmt_modules[self.storebrain.package_module("peppermint-ice")].main.remove_package(self.textboxicepkgname.get_text(), self.textboxicesource.get_text())
 
     def _build_app(self):
         # build window
@@ -46,12 +64,34 @@ class DebugWindow(object):
         self.w.add(yeet)
         
         self.textboxpkgpage = Gtk.Entry()
+        self.textboxpkgpage.set_placeholder_text("package to view")
         self.gotopkgpagebtn = Gtk.Button(label="go to package page")
         
         yeet.pack_start(self.textboxpkgpage, True, False, 4)
         yeet.pack_start(self.gotopkgpagebtn, True, False, 4)
         
         self.gotopkgpagebtn.connect("clicked", self.gotopkgpagebtn_pressed)
+        
+        self.textboxicepkgname = Gtk.Entry()
+        self.textboxicepkgname.set_placeholder_text("ice package to manage")
+        self.textboxicesource = Gtk.Entry()
+        self.textboxicesource.set_placeholder_text("browser to aim for")
+        self.checkboxublock = Gtk.CheckButton(label="add ublock")
+        self.checkboxnekocap = Gtk.CheckButton(label="add nekocap")
+        self.checkboxdarkread = Gtk.CheckButton(label="add darkreader")
+        self.iceinstall = Gtk.Button(label="ice install")
+        self.iceremove = Gtk.Button(label="ice remove")
+        
+        yeet.pack_start(self.textboxicepkgname, True, False, 4)
+        yeet.pack_start(self.textboxicesource, True, False, 4)
+        yeet.pack_start(self.checkboxublock, True, False, 4)
+        yeet.pack_start(self.checkboxnekocap, True, False, 4)
+        yeet.pack_start(self.checkboxdarkread, True, False, 4)
+        yeet.pack_start(self.iceinstall, True, False, 4)
+        yeet.pack_start(self.iceremove, True, False, 4)
+        
+        self.iceinstall.connect("clicked", self.testiceinstall_pressed)
+        self.iceremove.connect("clicked", self.testiceremove_pressed)
         
         #back_img = Gtk.Image()
         #back_img.set_from_icon_name("go-previous-symbolic", Gtk.IconSize.BUTTON);

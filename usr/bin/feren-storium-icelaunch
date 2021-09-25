@@ -1,0 +1,86 @@
+#!/usr/bin/python3
+import os
+import sys
+import subprocess
+
+#######################################################################################
+# ICE Shortcut Launcher - Feren Storium                                               #
+#                                                                                     #
+# Rest in Peace, Mark Greaves.                                                        #
+#######################################################################################
+
+
+
+#[1]: Profile directory
+#[2]: Browser (chrome, vivaldi, brave, msedge)
+#[3]: Website URL
+#[4]: Window Class
+#[5]: uBlock Origin? TRUE/FALSE
+#[6]: NekoCap? TRUE/FALSE
+#[7]: Dark Reader? TRUE/FALSE
+
+#Opera: Removed because Preferences location is incorrect and no application mode
+#Yandex: Removed because it didn't install Extensions
+#Epiphany: Scrapped (for now) because way too janky to make it work
+
+def mkprofile(path):
+    try:
+        os.mkdir(path)
+    except:
+        print("An error occured creating the browser profile. Feren Store Ice cannot continue.")
+        exit(1)
+        
+    #if sys.argv[2] == "epiphany": #Extra case for Epiphany
+        #import shutil
+        #shutil.copy(os.path.expanduser("~") + "/.local/share/applications/" + sys.argv[4] + '.desktop', sys.argv[1] + '/org.gnome.Epiphany.WebApp-FerenStoreIce/org.gnome.Epiphany.WebApp-FerenStoreIce.desktop', follow_symlinks=False)
+        #subprocess.Popen(['/usr/bin/sed', '-i', 's@Exec=.*@Exec=epiphany --application-mode --profile=' + sys.argv[1] + '/org.gnome.Epiphany.WebApp-FerenStoreIce ' + sys.argv[3] + '@g', sys.argv[1] + '/org.gnome.Epiphany.WebApp-FerenStoreIce/org.gnome.Epiphany.WebApp-FerenStoreIce.desktop']).wait()
+    
+    
+    #TODO
+
+#if sys.argv[2] != "epiphany":
+if os.path.isfile(sys.argv[1]):
+    print("A file exists here. Feren Store Ice cannot continue.")
+    exit(1)
+if not os.path.isdir(sys.argv[1]):
+    mkprofile(sys.argv[1])
+#else:
+    ##Special case for Epiphany
+    #if os.path.isfile(sys.argv[1] + '/org.gnome.Epiphany.WebApp-FerenStoreIce'):
+        #print("A file exists here. Feren Store Ice cannot continue.")
+        #exit(1)
+    #if not os.path.isdir(sys.argv[1] + '/org.gnome.Epiphany.WebApp-FerenStoreIce'):
+        #mkprofile(sys.argv[1] + '/org.gnome.Epiphany.WebApp-FerenStoreIce')
+    
+#TODO: If browser doesn't exist, launch Store command to make it change browser
+if sys.argv[2] == "chrome":
+    if os.path.isfile("/usr/bin/google-chrome"):
+        subprocess.Popen(['/usr/bin/google-chrome', '--app=' + sys.argv[3], '--class=' + sys.argv[4], '--user-data-dir=' + sys.argv[1]], close_fds=True)
+    else:
+        pass
+elif sys.argv[2] == "vivaldi":
+    if os.path.isfile("/usr/bin/vivaldi"):
+        subprocess.Popen(['/usr/bin/vivaldi', '--app=' + sys.argv[3], '--class=' + sys.argv[4], '--user-data-dir=' + sys.argv[1]], close_fds=True)
+    else:
+        pass
+elif sys.argv[2] == "brave":
+    if os.path.isfile("/usr/bin/brave-browser"):
+        subprocess.Popen(['/usr/bin/brave-browser', '--app=' + sys.argv[3], '--class=' + sys.argv[4], '--user-data-dir=' + sys.argv[1]], close_fds=True)
+    else:
+        pass
+elif sys.argv[2] == "msedge":
+    if os.path.isfile("/usr/bin/microsoft-edge"):
+        subprocess.Popen(['/usr/bin/microsoft-edge', '--app=' + sys.argv[3], '--class=' + sys.argv[4], '--user-data-dir=' + sys.argv[1]], close_fds=True)
+    else:
+        pass
+#elif sys.argv[2] == "epiphany":
+    ##TODO: Better way to detect Flatpaks, and, well, Flatpak itself
+    #subprocess.Popen(['/usr/bin/flatpak', 'override', '--user', 'org.gnome.Epiphany', '--filesystem=' + sys.argv[1] + '/org.gnome.Epiphany.WebApp-FerenStoreIce']).wait() # Make sure profile's accessible
+    
+    #if os.path.isfile("/var/lib/flatpak/app/org.gnome.Epiphany/current/active/files/bin/epiphany"):
+        #subprocess.Popen(['/usr/bin/flatpak', 'run', 'org.gnome.Epiphany', '--application-mode', '--profile=' + sys.argv[1] + '/org.gnome.Epiphany.WebApp-FerenStoreIce', sys.argv[3]], close_fds=True)
+    #else:
+        #pass
+else:
+    print("This browser is either not supported or doesn't exist. Feren Store Ice cannot continue.")
+    exit(1)

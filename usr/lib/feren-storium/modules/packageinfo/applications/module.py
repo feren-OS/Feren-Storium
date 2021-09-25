@@ -28,7 +28,6 @@ class PackageInfoModule():
         
         #Configs (obtained by get_configs)
         self.moduleconfigs={}
-        self.get_configs()
         
         #What package types does this provide info for?
         self.types_provided = ["apt", "snap", "flatpak"]

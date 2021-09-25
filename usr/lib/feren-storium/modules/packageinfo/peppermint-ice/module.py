@@ -15,9 +15,9 @@ class IceInfoModuleException(Exception): # Name this according to the module to 
 
 
 
-class PackageInfoModule():
+class main():
 
-    def __init__(self, storegui):
+    def __init__(self, storebrain):
 
         gettext.install("feren-storium", "/usr/share/locale", names="ngettext")
 
@@ -28,10 +28,9 @@ class PackageInfoModule():
         
         #Configs (obtained by get_configs)
         self.moduleconfigs={}
-        self.get_configs()
         
         #What package types does this provide info for?
-        self.types_provided = ["ice"]
+        self.types_provided = ["peppermint-ice"]
         
         #Information Storage to keep it in - modify list as appropriate for files
         self.json_storage = {}
@@ -50,8 +49,9 @@ class PackageInfoModule():
         
         self.json_storage = {}
         
-        for i in ["package-info/ice"]:
-            self.json_storage[i] = json.load("/usr/share/feren-storium/curated/" + i + "/data.json")
+        for i in ["package-info/peppermint-ice"]:
+            with open("/usr/share/feren-storium/curated/" + i + "/data.json", 'r') as fp:            
+                self.json_storage[i] = json.loads(fp.read())
         
         self.memory_refreshing = False
       
@@ -79,7 +79,7 @@ class PackageInfoModule():
 
     def getKeywords(self, packagename):
         try:
-            keywords = self.json_storage["package-info/ice"][packagename]["keywords"]
+            keywords = self.json_storage["package-info/peppermint-ice"][packagename]["keywords"]
         except:
             raise IceInfoModuleException(packagename, _("has no keywords value in the package metadata. Websites MUST have keywords values when curated."))
             return
@@ -87,28 +87,28 @@ class PackageInfoModule():
     
     def getAuthor(self, packagename):
         try:
-            author = self.json_storage["package-info/ice"][packagename]["author"]
+            author = self.json_storage["package-info/peppermint-ice"][packagename]["author"]
         except:
             author = _("Unknown Author")
         return author
       
     def getBugsURL(self, packagename):
         try:
-            bugsurl = self.json_storage["package-info/ice"][packagename]["bugreporturl"]
+            bugsurl = self.json_storage["package-info/peppermint-ice"][packagename]["bugreporturl"]
         except:
             bugsurl = ""
         return bugsurl
       
     def getTOSURL(self, packagename):
         try:
-            tosurl = self.json_storage["package-info/ice"][packagename]["tos"]
+            tosurl = self.json_storage["package-info/peppermint-ice"][packagename]["tos"]
         except:
             tosurl = ""
         return tosurl
       
     def getPrivPolURL(self, packagename):
         try:
-            privpolurl = self.json_storage["package-info/ice"][packagename]["privpol"]
+            privpolurl = self.json_storage["package-info/peppermint-ice"][packagename]["privpol"]
         except:
             privpolurl = ""
         return privpolurl

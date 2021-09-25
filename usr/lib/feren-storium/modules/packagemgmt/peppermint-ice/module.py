@@ -6,17 +6,35 @@ import gi
 
 
 #Dependencies
-
+import json
+import shutil
+import collections.abc
 
 
 class ICEModuleException(Exception): # Name this according to the module to allow easier debugging
     pass
 
 
+class PackageStore():
+    def __init__(self, realname, iconuri, shortdesc, description, author, category, images, website, donateurl, bugsurl, tosurl, privpolurl, keywords):
+        self.realname = realname
+        self.iconuri = iconuri
+        self.shortdesc = shortdesc
+        self.description = description
+        self.author = author
+        self.category = category
+        self.images = images
+        self.website = website
+        self.donateurl = donateurl
+        self.bugsurl = bugsurl
+        self.tosurl = tosurl
+        self.privpolurl = privpolurl
+        self.keywords = keywords
 
-class PackageMgmtModule():
 
-    def __init__(self, storegui):
+class main():
+
+    def __init__(self, storebrain):
 
         gettext.install("feren-storium", "/usr/share/locale", names="ngettext")
 
@@ -31,6 +49,12 @@ class PackageMgmtModule():
         #Application Sources (for ICE let's have the sources be the browsers that're supported)
         # Empty here, will be appended to with self.refresh_memory()
         self.applicationsources = {}
+        
+        #Store Brain
+        self.storebrain = storebrain
+        
+        #What package types does this manage?
+        self.types_managed = ["peppermint-ice"]
         
         #Generic Description for header
         self.genericheader = _("Website Application")
@@ -57,7 +81,7 @@ class PackageMgmtModule():
         #Force refresh the sources to populate the sources
         self.refresh_sources()
         
-    def refresh_sources(self): # Function to refresh sources list - just return if your module doesn't need this
+    def refresh_sources(self, packagename=""): # Function to refresh sources list - just return if your module doesn't need this
         self.applicationsources = {}
         #Add each browser to applicationsources
         if os.path.isfile("/usr/bin/vivaldi"):
@@ -78,97 +102,201 @@ class PackageMgmtModule():
         
     def pkgstorage_add(self, packagename):
         if packagename not in self.packagestorage:
-            #TODO: Get from Store Brain's Info Module
-            
             #Get the values
-            #try:
-                #pkgdesc = debpackage["Description"].splitlines()
-            #except:
-                #pkgdesc = [self.storemain.uistrings.nodesc]
-            #try:
-                #pkgauthor = debpackage["Maintainer"]
-            #except:
-                #pkgauthor = self.storemain.uistrings.unknownauthor
-            #try:
-                #pkginstalledsize = debpackage["Installed-Size"]
-            #except:
-                #pkginstalledsize = self.storemain.uistrings.unknownsize
-            #try:
-                #pkgsection = debpackage["Section"]
-            #except:
-                #pkgsection = self.storemain.uistrings.nosection
-            #try:
-                #pkghomepage = debpackage["Homepage"]
-            #except:
-                #pkghomepage = ""
+            packageinfo = self.storebrain.get_item_info(packagename, "peppermint-ice")
             
-                        
-            #self.packagestorage(packagename) = PackageStore(packagename, debpackage.pkgname, debpackage["Version"], pkgauthor, pkginstalledsize, pkgsection, pkghomepage, pkgdesc)
-            pass
-            
-    def get_headerdescription(self, packagename):
-        return self.genericheader
+            self.packagestorage[packagename] = PackageStore(packageinfo["realname"], packageinfo["iconuri"], "desc", packageinfo["description"], packageinfo["author"], packageinfo["category"], packageinfo["images"], packageinfo["website"], packageinfo["donateurl"], packageinfo["bugsurl"], packageinfo["tosurl"], packageinfo["privpolurl"], packageinfo["keywords"])
 
-    def get_description(self, packagename):
+    def get_information(self, packagename):
         # Return description for package
-        if packagename in packagestorage:
-            return packagestorage[packagename].description
+        if packagename in self.packagestorage:
+            return self.packagestorage[packagename].realname, self.packagestorage[packagename].iconuri, self.packagestorage[packagename].shortdesc, self.packagestorage[packagename].description, self.packagestorage[packagename].author, self.packagestorage[packagename].category, self.packagestorage[packagename].images, self.packagestorage[packagename].website, self.packagestorage[packagename].donateurl, self.packagestorage[packagename].bugsurl, self.packagestorage[packagename].tosurl, self.packagestorage[packagename].privpolurl, self.packagestorage[packagename].keywords
         else:
-            raise ICEModuleException(packagename, _("is not in the Package Storage (packagestorage) yet - make sure it's in the packagestorage variable before obtaining package information."))
+            raise ICEModuleException(_("%s is not in the Package Storage (packagestorage) yet - make sure it's in the packagestorage variable before obtaining package information.") % packagename)
 
     def get_status(self, packagename):
         # Return package installation status
         # 0 - Uninstalled
         # 1 - Installed
-        pass
+        if os.path.isfile(os.path.expanduser("~") + "/.local/share/applications/feren-storium-ice/%s.desktop" % packagename):
+            return 1
+        else:
+            return 0
+        
+    def dict_recurupdate(self, d, u):
+        for k, v in u.items():
+            if isinstance(v, collections.abc.Mapping):
+                d[k] = self.dict_recurupdate(d.get(k, {}), v)
+            else:
+                d[k] = v
+        return d
     
-    def install_package(self, packagename):
+    def install_package(self, packagename, source, bonuses=[]):
+        if packagename not in self.packagestorage:
+            raise ICEModuleException(_("%s is not in the Package Storage (packagestorage) yet - make sure it's in the packagestorage variable before obtaining package information.") % packagename)
+        
         #Install package and return exit code
         self.packagemgmtbusy = True
-        
-        packagename = self.packagestorage[packagename].name
-        
-        #Remove package and return exit code
         self.currentpackagename = packagename
+        
+        #Create the .desktop file's home if it doesn't exist
+        if not os.path.isdir(os.path.expanduser("~") + "/.local/share/applications/feren-storium-ice"):
+            try:
+                os.mkdir(os.path.expanduser("~") + "/.local/share/applications/feren-storium-ice")
+            except Exception as exceptionstr:
+                raise ICEModuleException(_("Failed to install {0}: {1} was encountered when trying to create the shortcut's location").format(packagename, exceptionstr))
+            
+        #Create the Chromium profile
+        if not os.path.isdir(os.path.expanduser("~") + "/.local/share/feren-storium-ice"):
+            try:
+                os.mkdir(os.path.expanduser("~") + "/.local/share/feren-storium-ice")
+            except Exception as exceptionstr:
+                raise ICEModuleException(_("Failed to install {0}: {1} was encountered when trying to create the profiles location").format(packagename, exceptionstr))
+        if not os.path.isdir(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s" % packagename):
+            try:
+                os.mkdir(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s" % packagename)
+            except Exception as exceptionstr:
+                raise ICEModuleException(_("Failed to install {0}: {1} was encountered when trying to create the profile's folder").format(packagename, exceptionstr))
+            
         try:
-            
-            #TODO
-            
-        except:
-            return False
+            with open(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/First Run" % packagename, 'w') as fp:
+                pass
+        except Exception as exceptionstr:
+            raise ICEModuleException(_("Failed to install {0}: {1} was encountered when making the Chromium-based profile").format(packagename, exceptionstr))
+        try:
+            os.mkdir(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/Default" % packagename)
+        except Exception as exceptionstr:
+            raise ICEModuleException(_("Failed to install {0}: {1} was encountered when making the Chromium-based profile").format(packagename, exceptionstr))
+        
+        usefallbackicon = False
+        #Copy icon for package
+        try:
+            shutil.copy(self.storebrain.tempdir + "/icons/" + packagename, os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/icon" % packagename)
+        except Exception as exceptionstr:
+            usefallbackicon = True
+        
+        
+        #Now to make the JSON file
+        with open("/usr/share/feren-storium/modules/packagemgmt-ice/chromium-profile/Preferences", 'r') as fp:
+            profiletomake = json.loads(fp.read())
+        
+        if "nekocap" in bonuses:
+            with open("/usr/share/feren-storium/modules/packagemgmt-ice/chromium-profile/and-nekocap", 'r') as fp:
+                profiletomakeextra = json.loads(fp.read())
+            profiletomake = self.dict_recurupdate(profiletomake, profiletomakeextra)
+        if "ublock" in bonuses:
+            with open("/usr/share/feren-storium/modules/packagemgmt-ice/chromium-profile/and-ublock", 'r') as fp:
+                profiletomakeextra = json.loads(fp.read())
+            profiletomake = self.dict_recurupdate(profiletomake, profiletomakeextra)
+        if "darkreader" in bonuses:
+            with open("/usr/share/feren-storium/modules/packagemgmt-ice/chromium-profile/and-darkreader", 'r') as fp:
+                profiletomakeextra = json.loads(fp.read())
+            profiletomake = self.dict_recurupdate(profiletomake, profiletomakeextra)
+        
+        
+        #Write profile
+        try:
+            with open(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/Default/Preferences" % packagename, 'w') as fp:
+                fp.write(json.dumps(profiletomake, separators=(',', ':')))
+        except Exception as exceptionstr:
+            raise ICEModuleException(_("Failed to install {0}: {1} was encountered when writing the Chromium-based profile").format(packagename, exceptionstr))
+        
+        
+        #Write .desktop file
+        if "nekocap" in bonuses:
+            nekocaparg = "true"
+        else:
+            nekocaparg = "false"
+        if "ublock" in bonuses:
+            ublockarg = "true"
+        else:
+            ublockarg = "false"
+        if "darkreader" in bonuses:
+            darkreadarg = "true"
+        else:
+            darkreadarg = "false"
+        try:
+
+            with open(os.path.expanduser("~") + "/.local/share/applications/feren-storium-ice/%s.desktop" % packagename, 'w') as fp:
+                fp.write("[Desktop Entry]\n")
+                fp.write("Version=1.0\n")
+                fp.write("Name={0}\n".format(self.packagestorage[packagename].realname))
+                fp.write("Comment={0}\n".format(_("Website")))
+                
+                fp.write("Exec=/usr/bin/feren-storium-icelaunch {0} {1} {2} {3} {4} {5} {6}\n".format(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s" % packagename, source, self.packagestorage[packagename].website, packagename, ublockarg, nekocaparg, darkreadarg))
+
+                fp.write("Terminal=false\n")
+                fp.write("X-MultipleArgs=false\n")
+                fp.write("Type=Application\n")
+                
+                if usefallbackicon == True:
+                    fp.write("Icon=text-html\n")
+                else:
+                    fp.write("Icon={0}\n".format(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/icon" % packagename))
+
+                if self.packagestorage[packagename].category == "ice-accessories":
+                    location = "Utility;"
+                elif self.packagestorage[packagename].category == "ice-games":
+                    location = "Game;"
+                elif self.packagestorage[packagename].category == "ice-graphics":
+                    location = "Graphics;"
+                elif self.packagestorage[packagename].category == "ice-internet":
+                    location = "Network;"
+                elif self.packagestorage[packagename].category == "ice-office":
+                    location = "Office;"
+                elif self.packagestorage[packagename].category == "ice-programming":
+                    location = "Development;"
+                elif self.packagestorage[packagename].category == "ice-multimedia":
+                    location = "AudioVideo;"
+                elif self.packagestorage[packagename].category == "ice-system":
+                    location = "System;"
+                
+                fp.write("Categories=GTK;Qt;{0}\n".format(location))
+                fp.write("MimeType=text/html;text/xml;application/xhtml_xml;\n")
+
+                fp.write("Keywords=%s\n" % self.packagestorage[packagename].keywords)
+
+                fp.write("StartupWMClass=%s\n" % packagename)
+                fp.write("StartupNotify=true\n")
+        except Exception as exceptionstr:
+            raise ICEModuleException(_("Failed to install {0}: {1} was encountered when creating a shortcut in the Applications Menu").format(packagename, exceptionstr))
+        
+        os.system("chmod +x " + os.path.expanduser("~") + "/.local/share/applications/feren-storium-ice/%s.desktop" % packagename)
         
         #Clean up after management
         self.currentpackagename = ""
         self.packagemgmtbusy = False
-        return outcome.get_exit_code() == PackageKitGlib.ExitEnum.SUCCESS
+        return True
     
-    def remove_package(self, packagename):
-        self.packagemgmtbusy = True
+    def remove_package(self, packagename, source):
+        if packagename not in self.packagestorage:
+            raise ICEModuleException(_("%s is not in the Package Storage (packagestorage) yet - make sure it's in the packagestorage variable before obtaining package information.") % packagename)
         
-        #Remove package and return exit code
+        self.packagemgmtbusy = True
         self.currentpackagename = packagename
+        
+        #Delete the files and the folders and done        
         try:
-            res=pk_client.resolve(PackageKitGlib.FilterEnum.NONE, [packagename], None, lambda p, t, d: True, None)
-            package_ids=res.get_package_array()
-            if not len(package_ids) > 0:
-                return False
-            
-            outcome = self.pk_client.remove_packages(0, [package_ids[0].get_id()], True, True, None, self.progress_callback, None)
-        except:
-            return False
+            os.remove(os.path.expanduser("~") + "/.local/share/applications/feren-storium-ice/%s.desktop" % packagename)
+        except Exception as exceptionstr:
+            raise ICEModuleException(_("Failed to uninstall {0}: {1} was encountered when removing the shortcut from the Applications Menu").format(packagename, exceptionstr))
+        try:
+            shutil.rmtree(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s" % packagename)
+        except Exception as exceptionstr:
+            raise ICEModuleException(_("Failed to uninstall {0}: {1} was encountered when deleting the Chromium-based profile").format(packagename, exceptionstr))
         
         #Clean up after management
         self.currentpackagename = ""
         self.packagemgmtbusy = False
-        return outcome.get_exit_code() == PackageKitGlib.ExitEnum.SUCCESS
+        return True
     
     def update_package(self, packagename):
         #You SHOULD NOT be able to hit Update for websites anyway, so raise an error
-        raise ICEModuleException(_("You wouldn't update a website."))
+        raise ICEModuleException(_("You wouldn't update an Ice Website Application."))
     
     def get_package_changes(self, pkgsinstalled, pkgsupdated, pkgsremoved):
         #Examine the package changes - pkgsinstalled, pkgsupdated and pkgsremoved are lists
-        # Just skip it by having empty returns
+        # Just skip it by having empty returns since Ice is exempt
         return [], [], []
     
     def get_configs(self):
@@ -188,11 +316,11 @@ class PackageMgmtModule():
 
     def enable_appsource(self, appsource):
         #You SHOULD NOT be able to manage Application Sources for websites anyway, so raise an error
-        raise ICEModuleException(_("You can't go and manage sources when the 'sources' are just web browsers."))
+        raise ICEModuleException(_("You cannot manage sources when the 'sources' are just web browsers."))
     
     def disable_appsource(self, appsource):
         #You SHOULD NOT be able to manage Application Sources for websites anyway, so raise an error
-        raise ICEModuleException(_("You can't go and manage sources when the 'sources' are just web browsers."))
+        raise ICEModuleException(_("You cannot manage sources when the 'sources' are just web browsers."))
 
 if __name__ == "__main__":
     module = PackageMgmtModule()

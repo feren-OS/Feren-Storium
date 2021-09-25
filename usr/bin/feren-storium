@@ -8,6 +8,9 @@ from threading import Thread
 import gi
 from gi.repository import GLib
 
+class StoreBrainException(Exception): # Name this according to the module to allow easier debugging
+    pass
+
 #This class here is the main brains that connect the pieces of code together per each module
 class StoreModuleContainer():
     def __init__(self, storebrain, path):
@@ -19,35 +22,36 @@ class StoreModuleContainer():
         self.main = module.main(storebrain)
 
 
-
 class StoreBrain():
     #Load the initial modules
     def load_modules(self):
         MODULES_DIR = "/usr/lib/feren-storium/modules"
+        
+        #TODO: Make these lists be managed by gsettings or similar
         if os.path.exists(MODULES_DIR):
             for dir_name in sorted(os.listdir(MODULES_DIR+"/localpackagemgmt")):
-                path = os.path.join(MODULES_DIR, dir_name)
+                path = os.path.join(MODULES_DIR+"/localpackagemgmt", dir_name)
                 try:
                     module = StoreModuleContainer(self, path)
                     self.localpkgmgmt_modules[dir_name] = module
                 except Exception as e:
                     print("Failed to load local package management module %s: \n%s\n" % (dir_name, e))
             for dir_name in sorted(os.listdir(MODULES_DIR+"/packagemgmt")):
-                path = os.path.join(MODULES_DIR, dir_name)
+                path = os.path.join(MODULES_DIR+"/packagemgmt", dir_name)
                 try:
                     module = StoreModuleContainer(self, path)
                     self.pkgmgmt_modules[dir_name] = module
                 except Exception as e:
                     print("Failed to load package management module %s: \n%s\n" % (dir_name, e))
             for dir_name in sorted(os.listdir(MODULES_DIR+"/packageinfo")):
-                path = os.path.join(MODULES_DIR, dir_name)
+                path = os.path.join(MODULES_DIR+"/packageinfo", dir_name)
                 try:
                     module = StoreModuleContainer(self, path)
                     self.pkginfo_modules[dir_name] = module
                 except Exception as e:
                     print("Failed to load package information module %s: \n%s\n" % (dir_name, e))
             for dir_name in sorted(os.listdir(MODULES_DIR+"/settings")):
-                path = os.path.join(MODULES_DIR, dir_name)
+                path = os.path.join(MODULES_DIR+"/settings", dir_name)
                 try:
                     module = StoreModuleContainer(self, path)
                     self.settings_modules[dir_name] = module
@@ -69,6 +73,30 @@ class StoreBrain():
         self.debug_module = StoreModuleContainer(self, "/usr/lib/feren-storium/modules/tempdebug")
         
         self.load_modules()
+        
+    
+    def get_item_info(self, packagename, packagetype):
+        item_info = {}
+        #Get information from first source that can use it
+        for module in self.pkginfo_modules:
+            if packagetype in self.pkginfo_modules[module].main.types_provided or "all" in self.pkginfo_modules[module].main.types_provided:
+                try:
+                    item_info.update(self.pkginfo_modules[module].main.getInfo(packagename, packagetype))
+                except:
+                    pass
+        if item_info == {}:
+            raise StoreBrainException(_("No information was found for %s") % packagename)
+        else:
+            return item_info
+        
+    
+    def package_module(self, packagetype):
+        #Return the first one we find's name
+        for module in self.pkgmgmt_modules:
+            if packagetype in self.pkgmgmt_modules[module].main.types_managed:
+                return module
+        raise StoreBrainException(_("No package module was found for managing %s") % packagetype)
+        
         
     def run_module(self, module):
         thread = Thread(target=self._run_module,

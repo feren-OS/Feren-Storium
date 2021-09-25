@@ -1,0 +1,20 @@
+{
+    "extensions": {
+        "settings": {
+            "gmopgnhbhiniibbiilmbjilcmgaocokj": {
+                "location": 1,
+                "manifest": {
+                    "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAgxAzXBWt/o0z5yjDmUHDR8joIf6bAAxvfioMbfAdaL2VKVLTXgaLpnugSDbma1CvRU2VB/53EstafAcIg7kNVlT3WULNSuFsJHg4mEQUteOkNwnjXsBQICm04WswC1LfQQgUw3E3pJHiNnHp74ISy6Sncv0MfSWNIi9rFehDN2nXfbdDXNJNheZCMMF/HhLreyeaq2oCy4BIMqQp825kpfRRkCNG+mlvjpseCM6Nde3dPtByt2SplNKB4/O5LnOyfYTsjoDOU/0ak/CtwGqxkrYyeaI3pJrLXQAe35r8GLeO0EJQ7bElpBQuXVosrcNqp6HFqSxiHpWHYUrqoZxjcwIDAQAB",
+                    "name": "NekoCap (Installing...)",
+                    "permissions": ["storage", "webNavigation"],
+                    "update_url": "http://clients2.google.com/service/update2/crx",
+                    "version": "0.0",
+                    "manifest_version": 2
+                },
+                "path": "cjpalhdlnbpafiamejdnhcphjbkeiagm\\0.0",
+                "state": 1,
+                "was_installed_by_default": true
+            }
+        }
+    }
+}

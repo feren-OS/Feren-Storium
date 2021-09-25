@@ -15,9 +15,9 @@ class GenericInfoModuleException(Exception): # Name this according to the module
 
 
 
-class PackageInfoModule():
+class main():
 
-    def __init__(self, storegui):
+    def __init__(self, storebrain):
 
         gettext.install("feren-storium", "/usr/share/locale", names="ngettext")
 
@@ -28,7 +28,6 @@ class PackageInfoModule():
         
         #Configs (obtained by get_configs)
         self.moduleconfigs={}
-        self.get_configs()
         
         #What package types does this provide info for?
         self.types_provided = ["all"]
@@ -51,35 +50,36 @@ class PackageInfoModule():
         self.json_storage = {}
         
         for i in ["package-info/generic"]:
-            self.json_storage[i] = json.load("/usr/share/feren-storium/curated/" + i + "/data.json")
+            with open("/usr/share/feren-storium/curated/" + i + "/data.json", 'r') as fp:            
+                self.json_storage[i] = json.loads(fp.read())
         
         self.memory_refreshing = False
       
     
     def getInfo(self, packagename, packagetype):
         #Get information on a package using the JSON data
-        translatedpackagename = self.getNameFromInternal(packagename, packagetype)
         
-        if packagetype not in self.types_provided:
-            raise GenericInfoModuleException(packagetype, _("is not supported by this information module. If you are getting an exception throw, it means you have not used a Try to respond to the module not supporting this type of package."))
-            return
+        #Not needed since 'all'
+        #if packagetype not in self.types_provided:
+            #raise GenericInfoModuleException(packagetype, _("is not supported by this information module. If you are getting an exception throw, it means you have not used a Try to respond to the module not supporting this type of package."))
+            #return
         
         #General stuff
-        realname = self.getRealName(packagename, packagetype, translatedpackagename)
-        iconuri = self.getIconURI(packagename, packagetype, translatedpackagename)
-        shortdescription = self.getShortDescription(packagename, packagetype, translatedpackagename)
-        description = self.getDescription(packagename, packagetype, translatedpackagename)
-        category = self.getCategory(packagename, packagetype, translatedpackagename)
-        images = self.getImages(packagename, packagetype, translatedpackagename)
-        website = self.getWebsite(packagename, packagetype, translatedpackagename)
-        donateurl = self.getDonateURL(packagename, packagetype, translatedpackagename)
+        realname = self.getRealName(packagename, packagetype)
+        iconuri = self.getIconURI(packagename, packagetype)
+        shortdescription = self.getShortDescription(packagename, packagetype)
+        description = self.getDescription(packagename, packagetype)
+        category = self.getCategory(packagename, packagetype)
+        images = self.getImages(packagename, packagetype)
+        website = self.getWebsite(packagename, packagetype)
+        donateurl = self.getDonateURL(packagename, packagetype)
         
         
         #Return values
         return {"realname": realname, "iconuri": iconuri, "shortdescription": shortdescription, "description": description, "category": category, "images": images, "website": website, "donateurl": donateurl}
         
       
-    def getRealName(self, packagename, packagetype, translatedpackagename=self.getNameFromInternal(packagename, packagetype)):
+    def getRealName(self, packagename, packagetype):
         try:
             realname = self.json_storage["package-info/generic"][packagename]["realname"]
         except:
@@ -87,30 +87,30 @@ class PackageInfoModule():
             #TODO: For stuff not curated, have 'packagename' just be the package's actual name
         return realname
       
-    def getIconURI(self, packagename, packagetype, translatedpackagename=self.getNameFromInternal(packagename, packagetype)):
+    def getIconURI(self, packagename, packagetype):
         try:
             iconuri = self.json_storage["package-info/generic"][packagename]["iconurl"]
         except:
             iconuri = ""
         return iconuri
       
-    def getShortDescription(self, packagename, packagetype, translatedpackagename=self.getNameFromInternal(packagename, packagetype)):
+    def getShortDescription(self, packagename, packagetype):
         try:
             shortdescription = self.json_storage["package-info/generic"][packagename]["shortdescription"]
         except:
             shortdescription = _("Package")
-            print(self.title + ":", _("Could not obtain a short description for"), packagename, _("(is it improperly curated, or is it a package file?), falling back to generic short description.")
+            print(self.title + ":", _("Could not obtain a short description for"), packagename, _("(is it improperly curated, or is it a package file?), falling back to generic short description."))
         return shortdescription
       
-    def getDescription(self, packagename, packagetype, translatedpackagename=self.getNameFromInternal(packagename, packagetype)):
+    def getDescription(self, packagename, packagetype):
         try:
             description = self.json_storage["package-info/generic"][packagename]["description"]
         except:
             description = _("No description provided.")
-            print(self.title + ":", _("Could not obtain a description for"), packagename, _("(is it improperly curated, or is it a package file?), falling back to generic description.")
+            print(self.title + ":", _("Could not obtain a description for"), packagename, _("(is it improperly curated, or is it a package file?), falling back to generic description."))
         return description
       
-    def getCategory(self, packagename, packagetype, translatedpackagename=self.getNameFromInternal(packagename, packagetype)):
+    def getCategory(self, packagename, packagetype):
         try:
             category = self.json_storage["package-info/generic"][packagename]["category"]
         except:
@@ -118,7 +118,7 @@ class PackageInfoModule():
             return
         return category
       
-    def getImages(self, packagename, packagetype, translatedpackagename=self.getNameFromInternal(packagename, packagetype)):
+    def getImages(self, packagename, packagetype):
         images = ["", "", ""]
         try:
             images[0] = self.json_storage["package-info/generic"][packagename]["image1"]
@@ -128,14 +128,14 @@ class PackageInfoModule():
             return images
         return images
       
-    def getWebsite(self, packagename, packagetype, translatedpackagename=self.getNameFromInternal(packagename, packagetype)):
+    def getWebsite(self, packagename, packagetype):
         try:
             website = self.json_storage["package-info/generic"][packagename]["website"]
         except:
             website = ""
         return website
       
-    def getDonateURL(self, packagename, packagetype, translatedpackagename=self.getNameFromInternal(packagename, packagetype)):
+    def getDonateURL(self, packagename, packagetype):
         try:
             donateurl = self.json_storage["package-info/generic"][packagename]["donation"]
         except:
