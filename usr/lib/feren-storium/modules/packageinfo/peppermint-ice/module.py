@@ -74,7 +74,7 @@ class main():
         
         
         #Return values
-        return {"author": author, "bugsurl": bugsurl, "tosurl": tosurl, "privpolurl": privpolurl, "keywords": keywords}
+        return {"author": author, "bugsurl": bugsurl, "tosurl": tosurl, "privpolurl": privpolurl, "keywords": keywords, "shortdescription": _("Website Application")}
         
 
     def getKeywords(self, packagename):
