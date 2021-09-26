@@ -7,6 +7,7 @@ import signal
 from threading import Thread
 import gi
 from gi.repository import GLib
+import getpass
 
 class StoreBrainException(Exception): # Name this according to the module to allow easier debugging
     pass
@@ -69,6 +70,13 @@ class StoreBrain():
         self.pkginfo_modules = {}
         self.settings_modules = {}
         
+        self.tempdir = "/tmp/feren-storium-"+getpass.getuser()
+        #Make the folder if it doesn't exist
+        if not os.path.isdir(self.tempdir):
+            os.mkdir(self.tempdir)
+        if not os.path.isdir(self.tempdir + "/icons"):
+            os.mkdir(self.tempdir + "/icons")
+        
         #TODO: Remove this later on
         self.debug_module = StoreModuleContainer(self, "/usr/lib/feren-storium/modules/tempdebug")
         
@@ -79,9 +87,9 @@ class StoreBrain():
         if pkgtype == "":
             #Find default package type via package-sources
             import json
-            with open("/usr/share/feren-storium/curated/package-sources/data.json", 'r') as fp:            
+            with open("/usr/share/feren-storium/curated/package-info/generic/data.json", 'r') as fp:            
                 packagesources = json.loads(fp.read())
-            packagetype = packagesources[packagename]["order-of-importance"][0]
+            packagetype = packagesources[packagename]["order-of-source-importance"][0]
         else:
             packagetype = pkgtype
         

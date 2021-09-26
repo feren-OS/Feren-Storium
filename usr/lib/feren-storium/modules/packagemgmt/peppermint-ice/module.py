@@ -230,7 +230,7 @@ class main():
                 fp.write("[Desktop Entry]\n")
                 fp.write("Version=1.0\n")
                 fp.write("Name={0}\n".format(self.packagestorage[packagename].realname))
-                fp.write("Comment={0}\n".format(_("Website")))
+                fp.write("Comment={0}\n".format(_("Website (obtained from Store)")))
                 
                 fp.write("Exec=/usr/bin/feren-storium-icelaunch {0} {1} {2} {3} {4} {5} {6}\n".format(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s" % packagename, source, self.packagestorage[packagename].website, packagename, ublockarg, nekocaparg, darkreadarg))
 

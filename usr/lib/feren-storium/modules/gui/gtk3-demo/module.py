@@ -61,7 +61,7 @@ class AppDetailsHeader(Gtk.VBox):
         pass
     
     def set_icon(self, iconuri, packagetoview):
-        tempdir = classnetwork.GlobalVariables.storagetemplocation
+        tempdir = self.storebrain.tempdir + "/icons"
         
         #Set the icon shown on the package header
                 
@@ -70,10 +70,10 @@ class AppDetailsHeader(Gtk.VBox):
         try:
             if not iconuri.startswith("file://"):
                 #Download the application icon
-                if not os.path.isfile(tempdir+"/"+packagetoview+"-icon"):
-                    urllib.request.urlretrieve(iconuri, tempdir+"/"+packagetoview+"-icon")
+                if not os.path.isfile(tempdir+"/"+packagetoview):
+                    urllib.request.urlretrieve(iconuri, tempdir+"/"+packagetoview)
                 #Set it as the icon in the Store
-                icon_pixbuf = GdkPixbuf.Pixbuf.new_from_file(tempdir+"/"+packagetoview+"-icon")
+                icon_pixbuf = GdkPixbuf.Pixbuf.new_from_file(tempdir+"/"+packagetoview)
             else:
                 #Set it as the icon in the Store
                 icon_pixbuf = GdkPixbuf.Pixbuf.new_from_file(iconuri.split('file://')[1])
@@ -82,11 +82,12 @@ class AppDetailsHeader(Gtk.VBox):
             #TODO: Change to store-missing-icon
             icon_pixbuf = GdkPixbuf.Pixbuf.new_from_file("/usr/share/icons/Inspire/256/apps/feren-store.png")
         icon_pixbuf = icon_pixbuf.scale_simple(desired_width, desired_height, GdkPixbuf.InterpType.BILINEAR)
-        self.app_iconimg.set_from_pixbuf(icon_pixbuf)
-        self.app_iconimg_stack.set_visible_child(self.app_iconimg)
-        self.app_iconimg_loading.stop()
+        self.app_icon.set_from_pixbuf(icon_pixbuf)
     
     def populate(self, info, currentpackage):
+        self.app_title.set_label(info["realname"])
+        self.app_shortdesc.set_label(info["shortdescription"])
+        self.set_icon(info["iconuri"], currentpackage)
         pass #TODO
 
 
@@ -371,7 +372,6 @@ class AppMainView(Gtk.Stack):
             self.back_button_history.append("packagepage-" + self.current_item_viewed)
         else:
             self.back_button_history.append(self.get_visible_child_name())
-        print("added", self.back_button_history)
         
         self.toggle_back()
         
@@ -380,7 +380,6 @@ class AppMainView(Gtk.Stack):
             self.back_button_history = ['home']
         else:
             self.back_button_history = self.back_button_history[:-1]
-        print("removed", self.back_button_history)
         
         self.toggle_back()
         
@@ -434,6 +433,7 @@ class main(object):
         mainwindow.pack_start(box_application_header, False, True, 0)
         mainwindow.pack_end(mv, True, True, 0)
         mv.AppDetailsHeader = box_application_header
+        mv.AppDetailsHeader.storebrain = self.storebrain
         self.w.show_all()
 
     def _build_app(self):

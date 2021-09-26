@@ -49,7 +49,7 @@ class main():
         
         self.json_storage = {}
         
-        for i in ["package-sources", "package-sources-info", "package-intnames", "package-info/apt", "package-info/flatpak", "package-info/generic", "package-info/snap"]:
+        for i in ["package-sources-info", "package-info/apt", "package-info/flatpak", "package-info/generic", "package-info/snap"]:
             with open("/usr/share/feren-storium/curated/" + i + "/data.json", 'r') as fp:            
                 self.json_storage[i] = json.loads(fp.read())
         
@@ -63,7 +63,7 @@ class main():
         #internalname: Internal in-Store name
         #packagetype: apt, flatpak, snap...
         try:
-            return self.json_storage["package-intnames"][internalname][packagetype]
+            return self.json_storage["package-info/generic"][internalname][packagetype + "-name"]
         except:
             raise ApplicationInfoModuleException(packagename, _("could not be found in the Store's package names data. If you are getting an exception throw, it means you have not used a Try to respond to the package not being in the Store."))
       
@@ -74,8 +74,8 @@ class main():
         #packagename: Package name
         #packagetype: apt, flatpak, snap...
         try:
-            for pkg in self.json_storage["package-intnames"]:
-                if self.json_storage["package-intnames"][pkg][packagetype] == packagename:
+            for pkg in self.json_storage["package-info/generic"]:
+                if self.json_storage["package-info/generic"][pkg][packagetype + "-name"] == packagename:
                     return pkg
             raise ApplicationInfoModuleException(packagename, _("is not associated with any Store internal name. If you are getting an exception throw, it means you have not used a Try to respond to the package not being in the Store."))
         except:
