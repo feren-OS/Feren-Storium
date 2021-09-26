@@ -19,7 +19,6 @@ from threading import Thread
 from queue import Queue, Empty
 
 
-
 ####Application Details Header
 class AppDetailsHeader(Gtk.VBox):
 
@@ -60,6 +59,35 @@ class AppDetailsHeader(Gtk.VBox):
         self.pack_start(buttonsbox, True, False, 4)
         
         pass
+    
+    def set_icon(self, iconuri, packagetoview):
+        tempdir = classnetwork.GlobalVariables.storagetemplocation
+        
+        #Set the icon shown on the package header
+                
+        desired_width = 48
+        desired_height = 48
+        try:
+            if not iconuri.startswith("file://"):
+                #Download the application icon
+                if not os.path.isfile(tempdir+"/"+packagetoview+"-icon"):
+                    urllib.request.urlretrieve(iconuri, tempdir+"/"+packagetoview+"-icon")
+                #Set it as the icon in the Store
+                icon_pixbuf = GdkPixbuf.Pixbuf.new_from_file(tempdir+"/"+packagetoview+"-icon")
+            else:
+                #Set it as the icon in the Store
+                icon_pixbuf = GdkPixbuf.Pixbuf.new_from_file(iconuri.split('file://')[1])
+        except Exception as exceptionstring:
+            print("Could not retrieve icon for", packagetoview, "-", exceptionstring)
+            #TODO: Change to store-missing-icon
+            icon_pixbuf = GdkPixbuf.Pixbuf.new_from_file("/usr/share/icons/Inspire/256/apps/feren-store.png")
+        icon_pixbuf = icon_pixbuf.scale_simple(desired_width, desired_height, GdkPixbuf.InterpType.BILINEAR)
+        self.app_iconimg.set_from_pixbuf(icon_pixbuf)
+        self.app_iconimg_stack.set_visible_child(self.app_iconimg)
+        self.app_iconimg_loading.stop()
+    
+    def populate(self, info, currentpackage):
+        pass #TODO
 
 
 
@@ -68,6 +96,11 @@ class AppMainView(Gtk.Stack):
 
     def __init__(self):
         Gtk.Stack.__init__(self)
+        
+        self.current_item_viewed = ""
+        self.back_button_history = []
+        
+        self.gobackmode = False
         
         self.sw = Gtk.ScrolledWindow()
         self.sw.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
@@ -229,15 +262,63 @@ class AppMainView(Gtk.Stack):
         # build package page
         packagepage = Gtk.VBox(spacing=8)
         
-        templabel_box = Gtk.Box()
-        templabel = Gtk.Label(label="Package Page Placeholder")
-        templabel_box.pack_start(templabel, False, False, 0)
+        images_box = Gtk.Box()
+        self.pkgpage_images = Gtk.Label(label="Images: ")
+        images_box.pack_start(self.pkgpage_images, False, False, 0)
         
-        packagepage.pack_start(templabel_box, False, True, 0)
+        packagepage.pack_start(images_box, False, True, 0)
         
-        # build another scrolled window widget and add our search view
+        description_box = Gtk.Box()
+        self.pkgpage_description = Gtk.Label(label="Description: ")
+        description_box.pack_start(self.pkgpage_description, False, False, 0)
+        
+        packagepage.pack_start(description_box, False, True, 0)
+        
+        category_box = Gtk.Box()
+        self.pkgpage_category = Gtk.Label(label="Category: ")
+        category_box.pack_start(self.pkgpage_category, False, False, 0)
+        
+        packagepage.pack_start(category_box, False, True, 0)
+        
+        website_box = Gtk.Box()
+        self.pkgpage_website = Gtk.Label(label="Website: ")
+        website_box.pack_start(self.pkgpage_website, False, False, 0)
+        
+        packagepage.pack_start(website_box, False, True, 0)
+        
+        author_box = Gtk.Box()
+        self.pkgpage_author = Gtk.Label(label="Author: ")
+        author_box.pack_start(self.pkgpage_author, False, False, 0)
+        
+        packagepage.pack_start(author_box, False, True, 0)
+        
+        donateurl_box = Gtk.Box()
+        self.pkgpage_donateurl = Gtk.Label(label="Donate URL: ")
+        donateurl_box.pack_start(self.pkgpage_donateurl, False, False, 0)
+        
+        packagepage.pack_start(donateurl_box, False, True, 0)
+        
+        bugsurl_box = Gtk.Box()
+        self.pkgpage_bugsurl = Gtk.Label(label="Bugs URL: ")
+        bugsurl_box.pack_start(self.pkgpage_bugsurl, False, False, 0)
+        
+        packagepage.pack_start(bugsurl_box, False, True, 0)
+        
+        tosurl_box = Gtk.Box()
+        self.pkgpage_tosurl = Gtk.Label(label="TOS URL: ")
+        tosurl_box.pack_start(self.pkgpage_tosurl, False, False, 0)
+        
+        packagepage.pack_start(tosurl_box, False, True, 0)
+        
+        privpolurl_box = Gtk.Box()
+        self.pkgpage_privpolurl = Gtk.Label(label="Privacy Policy URL: ")
+        privpolurl_box.pack_start(self.pkgpage_privpolurl, False, False, 0)
+        
+        packagepage.pack_start(privpolurl_box, False, True, 0)
+        
+        # build another scrolled window widget and add our package view
         self.sw4 = Gtk.ScrolledWindow()
-        self.sw4.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        self.sw4.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
         
         packagepage.set_margin_bottom(8)
         packagepage.set_margin_top(8)
@@ -249,33 +330,69 @@ class AppMainView(Gtk.Stack):
         
         self.add_named(self.sw4, "packagepage")
     
+    
+    def populate_pkgpage(self, packageinfo, currentpackage):
+        self.pkgpage_images.set_label("Images: " + str(packageinfo["images"]))
+        self.pkgpage_description.set_label("Description: " + str(packageinfo["description"]))
+        self.pkgpage_category.set_label("Category: " + str(packageinfo["category"]))
+        self.pkgpage_website.set_label("Website: " + str(packageinfo["website"]))
+        self.pkgpage_author.set_label("Author: " + str(packageinfo["author"]))
+        self.pkgpage_donateurl.set_label("Donate URL: " + str(packageinfo["donateurl"]))
+        self.pkgpage_bugsurl.set_label("Bugs URL: " + str(packageinfo["bugsurl"]))
+        self.pkgpage_tosurl.set_label("TOS URL: " + str(packageinfo["tosurl"]))
+        self.pkgpage_privpolurl.set_label("Privacy Policy URL: " + str(packageinfo["privpolurl"]))
+    
 
-
-    def toggle_back(self, newstate):
+    def toggle_back(self):
         backbtnthread = Thread(target=self._toggle_back,
-                            args=(newstate,))
+                            args=())
         backbtnthread.start()
     
-    def _toggle_back(self, newstate):
-        GLib.idle_add(self.__toggle_back, newstate)
+    def _toggle_back(self):
+        GLib.idle_add(self.__toggle_back)
     
-    def __toggle_back(self, newstate):
-        self.back_btn.set_sensitive(newstate)
+    def __toggle_back(self):
+        if len(self.back_button_history) >= 2:
+            self.back_btn.set_sensitive(True)
+        else:
+            self.back_btn.set_sensitive(False)
 
     def _back_action(self, data):
-        self.toggle_back(False)
         #Remove from back history
-        self.back_button_history = self.back_button_history[:-1]
-        pass
-        #TODO
+        self.gobackmode = True
+        self.back_btn.set_sensitive(False) #Prevent spamming
+        if not self.back_button_history[-2].startswith("packagepage-"):
+            self.set_visible_child_name(self.back_button_history[-2])
+        else:
+            self._goto_packageview(self.back_button_history[-2][12:])
+        
+    def add_to_back(self):
+        if self.get_visible_child() == self.sw4:
+            self.back_button_history.append("packagepage-" + self.current_item_viewed)
+        else:
+            self.back_button_history.append(self.get_visible_child_name())
+        print("added", self.back_button_history)
+        
+        self.toggle_back()
+        
+    def remove_from_back(self):
+        if len(self.back_button_history) <= 2:
+            self.back_button_history = ['home']
+        else:
+            self.back_button_history = self.back_button_history[:-1]
+        print("removed", self.back_button_history)
+        
+        self.toggle_back()
         
     def _goto_page(self, page):
         self.set_visible_child(page)
         
     def _goto_packageview(self, packagename):
-        #TODO
+        self.current_item_viewed = packagename
         self.set_visible_child(self.sw4)
-        
+        information = self.storebrain.get_item_info(packagename)
+        self.populate_pkgpage(information, packagename)
+        self.AppDetailsHeader.populate(information, packagename)
 
     def _btn_goto_packageview(self, btn, packagename):
         self._goto_packageview(packagename)
@@ -292,20 +409,12 @@ class AppMainView(Gtk.Stack):
     def packagepagestuff(self):
         pass
 
-    #def _push_config(self):
-        ## TODO: push notification should be connected to angularjs and use a
-        ## broadcast event any suitable controllers will be able to listen and
-        ## respond accordingly, for now we just use jQuery to manually toggle
-        #current_page = app.current_page
-
 
 
 ####Store Window
 class main(object):    
     def __init__(self, storebrain):
         self.storebrain = storebrain
-
-        self.current_page = ""
 
         #systemstate.first_run = self._check_first_run()
         #systemstate.first_run = True
@@ -436,7 +545,8 @@ class main(object):
         mv.back_signal_handler = mv.back_btn.connect("clicked", mv._back_action)
         mv.header = header
         
-        mv.StoreGUI = self
+        mv.storebrain = self.storebrain
+        mv.modulebrain = self
         
         mv.connect("notify::visible-child", self.page_changed)
         
@@ -505,7 +615,18 @@ class main(object):
         self.gohome_btn.handler_unblock(self.gohome_handle_id)
         self.status_btn.handler_unblock(self.status_handle_id)
         self.search_btn.handler_unblock(self.search_handle_id)
-            
+        
+        self.mainpage.AppDetailsHeader.set_visible(self.mainpage.get_visible_child() == self.mainpage.sw4)
+        if self.mainpage.get_visible_child() != self.mainpage.sw4:
+            self.mainpage.current_item_viewed = ""
+        
+        if len(self.mainpage.back_button_history) >= 2 and self.mainpage.gobackmode:
+            if (self.mainpage.current_item_viewed == "" and self.mainpage.get_visible_child_name() == self.mainpage.back_button_history[-2]) or (self.mainpage.back_button_history[-2] == "packagepage-" + self.mainpage.current_item_viewed):
+                self.mainpage.remove_from_back()
+            self.mainpage.gobackmode = False
+        else:
+            self.mainpage.add_to_back()
+        
 
     def _check_first_run(self):
         pass

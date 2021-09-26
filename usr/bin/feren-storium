@@ -75,14 +75,23 @@ class StoreBrain():
         self.load_modules()
         
     
-    def get_item_info(self, packagename, packagetype):
+    def get_item_info(self, packagename, pkgtype=""):
+        if pkgtype == "":
+            #Find default package type via package-sources
+            import json
+            with open("/usr/share/feren-storium/curated/package-sources/data.json", 'r') as fp:            
+                packagesources = json.loads(fp.read())
+            packagetype = packagesources[packagename]["order-of-importance"][0]
+        else:
+            packagetype = pkgtype
+        
         item_info = {}
         #Get information from first source that can use it
         for module in self.pkginfo_modules:
             if packagetype in self.pkginfo_modules[module].main.types_provided or "all" in self.pkginfo_modules[module].main.types_provided:
                 try:
                     item_info.update(self.pkginfo_modules[module].main.getInfo(packagename, packagetype))
-                except:
+                except Exception as e:
                     pass
         if item_info == {}:
             raise StoreBrainException(_("No information was found for %s") % packagename)

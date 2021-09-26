@@ -55,6 +55,9 @@ class DebugWindow(object):
         
     def testiceinfo_pressed(self, gtk_widget):
         print(self.storebrain.get_item_info(self.textboxicepkgname.get_text(), "peppermint-ice"))
+        
+    def testiteminfo_pressed(self, gtk_widget):
+        print(self.storebrain.get_item_info(self.textboxpkgpage.get_text()))
 
     def _build_app(self):
         # build window
@@ -98,6 +101,12 @@ class DebugWindow(object):
         self.iceinstall.connect("clicked", self.testiceinstall_pressed)
         self.iceremove.connect("clicked", self.testiceremove_pressed)
         self.icegetinfo.connect("clicked", self.testiceinfo_pressed)
+        
+        self.itemgetinfo = Gtk.Button(label="get info")
+        
+        yeet.pack_start(self.itemgetinfo, True, False, 4)
+        
+        self.itemgetinfo.connect("clicked", self.testiteminfo_pressed)
         
         #back_img = Gtk.Image()
         #back_img.set_from_icon_name("go-previous-symbolic", Gtk.IconSize.BUTTON);

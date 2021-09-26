@@ -2,15 +2,25 @@
   "chromium": {
     "author": "Canonical",
     "bugreporturl": "",
-    "aptsource": "",
     "tos": "",
-    "privpol": ""
+    "privpol": "",
+    "canihasthemes": 1,
+    "canihastouch": 1,
+    "canihasaccessibility": true,
+    "canihasdpiscaling": true,
+    "canihasphoneadapting": true,
+    "officialpackage": true
   },
   "firefox": {
     "author": "Mozilla",
     "bugreporturl": "",
-    "aptsource": "",
     "tos": "",
-    "privpol": ""
+    "privpol": "",
+    "canihasthemes": 4,
+    "canihastouch": 0,
+    "canihasaccessibility": true,
+    "canihasdpiscaling": true,
+    "canihasphoneadapting": true,
+    "officialpackage": true
   }
 }

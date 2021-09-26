@@ -15,7 +15,7 @@ class ApplicationInfoModuleException(Exception): # Name this according to the mo
 
 
 
-class PackageInfoModule():
+class main():
 
     def __init__(self, storegui):
 
@@ -50,7 +50,8 @@ class PackageInfoModule():
         self.json_storage = {}
         
         for i in ["package-sources", "package-sources-info", "package-intnames", "package-info/apt", "package-info/flatpak", "package-info/generic", "package-info/snap"]:
-            self.json_storage[i] = json.load("/usr/share/feren-storium/curated/" + i + "/data.json")
+            with open("/usr/share/feren-storium/curated/" + i + "/data.json", 'r') as fp:            
+                self.json_storage[i] = json.loads(fp.read())
         
         self.memory_refreshing = False
       
@@ -90,62 +91,64 @@ class PackageInfoModule():
             return
         
         #General stuff
-        author = self.getAuthor(packagename, packagetype, translatedpackagename)
-        pkgsource = self.getPkgSource(packagename, packagetype, translatedpackagename)
-        bugsurl = self.getBugsURL(packagename, packagetype, translatedpackagename)
-        tosurl = self.getTOSURL(packagename, packagetype, translatedpackagename)
-        privpolurl = self.getPrivPolURL(packagename, packagetype, translatedpackagename)
+        author = self.getAuthor(packagename, packagetype)
+        bugsurl = self.getBugsURL(packagename, packagetype)
+        tosurl = self.getTOSURL(packagename, packagetype)
+        privpolurl = self.getPrivPolURL(packagename, packagetype)
         
         #Application compatibility
-        canusethemes = self.getCanTheme(packagename, packagetype, translatedpackagename)
-        canusetouchscreen = self.getCanTouchScreen(packagename, packagetype, translatedpackagename)
-        canuseaccessibility = self.getCanUseAccessibility(packagename, packagetype, translatedpackagename)
-        canusedpiscaling = self.getCanUseDPI(packagename, packagetype, translatedpackagename)
-        canuseonphone = self.getCanUseOnPhone(packagename, packagetype, translatedpackagename)
-        isofficial = self.getIsOfficial(packagename, packagetype, translatedpackagename)
+        canusethemes = self.getCanTheme(packagename, packagetype)
+        canusetouchscreen = self.getCanTouchScreen(packagename, packagetype)
+        canuseaccessibility = self.getCanUseAccessibility(packagename, packagetype)
+        canusedpiscaling = self.getCanUseDPI(packagename, packagetype)
+        canuseonphone = self.getCanUseOnPhone(packagename, packagetype)
+        isofficial = self.getIsOfficial(packagename, packagetype)
         
         
         #Return values
-        return {"author": author, "pkgsource": pkgsource, "bugsurl": bugsurl, "tosurl": tosurl, "privpolurl": privpolurl, "canusethemes": canusethemes, "canusetouchscreen": canusetouchscreen, "canuseaccessibility": canuseaccessibility, "canusedpiscaling": canusedpiscaling, "canuseonphone": canuseonphone, "isofficial": isofficial}
+        return {"author": author, "bugsurl": bugsurl, "tosurl": tosurl, "privpolurl": privpolurl, "canusethemes": canusethemes, "canusetouchscreen": canusetouchscreen, "canuseaccessibility": canuseaccessibility, "canusedpiscaling": canusedpiscaling, "canuseonphone": canuseonphone, "isofficial": isofficial}
         
 
-    def getAuthor(self, packagename, packagetype, translatedpackagename=self.internalToPkgName(packagename, packagetype), typejson=self.json_storage["package-info/" + packagetype]):
+    def getAuthor(self, packagename, packagetype):
+        #FIXME: Would be handy if we could just set these below two in the variable arguments, y'know
+        translatedpackagename=self.internalToPkgName(packagename, packagetype)
+        typejson=self.json_storage["package-info/" + packagetype]
         try:
             author = typejson[translatedpackagename]["author"]
         except:
             author = _("Unknown Author")
         return author
       
-    def getPkgSource(self, packagename, packagetype, translatedpackagename=self.internalToPkgName(packagename, packagetype), typejson=self.json_storage["package-info/" + packagetype]):
-        try:
-            pkgsource = typejson[translatedpackagename]["pkgsource"]
-        except:
-            raise ApplicationInfoModuleException(packagename, _("has no pkgsource value in the package metadata. Packages MUST have source values when curated."))
-            return
-        return pkgsource
-      
-    def getBugsURL(self, packagename, packagetype, translatedpackagename=self.internalToPkgName(packagename, packagetype), typejson=self.json_storage["package-info/" + packagetype]):
+    def getBugsURL(self, packagename, packagetype):
+        translatedpackagename=self.internalToPkgName(packagename, packagetype)
+        typejson=self.json_storage["package-info/" + packagetype]
         try:
             bugsurl = typejson[translatedpackagename]["bugreporturl"]
         except:
             bugsurl = ""
         return bugsurl
       
-    def getTOSURL(self, packagename, packagetype, translatedpackagename=self.internalToPkgName(packagename, packagetype), typejson=self.json_storage["package-info/" + packagetype]):
+    def getTOSURL(self, packagename, packagetype):
+        translatedpackagename=self.internalToPkgName(packagename, packagetype)
+        typejson=self.json_storage["package-info/" + packagetype]
         try:
             tosurl = typejson[translatedpackagename]["tos"]
         except:
             tosurl = ""
         return tosurl
       
-    def getPrivPolURL(self, packagename, packagetype, translatedpackagename=self.internalToPkgName(packagename, packagetype), typejson=self.json_storage["package-info/" + packagetype]):
+    def getPrivPolURL(self, packagename, packagetype):
+        translatedpackagename=self.internalToPkgName(packagename, packagetype)
+        typejson=self.json_storage["package-info/" + packagetype]
         try:
             privpolurl = typejson[translatedpackagename]["privpol"]
         except:
             privpolurl = ""
         return privpolurl
       
-    def getCanTheme(self, packagename, packagetype, translatedpackagename=self.internalToPkgName(packagename, packagetype), typejson=self.json_storage["package-info/" + packagetype]):
+    def getCanTheme(self, packagename, packagetype):
+        translatedpackagename=self.internalToPkgName(packagename, packagetype)
+        typejson=self.json_storage["package-info/" + packagetype]
         # Return values:
         # 0: No
         # 1: Yes
@@ -161,7 +164,9 @@ class PackageInfoModule():
             canusethemes = 1 # Use fallback of Yes when unknown to hide the message
         return canusethemes
       
-    def getCanTouchScreen(self, packagename, packagetype, translatedpackagename=self.internalToPkgName(packagename, packagetype), typejson=self.json_storage["package-info/" + packagetype]):
+    def getCanTouchScreen(self, packagename, packagetype):
+        translatedpackagename=self.internalToPkgName(packagename, packagetype)
+        typejson=self.json_storage["package-info/" + packagetype]
         # Return values:
         # 0: No
         # 1: Yes
@@ -173,28 +178,36 @@ class PackageInfoModule():
             canusetouchscreen = 1 # Use fallback of Yes when unknown to hide the message
         return canusetouchscreen
       
-    def getCanUseAccessibility(self, packagename, packagetype, translatedpackagename=self.internalToPkgName(packagename, packagetype), typejson=self.json_storage["package-info/" + packagetype]):
+    def getCanUseAccessibility(self, packagename, packagetype):
+        translatedpackagename=self.internalToPkgName(packagename, packagetype)
+        typejson=self.json_storage["package-info/" + packagetype]
         try:
             canuseaccessibility = typejson[translatedpackagename]["canihasaccessibility"]
         except:
             canuseaccessibility = True # Use fallback of True when unknown to hide the message
         return canuseaccessibility
       
-    def getCanUseDPI(self, packagename, packagetype, translatedpackagename=self.internalToPkgName(packagename, packagetype), typejson=self.json_storage["package-info/" + packagetype]):
+    def getCanUseDPI(self, packagename, packagetype):
+        translatedpackagename=self.internalToPkgName(packagename, packagetype)
+        typejson=self.json_storage["package-info/" + packagetype]
         try:
             canusedpiscaling = typejson[translatedpackagename]["canihasdpiscaling"]
         except:
             canusedpiscaling = True # Use fallback of True when unknown to hide the message
         return canusedpiscaling
       
-    def getCanUseOnPhone(self, packagename, packagetype, translatedpackagename=self.internalToPkgName(packagename, packagetype), typejson=self.json_storage["package-info/" + packagetype]):
+    def getCanUseOnPhone(self, packagename, packagetype):
+        translatedpackagename=self.internalToPkgName(packagename, packagetype)
+        typejson=self.json_storage["package-info/" + packagetype]
         try:
             canuseonphone = typejson[translatedpackagename]["canihasphoneadapting"]
         except:
             canuseonphone = True # Use fallback of True when unknown to hide the message
         return canuseonphone
       
-    def getIsOfficial(self, packagename, packagetype, translatedpackagename=self.internalToPkgName(packagename, packagetype), typejson=self.json_storage["package-info/" + packagetype]):
+    def getIsOfficial(self, packagename, packagetype):
+        translatedpackagename=self.internalToPkgName(packagename, packagetype)
+        typejson=self.json_storage["package-info/" + packagetype]
         try:
             isofficial = typejson[translatedpackagename]["officialpackage"]
         except:

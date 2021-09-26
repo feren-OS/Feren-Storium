@@ -3,6 +3,12 @@
     "author": "Mozilla",
     "bugreporturl": "",
     "tos": "",
-    "privpol": ""
+    "privpol": "",
+    "canihasthemes": 4,
+    "canihastouch": 0,
+    "canihasaccessibility": true,
+    "canihasdpiscaling": true,
+    "canihasphoneadapting": true,
+    "officialpackage": true
   }
 }
