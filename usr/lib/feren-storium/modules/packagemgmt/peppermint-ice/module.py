@@ -306,7 +306,7 @@ class main():
             self.packagemgmtbusy = False
         return True
     
-    def update_package(self, packagename):
+    def update_package(self, packagename, source):
         #You SHOULD NOT be able to hit Update for websites anyway, so raise an error
         raise ICEModuleException(_("You wouldn't update an Ice Website Application."))
     

@@ -101,9 +101,8 @@ class AppDetailsHeader(Gtk.VBox):
 
     def installapp_pressed(self, gtk_widget):
         #TODO: Confirmation and whatnot, let's just get the main event working first
-        source = "vivaldi"
+        source = "chrome"
         bonuses = ["ublock", "nekocap"]
-        print(self.mv.current_source_viewed)
         self.storebrain.pkgmgmt_modules[self.storebrain.package_module(self.mv.current_source_viewed)].main.install_package(self.mv.current_item_viewed, source, bonuses)
 
     def installappnosource_pressed(self, gtk_widget):
@@ -113,7 +112,7 @@ class AppDetailsHeader(Gtk.VBox):
     def updateapp_pressed(self, gtk_widget):
         source = ""
         #TODO: Confirmation and whatnot, let's just get the main event working first
-        sself.storebrain.pkgmgmt_modules[self.storebrain.package_module(self.mv.current_source_viewed)].main.update_package(self.mv.current_item_viewed, source)
+        self.storebrain.pkgmgmt_modules[self.storebrain.package_module(self.mv.current_source_viewed)].main.update_package(self.mv.current_item_viewed, source)
 
     def removeapp_pressed(self, gtk_widget):
         source = ""
