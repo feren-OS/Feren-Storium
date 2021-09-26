@@ -58,6 +58,12 @@ class AppDetailsHeader(Gtk.VBox):
         self.pack_start(self.app_mgmt_progress, True, False, 4)
         self.pack_start(buttonsbox, True, False, 4)
         
+        
+        self.installapp_btn.connect("clicked", self.installapp_pressed)
+        self.installappnosource_btn.connect("clicked", self.installappnosource_pressed)
+        self.updateapp_btn.connect("clicked", self.updateapp_pressed)
+        self.removeapp_btn.connect("clicked", self.removeapp_pressed)
+        
         pass
     
     def set_icon(self, iconuri, packagetoview):
@@ -93,6 +99,27 @@ class AppDetailsHeader(Gtk.VBox):
     def set_progress(self, value):
         self.app_mgmt_progress.set_fraction(value / 100)
 
+    def installapp_pressed(self, gtk_widget):
+        #TODO: Confirmation and whatnot, let's just get the main event working first
+        source = "vivaldi"
+        bonuses = ["ublock", "nekocap"]
+        print(self.mv.current_source_viewed)
+        self.storebrain.pkgmgmt_modules[self.storebrain.package_module(self.mv.current_source_viewed)].main.install_package(self.mv.current_item_viewed, source, bonuses)
+
+    def installappnosource_pressed(self, gtk_widget):
+        #TODO
+        pass
+
+    def updateapp_pressed(self, gtk_widget):
+        source = ""
+        #TODO: Confirmation and whatnot, let's just get the main event working first
+        sself.storebrain.pkgmgmt_modules[self.storebrain.package_module(self.mv.current_source_viewed)].main.update_package(self.mv.current_item_viewed, source)
+
+    def removeapp_pressed(self, gtk_widget):
+        source = ""
+        #TODO: Confirmation and whatnot, let's just get the main event working first
+        self.storebrain.pkgmgmt_modules[self.storebrain.package_module(self.mv.current_source_viewed)].main.remove_package(self.mv.current_item_viewed, source)
+
 
 ####AppView
 class AppMainView(Gtk.Stack):
@@ -101,6 +128,7 @@ class AppMainView(Gtk.Stack):
         Gtk.Stack.__init__(self)
         
         self.current_item_viewed = ""
+        self.current_source_viewed = ""
         self.back_button_history = []
         
         self.gobackmode = False
@@ -390,10 +418,12 @@ class AppMainView(Gtk.Stack):
         
     def _goto_packageview(self, packagename):
         self.current_item_viewed = packagename
-        self.set_visible_child(self.sw4)
         information = self.storebrain.get_item_info(packagename)
+        self.current_source_viewed = information["packagetype"]
+        self.set_visible_child(self.sw4)
         self.populate_pkgpage(information, packagename)
         self.AppDetailsHeader.populate(information, packagename)
+        self.storebrain.pkgmgmt_modules[self.storebrain.package_module(information["packagetype"])].main.pkgstorage_add(packagename)
 
     def _btn_goto_packageview(self, btn, packagename):
         self._goto_packageview(packagename)
@@ -436,6 +466,7 @@ class main(object):
         mainwindow.pack_end(mv, True, True, 0)
         mv.AppDetailsHeader = box_application_header
         mv.AppDetailsHeader.storebrain = self.storebrain
+        mv.AppDetailsHeader.mv = mv
         self.w.show_all()
 
     def _build_app(self):
@@ -621,6 +652,7 @@ class main(object):
         self.mainpage.AppDetailsHeader.set_visible(self.mainpage.get_visible_child() == self.mainpage.sw4)
         if self.mainpage.get_visible_child() != self.mainpage.sw4:
             self.mainpage.current_item_viewed = ""
+            self.mainpage.current_source_viewed = ""
         
         if len(self.mainpage.back_button_history) >= 2 and self.mainpage.gobackmode:
             if (self.mainpage.current_item_viewed == "" and self.mainpage.get_visible_child_name() == self.mainpage.back_button_history[-2]) or (self.mainpage.back_button_history[-2] == "packagepage-" + self.mainpage.current_item_viewed):
@@ -630,8 +662,7 @@ class main(object):
             self.mainpage.add_to_back()
         
     def set_progress(self, packagename, packagetype, value):
-        #TODO: Implement variable for current source as well
-        if self.mainpage.current_item_viewed == packagename:
+        if self.mainpage.current_item_viewed == packagename and self.mainpage.current_source_viewed == packagetype:
             self.mainpage.AppDetailsHeader.set_progress(value)
         
     

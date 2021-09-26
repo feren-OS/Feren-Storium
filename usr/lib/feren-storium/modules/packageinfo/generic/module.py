@@ -76,7 +76,7 @@ class main():
         
         
         #Return values
-        return {"realname": realname, "iconuri": iconuri, "shortdescription": shortdescription, "description": description, "category": category, "images": images, "website": website, "donateurl": donateurl}
+        return {"realname": realname, "iconuri": iconuri, "shortdescription": shortdescription, "description": description, "category": category, "images": images, "website": website, "donateurl": donateurl, "packagetype": packagetype}
         
       
     def getRealName(self, packagename, packagetype):
