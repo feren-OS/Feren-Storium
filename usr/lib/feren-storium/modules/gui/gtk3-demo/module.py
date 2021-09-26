@@ -90,6 +90,8 @@ class AppDetailsHeader(Gtk.VBox):
         self.set_icon(info["iconuri"], currentpackage)
         pass #TODO
 
+    def set_progress(self, value):
+        self.app_mgmt_progress.set_fraction(value / 100)
 
 
 ####AppView
@@ -627,6 +629,12 @@ class main(object):
         else:
             self.mainpage.add_to_back()
         
+    def set_progress(self, packagename, packagetype, value):
+        #TODO: Implement variable for current source as well
+        if self.mainpage.current_item_viewed == packagename:
+            self.mainpage.AppDetailsHeader.set_progress(value)
+        
+    
 
     def _check_first_run(self):
         pass

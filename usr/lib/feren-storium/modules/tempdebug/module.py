@@ -58,6 +58,9 @@ class DebugWindow(object):
         
     def testiteminfo_pressed(self, gtk_widget):
         print(self.storebrain.get_item_info(self.textboxpkgpage.get_text()))
+        
+    def setpkgprogress_pressed(self, gtk_widget):
+        self.storebrain.set_progress(self.storebrain.gui_module.main.mainpage.current_item_viewed, "apt", int(self.textboxpkgprogress.get_text()))
 
     def _build_app(self):
         # build window
@@ -107,6 +110,15 @@ class DebugWindow(object):
         yeet.pack_start(self.itemgetinfo, True, False, 4)
         
         self.itemgetinfo.connect("clicked", self.testiteminfo_pressed)
+        
+        self.textboxpkgprogress = Gtk.Entry()
+        self.textboxpkgprogress.set_placeholder_text("package progress (0-100)")
+        self.setpkgprogress = Gtk.Button(label="set package progress")
+        
+        yeet.pack_start(self.textboxpkgprogress, True, False, 4)
+        yeet.pack_start(self.setpkgprogress, True, False, 4)
+        
+        self.setpkgprogress.connect("clicked", self.setpkgprogress_pressed)
         
         #back_img = Gtk.Image()
         #back_img.set_from_icon_name("go-previous-symbolic", Gtk.IconSize.BUTTON);

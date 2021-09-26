@@ -87,7 +87,7 @@ class StoreBrain():
         if pkgtype == "":
             #Find default package type via package-sources
             import json
-            with open("/usr/share/feren-storium/curated/package-info/generic/data.json", 'r') as fp:            
+            with open("/usr/share/feren-storium/curated/package-info/generic/data.json", 'r') as fp:    
                 packagesources = json.loads(fp.read())
             packagetype = packagesources[packagename]["order-of-source-importance"][0]
         else:
@@ -105,6 +105,9 @@ class StoreBrain():
             raise StoreBrainException(_("No information was found for %s") % packagename)
         else:
             return item_info
+    
+    def set_progress(self, packagename, packagetype, value):
+        self.gui_module.main.set_progress(packagename, packagetype, value)
         
     
     def package_module(self, packagetype):
