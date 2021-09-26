@@ -72,6 +72,6 @@
         "system": { "show_exit_confirmation_dialog": false },
         "tabs": { "at_edge": true, "dim_hibernated": true, "focus_webview": true, "page_load_info": 3 },
         "toolbars": { "navigation": ["Back", "Forward", "Reload", "CaptureImages"] },
-        "windows": { "show_window_close_confirmation_dialog": false, "use_native_decoration": true }
+        "windows": { "show_window_close_confirmation_dialog": false, "use_native_decoration": false }
     }
 }
