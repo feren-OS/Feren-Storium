@@ -101,7 +101,7 @@ class AppDetailsHeader(Gtk.VBox):
 
     def installapp_pressed(self, gtk_widget):
         #TODO: Confirmation and whatnot, let's just get the main event working first
-        source = "chrome"
+        source = "msedge"
         bonuses = ["ublock", "nekocap"]
         self.storebrain.pkgmgmt_modules[self.storebrain.package_module(self.mv.current_source_viewed)].main.install_package(self.mv.current_item_viewed, source, bonuses)
 

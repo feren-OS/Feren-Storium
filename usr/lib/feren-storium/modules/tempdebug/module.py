@@ -60,7 +60,7 @@ class DebugWindow(object):
         print(self.storebrain.get_item_info(self.textboxpkgpage.get_text()))
         
     def setpkgprogress_pressed(self, gtk_widget):
-        self.storebrain.set_progress(self.storebrain.gui_module.main.mainpage.current_item_viewed, "apt", int(self.textboxpkgprogress.get_text()))
+        self.storebrain.set_progress(self.storebrain.gui_module.main.mainpage.current_item_viewed, self.storebrain.gui_module.main.mainpage.current_source_viewed, int(self.textboxpkgprogress.get_text()))
 
     def _build_app(self):
         # build window
