@@ -54,6 +54,17 @@ class main():
                 self.json_storage[i] = json.loads(fp.read())
         
         self.memory_refreshing = False
+        
+        
+    def getPackageJSON(self):
+        #Return a json of all package names
+        packagejson = {}
+        for i in [self.json_storage["package-info/peppermint-ice"]]:
+            try:
+                packagejson.update(i)
+            except:
+                pass
+        return packagejson
       
     
     def getInfo(self, packagename, packagetype):

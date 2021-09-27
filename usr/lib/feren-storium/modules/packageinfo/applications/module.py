@@ -80,6 +80,17 @@ class main():
             raise ApplicationInfoModuleException(packagename, _("is not associated with any Store internal name. If you are getting an exception throw, it means you have not used a Try to respond to the package not being in the Store."))
         except:
             raise ApplicationInfoModuleException(packagename, _("is not associated with any Store internal name. If you are getting an exception throw, it means you have not used a Try to respond to the package not being in the Store."))
+        
+        
+    def getPackageJSON(self):
+        #Return a json of all package names
+        packagejson = {}
+        for i in [self.json_storage["package-info/apt"], self.json_storage["package-info/flatpak"], self.json_storage["package-info/snap"]]:
+            try:
+                packagejson.update(i)
+            except:
+                pass
+        return packagejson
       
     
     def getInfo(self, packagename, packagetype):

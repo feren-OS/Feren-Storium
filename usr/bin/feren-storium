@@ -8,6 +8,7 @@ from threading import Thread
 import gi
 from gi.repository import GLib
 import getpass
+import collections.abc
 
 class StoreBrainException(Exception): # Name this according to the module to allow easier debugging
     pass
@@ -83,6 +84,15 @@ class StoreBrain():
         self.load_modules()
         
     
+    def dict_recurupdate(self, d, u): # I'm sure it's a recursive dictionary updater function, from what I can read of this function
+        for k, v in u.items():
+            if isinstance(v, collections.abc.Mapping):
+                d[k] = self.dict_recurupdate(d.get(k, {}), v)
+            else:
+                d[k] = v
+        return d
+        
+    
     def get_item_info(self, packagename, pkgtype=""):
         if pkgtype == "":
             #Find default package type via package-sources
@@ -123,6 +133,44 @@ class StoreBrain():
             if packagetype in self.localpkgmgmt_modules[module].main.types_managed:
                 return module
         raise StoreBrainException(_("No local package module was found for managing %s") % packagetype)
+        
+    def package_info_module(self, packagetype):
+        #Return the first one we find's name
+        for module in self.pkginfo_modules:
+            if packagetype in self.pkginfo_modules[module].main.types_provided:
+                return module
+        raise StoreBrainException(_("No package info module was found for %s") % packagetype)
+        
+    def get_items_in_categories(self, categories):
+        if self.pkginfo_modules == {}:
+            raise StoreBrainException(_("No package info modules are active"))
+        
+        overallpkginfo = {}
+        jsonstorage = {}
+        jsonstorage2 = {}
+        
+        #Get the initial pkginfo for every item from every module
+        for module in self.pkginfo_modules:
+            jsonstorage[module] = self.pkginfo_modules[module].main.getPackageJSON()
+            
+        #Combine entries
+        for i in jsonstorage:
+            #FIXME: In python3 you're meant to dict.update(newdict), but the pythonic way gets RID of our other data in the process, hence this in-house function's used instead, here
+            self.dict_recurupdate(jsonstorage2, jsonstorage[i])
+        jsonstorage = jsonstorage2
+        
+        #Now split all the listings into their respective categories
+        for item in jsonstorage:
+            try:
+                if jsonstorage[item]["category"] in categories or "all" in categories:
+                    #Add category if it's not yet in the variable
+                    if not jsonstorage[item]["category"] in overallpkginfo:
+                        overallpkginfo[jsonstorage[item]["category"]] = {}
+                    #Add to the variable
+                    overallpkginfo[jsonstorage[item]["category"]][item] = jsonstorage[item]
+            except:
+                pass
+        return overallpkginfo
         
         
     def run_module(self, module):

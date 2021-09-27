@@ -8,7 +8,6 @@ import gi
 #Dependencies
 import json
 import shutil
-import collections.abc
 
 
 class ICEModuleException(Exception): # Name this according to the module to allow easier debugging
@@ -122,14 +121,6 @@ class main():
             return 1
         else:
             return 0
-        
-    def dict_recurupdate(self, d, u): # I'm sure it's a recursive dictionary updater function, from what I can read of this function
-        for k, v in u.items():
-            if isinstance(v, collections.abc.Mapping):
-                d[k] = self.dict_recurupdate(d.get(k, {}), v)
-            else:
-                d[k] = v
-        return d
     
     def install_package(self, packagename, source, bonuses=[]):
         if packagename not in self.packagestorage:
@@ -149,6 +140,10 @@ class main():
             except Exception as exceptionstr:
                 raise ICEModuleException(_("Failed to install {0}: {1} was encountered when trying to create the shortcut's location").format(packagename, exceptionstr))
             
+            
+        self.storebrain.set_progress(packagename, "peppermint-ice", 12)
+            
+            
         #Create the Chromium profile
         if not os.path.isdir(os.path.expanduser("~") + "/.local/share/feren-storium-ice"):
             try:
@@ -160,6 +155,10 @@ class main():
                 os.mkdir(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s" % packagename)
             except Exception as exceptionstr:
                 raise ICEModuleException(_("Failed to install {0}: {1} was encountered when trying to create the profile's folder").format(packagename, exceptionstr))
+            
+            
+        self.storebrain.set_progress(packagename, "peppermint-ice", 24)
+            
             
         #First Run existing skips the initial Welcome to Google Chrome dialog, which is very useful here to have a skip in place for
         try:
@@ -174,12 +173,20 @@ class main():
             self.remove_package(packagename, source, True) #Remove profile's files/folders on failure
             raise ICEModuleException(_("Failed to install {0}: {1} was encountered when making the Chromium-based profile").format(packagename, exceptionstr))
         
+        
+        self.storebrain.set_progress(packagename, "peppermint-ice", 36)
+            
+        
         usefallbackicon = False
         #Copy icon for package
         try:
             shutil.copy(self.storebrain.tempdir + "/icons/" + packagename, os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/icon" % packagename)
         except Exception as exceptionstr:
             usefallbackicon = True
+            
+            
+        self.storebrain.set_progress(packagename, "peppermint-ice", 48)
+            
         
         
         #Now to make the JSON file
@@ -189,16 +196,18 @@ class main():
         if "nekocap" in bonuses:
             with open("/usr/share/feren-storium/modules/packagemgmt-ice/chromium-profile/and-nekocap", 'r') as fp:
                 profiletomakeextra = json.loads(fp.read()) #This is how you make json.load work with file paths, I guess
-            #FIXME: In python3 you're meant to dict.update(newdict), but the pythonic way gets RID of our other Extensions in the process from the Preferences, hence this in-house function's used instead, here
-            profiletomake = self.dict_recurupdate(profiletomake, profiletomakeextra)
+            profiletomake = self.storebrain.dict_recurupdate(profiletomake, profiletomakeextra)
         if "ublock" in bonuses:
             with open("/usr/share/feren-storium/modules/packagemgmt-ice/chromium-profile/and-ublock", 'r') as fp:
                 profiletomakeextra = json.loads(fp.read())
-            profiletomake = self.dict_recurupdate(profiletomake, profiletomakeextra)
+            profiletomake = self.storebrain.dict_recurupdate(profiletomake, profiletomakeextra)
         if "darkreader" in bonuses:
             with open("/usr/share/feren-storium/modules/packagemgmt-ice/chromium-profile/and-darkreader", 'r') as fp:
                 profiletomakeextra = json.loads(fp.read())
-            profiletomake = self.dict_recurupdate(profiletomake, profiletomakeextra)
+            profiletomake = self.storebrain.dict_recurupdate(profiletomake, profiletomakeextra)
+        
+        
+        self.storebrain.set_progress(packagename, "peppermint-ice", 60)
         
         
         #Write profile
@@ -223,6 +232,11 @@ class main():
             darkreadarg = "true"
         else:
             darkreadarg = "false"
+            
+            
+        self.storebrain.set_progress(packagename, "peppermint-ice", 72)            
+            
+            
         try:
 
             with open(os.path.expanduser("~") + "/.local/share/applications/%s.desktop" % packagename, 'w') as fp:
@@ -271,9 +285,13 @@ class main():
         except Exception as exceptionstr:
             self.remove_package(packagename, source, True) #Remove profile's files/folders on failure
             raise ICEModuleException(_("Failed to install {0}: {1} was encountered when creating a shortcut in the Applications Menu").format(packagename, exceptionstr))
+            
+        self.storebrain.set_progress(packagename, "peppermint-ice", 99)
         
         #Otherwise they'll refuse to launch from the Applications Menu (bug seen in Mint's own Ice code fork)
         os.system("chmod +x " + os.path.expanduser("~") + "/.local/share/applications/%s.desktop" % packagename)
+            
+        self.storebrain.set_progress(packagename, "peppermint-ice", 100)
         
         #Clean up after management
         self.currentpackagename = ""
@@ -294,11 +312,17 @@ class main():
         except Exception as exceptionstr:
             if not forinstall:
                 raise ICEModuleException(_("Failed to uninstall {0}: {1} was encountered when removing the shortcut from the Applications Menu").format(packagename, exceptionstr))
+            
+        self.storebrain.set_progress(packagename, "peppermint-ice", 50)
+        
         try:
             shutil.rmtree(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s" % packagename)
         except Exception as exceptionstr:
             if not forinstall:
                 raise ICEModuleException(_("Failed to uninstall {0}: {1} was encountered when deleting the Chromium-based profile").format(packagename, exceptionstr))
+            
+        #FIXME: All the 'source' values need to point to the browser, once Source dropdown's implemented
+        self.storebrain.set_progress(packagename, "peppermint-ice", 100)
         
         #Clean up after management
         if not forinstall:

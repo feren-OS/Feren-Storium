@@ -371,6 +371,21 @@ class AppMainView(Gtk.Stack):
         self.pkgpage_bugsurl.set_label("Bugs URL: " + str(packageinfo["bugsurl"]))
         self.pkgpage_tosurl.set_label("TOS URL: " + str(packageinfo["tosurl"]))
         self.pkgpage_privpolurl.set_label("Privacy Policy URL: " + str(packageinfo["privpolurl"]))
+        
+    def populate_mainpage(self):
+        #TODO: Split into sections
+        data = self.storebrain.get_items_in_categories(["all"])
+        for category in data:
+            print(category)
+            for item in data[category]:
+                btn = Gtk.Button(label=item)
+                btn.connect("clicked", self._btn_goto_packageview, item)
+                if category.startswith("ice-"):
+                    self.websitesitems.insert(btn, 1)
+                elif category.startswith("themes-"):
+                    self.themesitems.insert(btn, 1)
+                else:
+                    self.appsitems.insert(btn, 1)
     
 
     def toggle_back(self):
@@ -453,6 +468,10 @@ class main(object):
 
     def build_app_post_splashscreen(self, mainwindow, maintoolbar, mv):
         GLib.idle_add(self._build_app_post_splashscreen, mainwindow, maintoolbar, mv)
+        
+        
+        
+        mv.populate_mainpage()
 
     def _build_app_post_splashscreen(self, mainwindow, maintoolbar, mv):
         # build rest of window
