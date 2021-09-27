@@ -376,7 +376,6 @@ class AppMainView(Gtk.Stack):
         #TODO: Split into sections
         data = self.storebrain.get_items_in_categories(["all"])
         for category in data:
-            print(category)
             for item in data[category]:
                 btn = Gtk.Button(label=item)
                 btn.connect("clicked", self._btn_goto_packageview, item)
