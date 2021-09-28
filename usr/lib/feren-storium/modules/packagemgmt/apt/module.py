@@ -121,6 +121,7 @@ class PackageMgmtModule():
         # 403 - Not in repositories
         pass
     
+    
     def finishing_cleanup(self, packagename):
         #Cleanup after package operations
         self.currentpackagename = ""

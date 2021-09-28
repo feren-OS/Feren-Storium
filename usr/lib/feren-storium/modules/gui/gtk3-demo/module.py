@@ -45,11 +45,13 @@ class AppDetailsHeader(Gtk.VBox):
         self.installappnosource_btn = Gtk.Button(label=("Install..."))
         self.updateapp_btn = Gtk.Button(label=("Update"))
         self.removeapp_btn = Gtk.Button(label=("Remove"))
+        self.cancelapp_btn = Gtk.Button(label=("Cancel"))
         
         buttonsbox.pack_start(self.installapp_btn, False, False, 4)
         buttonsbox.pack_start(self.installappnosource_btn, False, False, 4)
         buttonsbox.pack_start(self.updateapp_btn, False, False, 4)
         buttonsbox.pack_start(self.removeapp_btn, False, False, 4)
+        buttonsbox.pack_start(self.cancelapp_btn, False, False, 4)
         
         self.pack_start(self.app_icon, False, False, 4)
         self.pack_start(self.app_title, True, False, 4)
@@ -63,6 +65,7 @@ class AppDetailsHeader(Gtk.VBox):
         self.installappnosource_btn.connect("clicked", self.installappnosource_pressed)
         self.updateapp_btn.connect("clicked", self.updateapp_pressed)
         self.removeapp_btn.connect("clicked", self.removeapp_pressed)
+        self.cancelapp_btn.connect("clicked", self.cancelapp_pressed)
         
         pass
     
@@ -118,6 +121,10 @@ class AppDetailsHeader(Gtk.VBox):
         source = ""
         #TODO: Confirmation and whatnot, let's just get the main event working first
         self.storebrain.package_module(self.mv.current_source_viewed).remove_package(self.mv.current_item_viewed, source)
+
+    def cancelapp_pressed(self, gtk_widget):
+        #TODO
+        pass
         
     def update_buttons(self, status):
         #Update buttons according to status
@@ -137,6 +144,11 @@ class AppDetailsHeader(Gtk.VBox):
             self.removeapp_btn.set_sensitive(True)
         else:
             self.removeapp_btn.set_sensitive(False)
+        if status == 900: #Queued
+            self.cancelapp_btn.set_sensitive(True)
+        else:
+            self.cancelapp_btn.set_sensitive(False)
+        #901 - Working on item
         
 
 
