@@ -124,21 +124,21 @@ class StoreBrain():
         #Return the first one we find's name
         for module in self.pkgmgmt_modules:
             if packagetype in self.pkgmgmt_modules[module].main.types_managed:
-                return module
+                return self.pkgmgmt_modules[module].main
         raise StoreBrainException(_("No package module was found for managing %s") % packagetype)
         
     def local_package_module(self, packagetype):
         #Return the first one we find's name
         for module in self.localpkgmgmt_modules:
             if packagetype in self.localpkgmgmt_modules[module].main.types_managed:
-                return module
+                return self.localpkgmgmt_modules[module].main
         raise StoreBrainException(_("No local package module was found for managing %s") % packagetype)
         
     def package_info_module(self, packagetype):
         #Return the first one we find's name
         for module in self.pkginfo_modules:
             if packagetype in self.pkginfo_modules[module].main.types_provided:
-                return module
+                return self.pkginfo_modules[module].main
         raise StoreBrainException(_("No package info module was found for %s") % packagetype)
         
     def get_items_in_categories(self, categories):

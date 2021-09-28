@@ -44,14 +44,14 @@ class DebugWindow(object):
         if self.checkboxublock.get_active() == True:
             bonuses.append("ublock")
         
-        self.storebrain.pkgmgmt_modules["peppermint-ice"].main.pkgstorage_add(self.textboxicepkgname.get_text())
+        self.storebrain.package_module("peppermint-ice").pkgstorage_add(self.textboxicepkgname.get_text())
         
-        self.storebrain.pkgmgmt_modules[self.storebrain.package_module("peppermint-ice")].main.install_package(self.textboxicepkgname.get_text(), self.textboxicesource.get_text(), bonuses)
+        self.storebrain.package_module("peppermint-ice").install_package(self.textboxicepkgname.get_text(), self.textboxicesource.get_text(), bonuses)
         
     def testiceremove_pressed(self, gtk_widget):
-        self.storebrain.pkgmgmt_modules["peppermint-ice"].main.pkgstorage_add(self.textboxicepkgname.get_text())
+        self.storebrain.package_module("peppermint-ice").pkgstorage_add(self.textboxicepkgname.get_text())
         
-        self.storebrain.pkgmgmt_modules[self.storebrain.package_module("peppermint-ice")].main.remove_package(self.textboxicepkgname.get_text(), self.textboxicesource.get_text())
+        self.storebrain.package_module("peppermint-ice").remove_package(self.textboxicepkgname.get_text(), self.textboxicesource.get_text())
         
     def testiceinfo_pressed(self, gtk_widget):
         print(self.storebrain.get_item_info(self.textboxicepkgname.get_text(), "peppermint-ice"))

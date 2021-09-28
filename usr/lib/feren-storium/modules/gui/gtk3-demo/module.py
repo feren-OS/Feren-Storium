@@ -103,7 +103,7 @@ class AppDetailsHeader(Gtk.VBox):
         #TODO: Confirmation and whatnot, let's just get the main event working first
         source = "msedge"
         bonuses = ["ublock", "nekocap"]
-        self.storebrain.pkgmgmt_modules[self.storebrain.package_module(self.mv.current_source_viewed)].main.install_package(self.mv.current_item_viewed, source, bonuses)
+        self.storebrain.package_module(self.mv.current_source_viewed).install_package(self.mv.current_item_viewed, source, bonuses)
 
     def installappnosource_pressed(self, gtk_widget):
         #TODO
@@ -112,12 +112,12 @@ class AppDetailsHeader(Gtk.VBox):
     def updateapp_pressed(self, gtk_widget):
         source = ""
         #TODO: Confirmation and whatnot, let's just get the main event working first
-        self.storebrain.pkgmgmt_modules[self.storebrain.package_module(self.mv.current_source_viewed)].main.update_package(self.mv.current_item_viewed, source)
+        self.storebrain.package_module(self.mv.current_source_viewed).update_package(self.mv.current_item_viewed, source)
 
     def removeapp_pressed(self, gtk_widget):
         source = ""
         #TODO: Confirmation and whatnot, let's just get the main event working first
-        self.storebrain.pkgmgmt_modules[self.storebrain.package_module(self.mv.current_source_viewed)].main.remove_package(self.mv.current_item_viewed, source)
+        self.storebrain.package_module(self.mv.current_source_viewed).remove_package(self.mv.current_item_viewed, source)
 
 
 ####AppView
@@ -436,7 +436,7 @@ class AppMainView(Gtk.Stack):
         self.set_visible_child(self.sw4)
         self.populate_pkgpage(information, packagename)
         self.AppDetailsHeader.populate(information, packagename)
-        self.storebrain.pkgmgmt_modules[self.storebrain.package_module(information["packagetype"])].main.pkgstorage_add(packagename)
+        self.storebrain.package_module(information["packagetype"]).pkgstorage_add(packagename)
 
     def _btn_goto_packageview(self, btn, packagename):
         self._goto_packageview(packagename)
