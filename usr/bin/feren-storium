@@ -35,36 +35,36 @@ class StoreBrain():
                 path = os.path.join(MODULES_DIR+"/localpackagemgmt", dir_name)
                 try:
                     module = StoreModuleContainer(self, path)
-                    self.localpkgmgmt_modules[dir_name] = module
+                    self.localpkgmgmt_modules[dir_name] = module.main
                 except Exception as e:
                     print("Failed to load local package management module %s: \n%s\n" % (dir_name, e))
             for dir_name in sorted(os.listdir(MODULES_DIR+"/packagemgmt")):
                 path = os.path.join(MODULES_DIR+"/packagemgmt", dir_name)
                 try:
                     module = StoreModuleContainer(self, path)
-                    self.pkgmgmt_modules[dir_name] = module
+                    self.pkgmgmt_modules[dir_name] = module.main
                 except Exception as e:
                     print("Failed to load package management module %s: \n%s\n" % (dir_name, e))
             for dir_name in sorted(os.listdir(MODULES_DIR+"/packageinfo")):
                 path = os.path.join(MODULES_DIR+"/packageinfo", dir_name)
                 try:
                     module = StoreModuleContainer(self, path)
-                    self.pkginfo_modules[dir_name] = module
+                    self.pkginfo_modules[dir_name] = module.main
                 except Exception as e:
                     print("Failed to load package information module %s: \n%s\n" % (dir_name, e))
             for dir_name in sorted(os.listdir(MODULES_DIR+"/settings")):
                 path = os.path.join(MODULES_DIR+"/settings", dir_name)
                 try:
                     module = StoreModuleContainer(self, path)
-                    self.settings_modules[dir_name] = module
+                    self.settings_modules[dir_name] = module.main
                 except Exception as e:
                     print("Failed to load settings module %s: \n%s\n" % (dir_name, e))
     
     
     def __init__(self):
-        self.gui_module = StoreModuleContainer(self, "/usr/lib/feren-storium/modules/gui/gtk3-demo")
+        self.gui_module = StoreModuleContainer(self, "/usr/lib/feren-storium/modules/gui/gtk3-demo").main
         # TODO: Have it be determined by gsettings
-        self.settings_gui_module = StoreModuleContainer(self, "/usr/lib/feren-storium/modules/settings-gui/gtk3-demo")
+        self.settings_gui_module = StoreModuleContainer(self, "/usr/lib/feren-storium/modules/settings-gui/gtk3-demo").main
         # TODO: Have it be determined by gsettings
         self.localpkgmgmt_modules = {}
         self.pkgmgmt_modules = {}
@@ -79,7 +79,7 @@ class StoreBrain():
             os.mkdir(self.tempdir + "/icons")
         
         #TODO: Remove this later on
-        self.debug_module = StoreModuleContainer(self, "/usr/lib/feren-storium/modules/tempdebug")
+        self.debug_module = StoreModuleContainer(self, "/usr/lib/feren-storium/modules/tempdebug").main
         
         self.load_modules()
         
@@ -106,9 +106,9 @@ class StoreBrain():
         item_info = {}
         #Get information from first source that can use it
         for module in self.pkginfo_modules:
-            if packagetype in self.pkginfo_modules[module].main.types_provided or "all" in self.pkginfo_modules[module].main.types_provided:
+            if packagetype in self.pkginfo_modules[module].types_provided or "all" in self.pkginfo_modules[module].types_provided:
                 try:
-                    item_info.update(self.pkginfo_modules[module].main.getInfo(packagename, packagetype))
+                    item_info.update(self.pkginfo_modules[module].getInfo(packagename, packagetype))
                 except Exception as e:
                     pass
         if item_info == {}:
@@ -117,28 +117,28 @@ class StoreBrain():
             return item_info
     
     def set_progress(self, packagename, packagetype, value):
-        self.gui_module.main.set_progress(packagename, packagetype, value)
+        self.gui_module.set_progress(packagename, packagetype, value)
         
     
     def package_module(self, packagetype):
         #Return the first one we find's name
         for module in self.pkgmgmt_modules:
-            if packagetype in self.pkgmgmt_modules[module].main.types_managed:
-                return self.pkgmgmt_modules[module].main
+            if packagetype in self.pkgmgmt_modules[module].types_managed:
+                return self.pkgmgmt_modules[module]
         raise StoreBrainException(_("No package module was found for managing %s") % packagetype)
         
     def local_package_module(self, packagetype):
         #Return the first one we find's name
         for module in self.localpkgmgmt_modules:
-            if packagetype in self.localpkgmgmt_modules[module].main.types_managed:
-                return self.localpkgmgmt_modules[module].main
+            if packagetype in self.localpkgmgmt_modules[module].types_managed:
+                return self.localpkgmgmt_modules[module]
         raise StoreBrainException(_("No local package module was found for managing %s") % packagetype)
         
     def package_info_module(self, packagetype):
         #Return the first one we find's name
         for module in self.pkginfo_modules:
-            if packagetype in self.pkginfo_modules[module].main.types_provided:
-                return self.pkginfo_modules[module].main
+            if packagetype in self.pkginfo_modules[module].types_provided:
+                return self.pkginfo_modules[module]
         raise StoreBrainException(_("No package info module was found for %s") % packagetype)
         
     def get_items_in_categories(self, categories):
@@ -151,7 +151,7 @@ class StoreBrain():
         
         #Get the initial pkginfo for every item from every module
         for module in self.pkginfo_modules:
-            jsonstorage[module] = self.pkginfo_modules[module].main.getPackageJSON()
+            jsonstorage[module] = self.pkginfo_modules[module].getPackageJSON()
             
         #Combine entries
         for i in jsonstorage:
@@ -183,14 +183,14 @@ class StoreBrain():
         GLib.idle_add(self.__run_module, module)
         
     def __run_module(self, module):
-        module.main.init()
+        module.init()
         
     def run(self):
         signal.signal(signal.SIGINT, signal.SIG_DFL)
         
         self.run_module(self.debug_module)
         
-        self.gui_module.main.init()
+        self.gui_module.init()
      
      
      

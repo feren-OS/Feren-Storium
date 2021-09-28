@@ -118,6 +118,26 @@ class AppDetailsHeader(Gtk.VBox):
         source = ""
         #TODO: Confirmation and whatnot, let's just get the main event working first
         self.storebrain.package_module(self.mv.current_source_viewed).remove_package(self.mv.current_item_viewed, source)
+        
+    def update_buttons(self, status):
+        #Update buttons according to status
+        if status == 0: #Uninstalled
+            self.installapp_btn.set_sensitive(True)
+        else:
+            self.installapp_btn.set_sensitive(False)
+        if status == 3: #Available in disabled source
+            self.installappnosource_btn.set_sensitive(True)
+        else:
+            self.installappnosource_btn.set_sensitive(False)
+        if status == 2: #Updatable
+            self.updateapp_btn.set_sensitive(True)
+        else:
+            self.updateapp_btn.set_sensitive(False)
+        if status == 1 or status == 2: #Installed or updatable
+            self.removeapp_btn.set_sensitive(True)
+        else:
+            self.removeapp_btn.set_sensitive(False)
+        
 
 
 ####AppView
@@ -429,6 +449,9 @@ class AppMainView(Gtk.Stack):
     def _goto_page(self, page):
         self.set_visible_child(page)
         
+    def _refresh_page(self, packagename, packagetype):
+        self.AppDetailsHeader.update_buttons(self.storebrain.package_module(packagetype).get_status(packagename))
+        
     def _goto_packageview(self, packagename):
         self.current_item_viewed = packagename
         information = self.storebrain.get_item_info(packagename)
@@ -437,6 +460,7 @@ class AppMainView(Gtk.Stack):
         self.populate_pkgpage(information, packagename)
         self.AppDetailsHeader.populate(information, packagename)
         self.storebrain.package_module(information["packagetype"]).pkgstorage_add(packagename)
+        self._refresh_page(packagename, information["packagetype"])
 
     def _btn_goto_packageview(self, btn, packagename):
         self._goto_packageview(packagename)

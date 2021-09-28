@@ -117,10 +117,19 @@ class main():
         # Return package installation status
         # 0 - Uninstalled
         # 1 - Installed
-        if os.path.isfile(os.path.expanduser("~") + "/.local/share/applications/%s.desktop" % packagename) and os.path.isdir(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/icon" % packagename):
+        if os.path.isfile(os.path.expanduser("~") + "/.local/share/applications/%s.desktop" % packagename) and os.path.isdir(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s" % packagename):
             return 1
         else:
             return 0
+    
+    
+    def finishing_cleanup(self, packagename):
+        #Cleanup after package operations
+        self.currentpackagename = ""
+        self.packagemgmtbusy = False
+        #TODO: Move this call to Store Brain's Tasks management once implemented
+        self.storebrain.gui_module.mainpage._refresh_page(packagename, "peppermint-ice")
+        
     
     def install_package(self, packagename, source, bonuses=[]):
         if packagename not in self.packagestorage:
@@ -294,8 +303,7 @@ class main():
         self.storebrain.set_progress(packagename, "peppermint-ice", 100)
         
         #Clean up after management
-        self.currentpackagename = ""
-        self.packagemgmtbusy = False
+        self.finishing_cleanup(packagename)
         return True
     
     def remove_package(self, packagename, source, forinstall=False):
@@ -326,12 +334,12 @@ class main():
         
         #Clean up after management
         if not forinstall:
-            self.currentpackagename = ""
-            self.packagemgmtbusy = False
+            self.finishing_cleanup(packagename)
         return True
     
     def update_package(self, packagename, source):
         #You SHOULD NOT be able to hit Update for websites anyway, so raise an error
+        self.finishing_cleanup(packagename)
         raise ICEModuleException(_("You wouldn't update an Ice Website Application."))
     
     def get_package_changes(self, pkgsinstalled, pkgsupdated, pkgsremoved):

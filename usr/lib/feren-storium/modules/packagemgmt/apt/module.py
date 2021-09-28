@@ -117,8 +117,17 @@ class PackageMgmtModule():
         # 0 - Uninstalled
         # 1 - Installed
         # 2 - Updatable
+        # 3 - Available in a disabled source
         # 403 - Not in repositories
         pass
+    
+    def finishing_cleanup(self, packagename):
+        #Cleanup after package operations
+        self.currentpackagename = ""
+        self.packagemgmtbusy = False
+        #TODO: Move this call to Store Brain's Tasks management once implemented
+        self.storebrain.gui_module.mainpage._refresh_page(packagename, "apt")
+        
     
     def install_package(self, packagename):
         #Install package and return exit code
@@ -139,8 +148,7 @@ class PackageMgmtModule():
             return False
         
         #Clean up after management
-        self.currentpackagename = ""
-        self.packagemgmtbusy = False
+        self.finishing_cleanup(packagename)
         return outcome.get_exit_code() == PackageKitGlib.ExitEnum.SUCCESS
     
     def remove_package(self, packagename):
@@ -159,8 +167,7 @@ class PackageMgmtModule():
             return False
         
         #Clean up after management
-        self.currentpackagename = ""
-        self.packagemgmtbusy = False
+        self.finishing_cleanup(packagename)
         return outcome.get_exit_code() == PackageKitGlib.ExitEnum.SUCCESS
     
     def update_package(self, packagename):
@@ -179,8 +186,7 @@ class PackageMgmtModule():
             return False
         
         #Clean up after management
-        self.currentpackagename = ""
-        self.packagemgmtbusy = False
+        self.finishing_cleanup(packagename)
         return outcome.get_exit_code() == PackageKitGlib.ExitEnum.SUCCESS
     
     def get_package_changes(self, pkgsinstalled, pkgsupdated, pkgsremoved):
