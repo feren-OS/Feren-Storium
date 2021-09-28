@@ -15,7 +15,7 @@ class ICEModuleException(Exception): # Name this according to the module to allo
 
 
 class PackageStore():
-    def __init__(self, realname, iconuri, shortdesc, description, author, category, images, website, donateurl, bugsurl, tosurl, privpolurl, keywords):
+    def __init__(self, realname, iconuri, shortdesc, description, author, category, images, website, donateurl, bugreporturl, tosurl, privpolurl, keywords):
         self.realname = realname
         self.iconuri = iconuri
         self.shortdesc = shortdesc
@@ -25,7 +25,7 @@ class PackageStore():
         self.images = images
         self.website = website
         self.donateurl = donateurl
-        self.bugsurl = bugsurl
+        self.bugreporturl = bugreporturl
         self.tosurl = tosurl
         self.privpolurl = privpolurl
         self.keywords = keywords
@@ -104,12 +104,12 @@ class main():
             #Get the values
             packageinfo = self.storebrain.get_item_info(packagename, "peppermint-ice")
             
-            self.packagestorage[packagename] = PackageStore(packageinfo["realname"], packageinfo["iconuri"], "desc", packageinfo["description"], packageinfo["author"], packageinfo["category"], packageinfo["images"], packageinfo["website"], packageinfo["donateurl"], packageinfo["bugsurl"], packageinfo["tosurl"], packageinfo["privpolurl"], packageinfo["keywords"])
+            self.packagestorage[packagename] = PackageStore(packageinfo["realname"], packageinfo["iconuri"], "desc", packageinfo["description"], packageinfo["author"], packageinfo["category"], packageinfo["images"], packageinfo["website"], packageinfo["donateurl"], packageinfo["bugreporturl"], packageinfo["tosurl"], packageinfo["privpolurl"], packageinfo["keywords"])
 
     def get_information(self, packagename):
         # Return description for package
         if packagename in self.packagestorage:
-            return self.packagestorage[packagename].realname, self.packagestorage[packagename].iconuri, self.packagestorage[packagename].shortdesc, self.packagestorage[packagename].description, self.packagestorage[packagename].author, self.packagestorage[packagename].category, self.packagestorage[packagename].images, self.packagestorage[packagename].website, self.packagestorage[packagename].donateurl, self.packagestorage[packagename].bugsurl, self.packagestorage[packagename].tosurl, self.packagestorage[packagename].privpolurl, self.packagestorage[packagename].keywords
+            return self.packagestorage[packagename].realname, self.packagestorage[packagename].iconuri, self.packagestorage[packagename].shortdesc, self.packagestorage[packagename].description, self.packagestorage[packagename].author, self.packagestorage[packagename].category, self.packagestorage[packagename].images, self.packagestorage[packagename].website, self.packagestorage[packagename].donateurl, self.packagestorage[packagename].bugreporturl, self.packagestorage[packagename].tosurl, self.packagestorage[packagename].privpolurl, self.packagestorage[packagename].keywords
         else:
             raise ICEModuleException(_("%s is not in the Package Storage (packagestorage) yet - make sure it's in the packagestorage variable before obtaining package information.") % packagename)
 

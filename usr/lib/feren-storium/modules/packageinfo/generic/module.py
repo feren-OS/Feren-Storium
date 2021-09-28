@@ -100,7 +100,7 @@ class main():
       
     def getIconURI(self, packagename, packagetype):
         try:
-            iconuri = self.json_storage["package-info/generic"][packagename]["iconurl"]
+            iconuri = self.json_storage["package-info/generic"][packagename]["iconuri"]
         except:
             iconuri = ""
         return iconuri
@@ -130,13 +130,10 @@ class main():
         return category
       
     def getImages(self, packagename, packagetype):
-        images = ["", "", ""]
         try:
-            images[0] = self.json_storage["package-info/generic"][packagename]["image1"]
-            images[1] = self.json_storage["package-info/generic"][packagename]["image2"]
-            images[2] = self.json_storage["package-info/generic"][packagename]["image3"]
+            images = self.json_storage["package-info/generic"][packagename]["images"]
         except:
-            return images
+            images = []
         return images
       
     def getWebsite(self, packagename, packagetype):

@@ -2,8 +2,8 @@
   "org.mozilla.firefox": {
     "author": "Mozilla",
     "bugreporturl": "",
-    "tos": "",
-    "privpol": "",
+    "tosurl": "",
+    "privpolurl": "",
     "canihasthemes": 4,
     "canihastouch": 0,
     "canihasaccessibility": true,

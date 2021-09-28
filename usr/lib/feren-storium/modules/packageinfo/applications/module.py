@@ -143,7 +143,7 @@ class main():
         translatedpackagename=self.internalToPkgName(packagename, packagetype)
         typejson=self.json_storage["package-info/" + packagetype]
         try:
-            tosurl = typejson[translatedpackagename]["tos"]
+            tosurl = typejson[translatedpackagename]["tosurl"]
         except:
             tosurl = ""
         return tosurl
@@ -152,7 +152,7 @@ class main():
         translatedpackagename=self.internalToPkgName(packagename, packagetype)
         typejson=self.json_storage["package-info/" + packagetype]
         try:
-            privpolurl = typejson[translatedpackagename]["privpol"]
+            privpolurl = typejson[translatedpackagename]["privpolurl"]
         except:
             privpolurl = ""
         return privpolurl

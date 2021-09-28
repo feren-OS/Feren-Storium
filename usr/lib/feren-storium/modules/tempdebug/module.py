@@ -59,8 +59,8 @@ class DebugWindow(object):
     def testiteminfo_pressed(self, gtk_widget):
         print(self.storebrain.get_item_info(self.textboxpkgpage.get_text()))
         
-    def setpkgprogress_pressed(self, gtk_widget):
-        self.storebrain.set_progress(self.storebrain.gui_module.mainpage.current_item_viewed, self.storebrain.gui_module.mainpage.current_source_viewed, int(self.textboxpkgprogress.get_text()))
+    def testsearch_pressed(self, gtk_widget):
+        print(self.storebrain.item_search(self.textboxsearch.get_text()))
 
     def _build_app(self):
         # build window
@@ -111,14 +111,14 @@ class DebugWindow(object):
         
         self.itemgetinfo.connect("clicked", self.testiteminfo_pressed)
         
-        self.textboxpkgprogress = Gtk.Entry()
-        self.textboxpkgprogress.set_placeholder_text("package progress (0-100)")
-        self.setpkgprogress = Gtk.Button(label="set package progress")
+        self.textboxsearch = Gtk.Entry()
+        self.textboxsearch.set_placeholder_text("search")
+        self.testsearchbtn = Gtk.Button(label="testsearch")
         
-        yeet.pack_start(self.textboxpkgprogress, True, False, 4)
-        yeet.pack_start(self.setpkgprogress, True, False, 4)
+        yeet.pack_start(self.textboxsearch, True, False, 4)
+        yeet.pack_start(self.testsearchbtn, True, False, 4)
         
-        self.setpkgprogress.connect("clicked", self.setpkgprogress_pressed)
+        self.testsearchbtn.connect("clicked", self.testsearch_pressed)
         
         #back_img = Gtk.Image()
         #back_img.set_from_icon_name("go-previous-symbolic", Gtk.IconSize.BUTTON);

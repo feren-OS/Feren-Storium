@@ -2,8 +2,8 @@
   "feren-extra-backgrounds": {
     "author": "Feren OS Team",
     "bugreporturl": "",
-    "tos": "",
-    "privpol": "",
+    "tosurl": "",
+    "privpolurl": "",
     "canihasthemes": 1,
     "canihastouch": 1,
     "canihasaccessibility": true,
@@ -14,8 +14,8 @@
   "feren-store": {
     "author": "Feren OS Team",
     "bugreporturl": "https://github.com/feren-OS/Bug-Reporting-Center/issues/",
-    "tos": "",
-    "privpol": "",
+    "tosurl": "",
+    "privpolurl": "",
     "canihasthemes": 1,
     "canihastouch": 1,
     "canihasaccessibility": true,
@@ -26,8 +26,8 @@
   "chromium-browser": {
     "author": "Google",
     "bugreporturl": "",
-    "tos": "",
-    "privpol": "",
+    "tosurl": "",
+    "privpolurl": "",
     "canihasthemes": 2,
     "canihastouch": 1,
     "canihasaccessibility": true,

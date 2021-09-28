@@ -83,6 +83,36 @@ class StoreBrain():
         
         self.load_modules()
         
+        # For search and whatnot
+        self.package_data_categories = self.get_items_in_all_categories()
+        self.package_name_categories = {}
+        for category in self.package_data_categories:
+            for item in self.package_data_categories[category]:
+                self.package_name_categories[item] = category
+                    
+        
+    def item_search(self, searchterm):
+        searchresults = []
+        #FIXME: Is there not a more efficient way to do this?
+        #First check: Is the search term literally the name of the package or the real name?
+        for item in self.package_name_categories:
+            if searchterm == self.get_item_info(item)["realname"]:
+                searchresults.append(item)
+        if searchterm in self.package_name_categories:
+            searchresults.append(searchterm)
+        #Second check: Do any names start with the search term?
+        for item in self.package_name_categories:
+            if item.startswith(searchterm) or self.get_item_info(item)["realname"].startswith(searchterm):
+                searchresults.append(item)
+        #Third check: Do any names contain the search term?
+        for item in self.package_name_categories:
+            if searchterm in item or searchterm in self.get_item_info(item)["realname"]:
+                searchresults.append(item)
+        #Remove duplicates from list using a python3 trick
+        searchresults = list(dict.fromkeys(searchresults))
+        
+        return searchresults
+    
     
     def dict_recurupdate(self, d, u): # I'm sure it's a recursive dictionary updater function, from what I can read of this function
         for k, v in u.items():
@@ -103,18 +133,11 @@ class StoreBrain():
         else:
             packagetype = pkgtype
         
-        item_info = {}
-        #Get information from first source that can use it
-        for module in self.pkginfo_modules:
-            if packagetype in self.pkginfo_modules[module].types_provided or "all" in self.pkginfo_modules[module].types_provided:
-                try:
-                    item_info.update(self.pkginfo_modules[module].getInfo(packagename, packagetype))
-                except Exception as e:
-                    pass
-        if item_info == {}:
-            raise StoreBrainException(_("No information was found for %s") % packagename)
-        else:
-            return item_info
+        for category in self.package_data_categories:
+            if packagename in self.package_data_categories[category]:
+                return self.package_data_categories[category][packagename]
+        
+        raise StoreBrainException(_("No information was found for %s") % packagename)
     
     def set_progress(self, packagename, packagetype, value):
         self.gui_module.set_progress(packagename, packagetype, value)
@@ -140,8 +163,8 @@ class StoreBrain():
             if packagetype in self.pkginfo_modules[module].types_provided:
                 return self.pkginfo_modules[module]
         raise StoreBrainException(_("No package info module was found for %s") % packagetype)
-        
-    def get_items_in_categories(self, categories):
+    
+    def get_items_in_all_categories(self, packagetype=""):
         if self.pkginfo_modules == {}:
             raise StoreBrainException(_("No package info modules are active"))
         
@@ -162,15 +185,23 @@ class StoreBrain():
         #Now split all the listings into their respective categories
         for item in jsonstorage:
             try:
-                if jsonstorage[item]["category"] in categories or "all" in categories:
-                    #Add category if it's not yet in the variable
-                    if not jsonstorage[item]["category"] in overallpkginfo:
-                        overallpkginfo[jsonstorage[item]["category"]] = {}
-                    #Add to the variable
-                    overallpkginfo[jsonstorage[item]["category"]][item] = jsonstorage[item]
+                #Add category if it's not yet in the variable
+                if not jsonstorage[item]["category"] in overallpkginfo:
+                    overallpkginfo[jsonstorage[item]["category"]] = {}
+                #Add to the variable
+                overallpkginfo[jsonstorage[item]["category"]][item] = jsonstorage[item]
             except:
                 pass
         return overallpkginfo
+        
+    def get_items_in_categories(self, categories, packagetype=""):
+        if "all" in categories:
+            return self.package_data_categories
+        else:
+            overalldata = {}
+            for category in categories:
+                overalldata[category] = self.package_data_categories[category]
+            return overallpkgdata
         
         
     def run_module(self, module):

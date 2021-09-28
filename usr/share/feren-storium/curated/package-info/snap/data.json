@@ -2,8 +2,8 @@
   "chromium": {
     "author": "Canonical",
     "bugreporturl": "",
-    "tos": "",
-    "privpol": "",
+    "tosurl": "",
+    "privpolurl": "",
     "canihasthemes": 1,
     "canihastouch": 1,
     "canihasaccessibility": true,
@@ -14,8 +14,8 @@
   "firefox": {
     "author": "Mozilla",
     "bugreporturl": "",
-    "tos": "",
-    "privpol": "",
+    "tosurl": "",
+    "privpolurl": "",
     "canihasthemes": 4,
     "canihastouch": 0,
     "canihasaccessibility": true,

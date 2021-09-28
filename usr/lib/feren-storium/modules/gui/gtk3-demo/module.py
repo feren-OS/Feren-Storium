@@ -294,6 +294,9 @@ class AppMainView(Gtk.Stack):
         # build search page
         searchpage = Gtk.VBox(spacing=8)
         
+        self.searchbar = Gtk.Entry()
+        self.searchbar.connect("changed", self.searchbar_search)
+        
         self.searchresults = Gtk.FlowBox()
         self.searchresults.set_margin_top(4)
         self.searchresults.set_margin_bottom(4)
@@ -303,7 +306,8 @@ class AppMainView(Gtk.Stack):
         self.searchresults.set_homogeneous(True)
         self.searchresults.set_valign(Gtk.Align.START)
         
-        searchpage.pack_start(self.searchresults, False, True, 0)
+        searchpage.pack_start(self.searchbar, False, True, 4)
+        searchpage.pack_start(self.searchresults, False, True, 4)
         
         # build another scrolled window widget and add our search view
         self.sw3 = Gtk.ScrolledWindow()
@@ -400,13 +404,13 @@ class AppMainView(Gtk.Stack):
         self.pkgpage_website.set_label("Website: " + str(packageinfo["website"]))
         self.pkgpage_author.set_label("Author: " + str(packageinfo["author"]))
         self.pkgpage_donateurl.set_label("Donate URL: " + str(packageinfo["donateurl"]))
-        self.pkgpage_bugsurl.set_label("Bugs URL: " + str(packageinfo["bugsurl"]))
+        self.pkgpage_bugsurl.set_label("Bugs URL: " + str(packageinfo["bugreporturl"]))
         self.pkgpage_tosurl.set_label("TOS URL: " + str(packageinfo["tosurl"]))
         self.pkgpage_privpolurl.set_label("Privacy Policy URL: " + str(packageinfo["privpolurl"]))
         
     def populate_mainpage(self):
         #TODO: Split into sections
-        data = self.storebrain.get_items_in_categories(["all"])
+        data = self.storebrain.package_data_categories
         for category in data:
             for item in data[category]:
                 btn = Gtk.Button(label=item)
@@ -417,6 +421,20 @@ class AppMainView(Gtk.Stack):
                     self.themesitems.insert(btn, 1)
                 else:
                     self.appsitems.insert(btn, 1)
+        
+    def populate_searchpage(self, searchresults):
+        #Destroy the children first (no actual children were harmed in the making of this program)
+        for item in self.searchresults.get_children():
+            item.destroy()
+        
+        for item in searchresults:
+            btn = Gtk.Button(label=item)
+            btn.connect("clicked", self._btn_goto_packageview, item)
+            self.searchresults.insert(btn, -1)
+            
+        self.searchresults.show_all()
+        
+                
     
 
     def toggle_back(self):
@@ -467,12 +485,12 @@ class AppMainView(Gtk.Stack):
     def _goto_packageview(self, packagename):
         self.current_item_viewed = packagename
         information = self.storebrain.get_item_info(packagename)
-        self.current_source_viewed = information["packagetype"]
+        self.current_source_viewed = information["order-of-source-importance"][0] #FIXME: TEMPORARY UNTIL SOURCE SELECTION IMPLEMENTED
         self.set_visible_child(self.sw4)
         self.populate_pkgpage(information, packagename)
         self.AppDetailsHeader.populate(information, packagename)
-        self.storebrain.package_module(information["packagetype"]).pkgstorage_add(packagename)
-        self._refresh_page(packagename, information["packagetype"])
+        self.storebrain.package_module(self.current_source_viewed).pkgstorage_add(packagename)
+        self._refresh_page(packagename, information["order-of-source-importance"][0])
 
     def _btn_goto_packageview(self, btn, packagename):
         self._goto_packageview(packagename)
@@ -488,6 +506,13 @@ class AppMainView(Gtk.Stack):
             
     def packagepagestuff(self):
         pass
+
+    def searchbar_search(self, btn):
+        if self.searchbar.get_text() == "":
+            self.populate_searchpage([])
+        else:
+            results = self.storebrain.item_search(self.searchbar.get_text())
+            self.populate_searchpage(results)
 
 
 
