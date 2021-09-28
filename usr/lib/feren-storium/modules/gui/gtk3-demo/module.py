@@ -717,6 +717,7 @@ class main(object):
             self.status_btn.set_active(True)
         elif self.mainpage.get_visible_child() == self.mainpage.sw3: # Search
             self.search_btn.set_active(True)
+            self.mainpage.searchbar.grab_focus()
         elif self.mainpage.get_visible_child() == self.mainpage.sw4: # Package Page
             pass
         else:
