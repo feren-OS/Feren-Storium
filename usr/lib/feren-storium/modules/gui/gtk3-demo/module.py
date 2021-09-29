@@ -400,7 +400,8 @@ class AppMainView(Gtk.Stack):
         self.add_named(self.sw4, "packagepage")
     
     def packagepage_steps(self, packagename):
-        self.storebrain.add_to_packageinfo(packagename)
+        
+        self.storebrain.add_to_packageinfo(packagename, "peppermint-ice") #TODO: Make this be the default source value instead
         print(packagename, self.storebrain.get_sources(packagename))
         #self.AppDetailsHeader.
         

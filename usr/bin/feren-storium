@@ -145,13 +145,13 @@ class StoreBrain():
         return d
     
     
-    def add_to_packageinfo(self, packagename):
+    def add_to_packageinfo(self, packagename, packagesource):
         # Add package name to all packagestorages of modules that can house this package
         for module in self.pkgmgmt_modules:
             try:
-                self.pkgmgmt_modules[module].pkgstorage_add(packagename)
-            except:
-                pass
+                self.pkgmgmt_modules[module].pkgstorage_add(packagename, packagesource)
+            except Exception as e:
+                print(e)
     
     def get_sources(self, packagename):
         sourcesdict = {}
@@ -163,21 +163,20 @@ class StoreBrain():
                     sources = self.pkgmgmt_modules[module].get_sources(packagename)
                     for source in sources:
                         sourcesdict[module + ":" + source] = source #TODO: Make a Sources Module that can tell us about the names
-            except:
-                pass
+            except Exception as e:
+                print(e)
         return sourcesdict
     
     
     def get_item_info(self, packagename, pkgtype=""):
-        #TODO: Get different info per package type
-        if pkgtype != "":
-            extrainfo = self.package_module(packagetype).getInfo(packagename, packagetype)
-        else:
+        if pkgtype == "":
             extrainfo = []
+        else:
+            extrainfo = self.package_info_module(pkgtype).getInfo(packagename, pkgtype)
         
-        for category in self.package_data_categories:
-            if packagename in self.package_data_categories[category]:
-                return self.dict_recurupdate(self.package_data_categories[category][packagename], extrainfo)
+        for module in self.overall_package_data:
+            if packagename in self.overall_package_data[module]:
+                return self.dict_recurupdate(self.overall_package_data[module][packagename], extrainfo)
         
         raise StoreBrainException(_("No information was found for %s") % packagename)
     
@@ -188,7 +187,7 @@ class StoreBrain():
     def package_module(self, packagetype, name=False):
         #Return the first one we find's name
         for module in self.pkgmgmt_modules:
-            if packagetype == self.pkgmgmt_modules[module].type_managed:
+            if packagetype in self.pkgmgmt_modules[module].types_managed:
                 if name:
                     return module
                 else:
