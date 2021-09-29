@@ -1,5 +1,7 @@
 {
-  "chromium": {
+  "google-chromium": {
+    "snap-name": "chromium",
+    "snap-source": "snapstore",
     "author": "Canonical",
     "bugreporturl": "",
     "tosurl": "",
@@ -11,7 +13,9 @@
     "canihasphoneadapting": true,
     "officialpackage": true
   },
-  "firefox": {
+  "mozilla-firefox": {
+    "snap-name": "firefox",
+    "snap-source": "snapstore",
     "author": "Mozilla",
     "bugreporturl": "",
     "tosurl": "",

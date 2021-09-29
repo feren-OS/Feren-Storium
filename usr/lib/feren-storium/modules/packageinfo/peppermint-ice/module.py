@@ -54,7 +54,7 @@ class main():
                 self.json_storage[i] = json.loads(fp.read())
         
         self.memory_refreshing = False
-        
+                
         
     def getPackageJSON(self):
         #Return a json of all package names
@@ -85,7 +85,7 @@ class main():
         
         
         #Return values
-        return {"author": author, "bugsurl": bugsurl, "tosurl": tosurl, "privpolurl": privpolurl, "keywords": keywords, "shortdescription": _("Website Application")}
+        return {"author": author, "bugreporturl": bugsurl, "tosurl": tosurl, "privpolurl": privpolurl, "keywords": keywords, "shortdescription": _("Website Application")}
         
 
     def getKeywords(self, packagename):

@@ -1,5 +1,7 @@
 {
-  "org.mozilla.firefox": {
+  "mozilla-firefox": {
+    "flatpak-name": "org.mozilla.firefox",
+    "flatpak-source": "flatpak-flathub",
     "author": "Mozilla",
     "bugreporturl": "",
     "tosurl": "",

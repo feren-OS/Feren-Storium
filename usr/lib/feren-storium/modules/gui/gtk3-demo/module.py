@@ -98,6 +98,9 @@ class AppDetailsHeader(Gtk.VBox):
         self.app_shortdesc.set_label(info["shortdescription"])
         self.set_icon(info["iconuri"], currentpackage)
         pass #TODO
+    
+    def populate_sources(self, currentpackage):
+        sourcedict = self.storebrain.package_module[self.storebrain.get_item_info(currentpackage)["order-of-source-importance"][0]]
 
     def set_progress(self, value):
         self.app_mgmt_progress.set_fraction(value / 100)
@@ -396,6 +399,17 @@ class AppMainView(Gtk.Stack):
         
         self.add_named(self.sw4, "packagepage")
     
+    def packagepage_steps(self, packagename):
+        self.storebrain.add_to_packageinfo(packagename)
+        print(packagename, self.storebrain.get_sources(packagename))
+        #self.AppDetailsHeader.
+        
+        self.set_visible_child(self.sw4)
+        #information = self.storebrain.get_item_info(packagename)
+        #self.populate_pkgpage(information, packagename)
+        #self.AppDetailsHeader.populate(information, packagename)
+        #self.storebrain.package_module(self.current_source_viewed).pkgstorage_add(packagename)
+        #self._refresh_page(packagename, information["order-of-source-importance"][0])
     
     def populate_pkgpage(self, packageinfo, currentpackage):
         self.pkgpage_images.set_label("Images: " + str(packageinfo["images"]))
@@ -410,17 +424,16 @@ class AppMainView(Gtk.Stack):
         
     def populate_mainpage(self):
         #TODO: Split into sections
-        data = self.storebrain.package_data_categories
-        for category in data:
-            for item in data[category]:
-                btn = Gtk.Button(label=item)
-                btn.connect("clicked", self._btn_goto_packageview, item)
-                if category.startswith("ice-"):
-                    self.websitesitems.insert(btn, 1)
-                elif category.startswith("themes-"):
-                    self.themesitems.insert(btn, 1)
-                else:
-                    self.appsitems.insert(btn, 1)
+        data = self.storebrain.package_name_categories
+        for pkgname in data:
+            btn = Gtk.Button(label=pkgname)
+            btn.connect("clicked", self._btn_goto_packageview, pkgname)
+            if data[pkgname].startswith("ice-"):
+                self.websitesitems.insert(btn, 1)
+            elif data[pkgname].startswith("themes-"):
+                self.themesitems.insert(btn, 1)
+            else:
+                self.appsitems.insert(btn, 1)
         
     def populate_searchpage(self, searchresults):
         #Destroy the children first (no actual children were harmed in the making of this program)
@@ -484,13 +497,8 @@ class AppMainView(Gtk.Stack):
         
     def _goto_packageview(self, packagename):
         self.current_item_viewed = packagename
-        information = self.storebrain.get_item_info(packagename)
-        self.current_source_viewed = information["order-of-source-importance"][0] #FIXME: TEMPORARY UNTIL SOURCE SELECTION IMPLEMENTED
-        self.set_visible_child(self.sw4)
-        self.populate_pkgpage(information, packagename)
-        self.AppDetailsHeader.populate(information, packagename)
-        self.storebrain.package_module(self.current_source_viewed).pkgstorage_add(packagename)
-        self._refresh_page(packagename, information["order-of-source-importance"][0])
+        self.current_source_viewed = "peppermint-ice" #FIXME: TEMPORARY
+        self.packagepage_steps(packagename)
 
     def _btn_goto_packageview(self, btn, packagename):
         self._goto_packageview(packagename)

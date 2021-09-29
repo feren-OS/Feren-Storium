@@ -1,10 +1,14 @@
 {
   "apt": {
+    "managed-via-gui": true,
+    "can-be-toggled": false,
+    "hide-unavailable-sources": false,
     "standard-ubuntu": {
         "sourcename": "Standard Install",
         "name": "Ubuntu Repositories",
         "repository": "",
         "repository-file": "sources.list",
+        "repository-package": [],
         "forced": true,
         "key-from-ubuntu": false,
         "key-location": "",
@@ -15,6 +19,7 @@
         "name": "Feren OS Repository",
         "repository": "",
         "repository-file": "feren-os.list",
+        "repository-package": [],
         "forced": true,
         "key-from-ubuntu": false,
         "key-location": "",
@@ -25,6 +30,7 @@
         "name": "Feren OS KDE neon Repository Mirror",
         "repository": "",
         "repository-file": "feren-os-neon.list",
+        "repository-package": [],
         "forced": true,
         "key-from-ubuntu": false,
         "key-location": "",
@@ -35,6 +41,7 @@
         "name": "Google Chrome Repository",
         "repository": "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main",
         "repository-file": "google-chrome.list",
+        "repository-package": [],
         "forced": false,
         "key-from-ubuntu": false,
         "key-location": "https://dl.google.com/linux/linux_signing_key.pub",
@@ -45,6 +52,7 @@
         "name": "Brave Browser Repository",
         "repository": "deb [arch=amd64] https://brave-browser-apt-release.s3.brave.com/ stable main",
         "repository-file": "brave.list",
+        "repository-package": [],
         "forced": false,
         "key-from-ubuntu": false,
         "key-location": "https://brave-browser-apt-release.s3.brave.com/brave-core.asc",
@@ -55,6 +63,7 @@
         "name": "Microsoft Edge Repository",
         "repository": "deb [arch=amd64] https://packages.microsoft.com/repos/edge stable main",
         "repository-file": "microsoft-edge-beta.list",
+        "repository-package": [],
         "forced": false,
         "key-from-ubuntu": false,
         "key-location": "https://packages.microsoft.com/keys/microsoft.asc",
@@ -65,6 +74,7 @@
         "name": "Opera Browser Repository",
         "repository": "deb https://deb.opera.com/opera-stable/ stable non-free",
         "repository-file": "opera-stable.list",
+        "repository-package": [],
         "forced": false,
         "key-from-ubuntu": false,
         "key-location": "https://deb.opera.com/archive.key",
@@ -75,6 +85,7 @@
         "name": "Vivaldi Browser Repository",
         "repository": "deb http://repo.vivaldi.com/stable/deb/ stable main",
         "repository-file": "vivaldi.list",
+        "repository-package": [],
         "forced": false,
         "key-from-ubuntu": false,
         "key-location": "http://repo.vivaldi.com/stable/linux_signing_key.pub",
@@ -82,11 +93,15 @@
     }
   },
   "flatpak": {
+    "managed-via-gui": true,
+    "can-be-toggled": true,
+    "hide-unavailable-sources": false,
     "flathub": {
         "sourcename": "Flathub",
         "name": "Flathub",
         "repository": "https://flatpak.elementary.io/repo.flatpakrepo",
         "repository-file": "TBD",
+        "repository-package": [],
         "forced": false,
         "arch": ["all"]
     },
@@ -95,16 +110,62 @@
         "name": "elementary OS AppCenter",
         "repository": "https://flatpak.elementary.io/repo.flatpakrepo",
         "repository-file": "TBD",
+        "repository-package": [],
         "forced": false,
         "arch": ["all"]
     }
   },
   "snap": {
+    "managed-via-gui": false,
+    "can-be-toggled": true,
+    "hide-unavailable-sources": false,
     "snapstore": {
         "sourcename": "Snap Store",
         "name": "Snap Store",
         "repository": "",
         "repository-file": "",
+        "repository-package": [],
+        "forced": true,
+        "arch": ["all"]
+    }
+  },
+  "peppermint-ice": {
+    "managed-via-gui": false,
+    "can-be-toggled": false,
+    "hide-unavailable-sources": true,
+    "vivaldi": {
+        "sourcename": "Vivaldi",
+        "name": "Vivaldi",
+        "repository": "",
+        "repository-file": "",
+        "repository-package": ["vivaldi-stable", "vivaldi-snapshot"],
+        "forced": true,
+        "arch": ["all"]
+    },
+    "chrome": {
+        "sourcename": "Google Chrome",
+        "name": "Google Chrome",
+        "repository": "",
+        "repository-file": "",
+        "repository-package": ["google-chrome-stable", "google-chrome-unstable", "google-chrome-beta"],
+        "forced": true,
+        "arch": ["all"]
+    },
+    "brave": {
+        "sourcename": "Brave",
+        "name": "Brave",
+        "repository": "",
+        "repository-file": "",
+        "repository-package": ["brave-browser", "brave-browser-beta", "brave-browser-nightly"],
+        "forced": true,
+        "arch": ["all"]
+    },
+    "msedge": {
+        "sourcename": "Microsoft Edge",
+        "name": "Microsoft Edge",
+        "repository": "",
+        "repository-file": "",
+        "repository-package": ["microsoft-edge-stable", "microsoft-edge-beta", "microsoft-edge-dev"],
         "forced": true,
         "arch": ["all"]
     }

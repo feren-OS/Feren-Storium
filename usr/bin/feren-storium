@@ -71,6 +71,13 @@ class StoreBrain():
         self.pkginfo_modules = {}
         self.settings_modules = {}
         
+        
+        #For modules and GUI - mainly source selection dropdown
+        self.current_package_viewed = ""
+        self.current_module_selected = ""
+        self.current_pkgsource_selected = ""
+        
+        
         self.tempdir = "/tmp/feren-storium-"+getpass.getuser()
         #Make the folder if it doesn't exist
         if not os.path.isdir(self.tempdir):
@@ -84,12 +91,27 @@ class StoreBrain():
         self.load_modules()
         
         # For search and whatnot
-        self.package_data_categories = self.get_items_in_all_categories()
+        self.overall_package_data = {}
         self.package_name_categories = {}
-        for category in self.package_data_categories:
-            for item in self.package_data_categories[category]:
-                self.package_name_categories[item] = category
-                    
+        self.refresh_overall_package_data()
+                
+                
+    def refresh_overall_package_data(self):
+        self.overall_package_data = {}
+        self.overall_package_data_merged = {}
+        self.package_name_categories = {}
+        #Refill overall package data using modules
+        for module in self.pkginfo_modules:
+            self.overall_package_data[module] = self.pkginfo_modules[module].getPackageJSON()
+            
+        #Also update package_name_categories for layouting
+        for module in self.overall_package_data:
+            for item in self.overall_package_data[module]:
+                try:
+                    self.package_name_categories[item] = self.overall_package_data[module][item]["category"]
+                except:
+                    pass
+            
         
     def item_search(self, searchterm):
         searchresults = []
@@ -121,21 +143,41 @@ class StoreBrain():
             else:
                 d[k] = v
         return d
-        
+    
+    
+    def add_to_packageinfo(self, packagename):
+        # Add package name to all packagestorages of modules that can house this package
+        for module in self.pkgmgmt_modules:
+            try:
+                self.pkgmgmt_modules[module].pkgstorage_add(packagename)
+            except:
+                pass
+    
+    def get_sources(self, packagename):
+        sourcesdict = {}
+        #"modulename:internalname": "dropdown human readable name"
+        # Add package name to all packagestorages of modules that can house this package
+        for module in self.pkgmgmt_modules:
+            try:
+                if packagename in self.pkgmgmt_modules[module].packagestorage:
+                    sources = self.pkgmgmt_modules[module].get_sources(packagename)
+                    for source in sources:
+                        sourcesdict[module + ":" + source] = source #TODO: Make a Sources Module that can tell us about the names
+            except:
+                pass
+        return sourcesdict
+    
     
     def get_item_info(self, packagename, pkgtype=""):
-        if pkgtype == "":
-            #Find default package type via package-sources
-            import json
-            with open("/usr/share/feren-storium/curated/package-info/generic/data.json", 'r') as fp:    
-                packagesources = json.loads(fp.read())
-            packagetype = packagesources[packagename]["order-of-source-importance"][0]
+        #TODO: Get different info per package type
+        if pkgtype != "":
+            extrainfo = self.package_module(packagetype).getInfo(packagename, packagetype)
         else:
-            packagetype = pkgtype
+            extrainfo = []
         
         for category in self.package_data_categories:
             if packagename in self.package_data_categories[category]:
-                return self.package_data_categories[category][packagename]
+                return self.dict_recurupdate(self.package_data_categories[category][packagename], extrainfo)
         
         raise StoreBrainException(_("No information was found for %s") % packagename)
     
@@ -143,65 +185,44 @@ class StoreBrain():
         self.gui_module.set_progress(packagename, packagetype, value)
         
     
-    def package_module(self, packagetype):
+    def package_module(self, packagetype, name=False):
         #Return the first one we find's name
         for module in self.pkgmgmt_modules:
-            if packagetype in self.pkgmgmt_modules[module].types_managed:
-                return self.pkgmgmt_modules[module]
+            if packagetype == self.pkgmgmt_modules[module].type_managed:
+                if name:
+                    return module
+                else:
+                    return self.pkgmgmt_modules[module]
         raise StoreBrainException(_("No package module was found for managing %s") % packagetype)
         
-    def local_package_module(self, packagetype):
+    def local_package_module(self, packagetype, name=False):
         #Return the first one we find's name
         for module in self.localpkgmgmt_modules:
             if packagetype in self.localpkgmgmt_modules[module].types_managed:
-                return self.localpkgmgmt_modules[module]
+                if name:
+                    return module
+                else:
+                    return self.localpkgmgmt_modules[module]
         raise StoreBrainException(_("No local package module was found for managing %s") % packagetype)
         
-    def package_info_module(self, packagetype):
+    def package_info_module(self, packagetype, name=False):
         #Return the first one we find's name
         for module in self.pkginfo_modules:
             if packagetype in self.pkginfo_modules[module].types_provided:
-                return self.pkginfo_modules[module]
+                if name:
+                    return module
+                else:
+                    return self.pkginfo_modules[module]
         raise StoreBrainException(_("No package info module was found for %s") % packagetype)
-    
-    def get_items_in_all_categories(self, packagetype=""):
-        if self.pkginfo_modules == {}:
-            raise StoreBrainException(_("No package info modules are active"))
-        
-        overallpkginfo = {}
-        jsonstorage = {}
-        jsonstorage2 = {}
-        
-        #Get the initial pkginfo for every item from every module
-        for module in self.pkginfo_modules:
-            jsonstorage[module] = self.pkginfo_modules[module].getPackageJSON()
-            
-        #Combine entries
-        for i in jsonstorage:
-            #FIXME: In python3 you're meant to dict.update(newdict), but the pythonic way gets RID of our other data in the process, hence this in-house function's used instead, here
-            self.dict_recurupdate(jsonstorage2, jsonstorage[i])
-        jsonstorage = jsonstorage2
-        
-        #Now split all the listings into their respective categories
-        for item in jsonstorage:
-            try:
-                #Add category if it's not yet in the variable
-                if not jsonstorage[item]["category"] in overallpkginfo:
-                    overallpkginfo[jsonstorage[item]["category"]] = {}
-                #Add to the variable
-                overallpkginfo[jsonstorage[item]["category"]][item] = jsonstorage[item]
-            except:
-                pass
-        return overallpkginfo
         
     def get_items_in_categories(self, categories, packagetype=""):
         if "all" in categories:
             return self.package_data_categories
         else:
-            overalldata = {}
+            names = {}
             for category in categories:
                 overalldata[category] = self.package_data_categories[category]
-            return overallpkgdata
+            return names
         
         
     def run_module(self, module):

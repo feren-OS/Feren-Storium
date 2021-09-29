@@ -77,21 +77,6 @@ class main():
         #Current name being managed
         self.currentpackagename = ""
         
-        #Force refresh the sources to populate the sources
-        self.refresh_sources()
-        
-    def refresh_sources(self, packagename=""): # Function to refresh sources list - just return if your module doesn't need this
-        self.applicationsources = {}
-        #Add each browser to applicationsources
-        if os.path.isfile("/usr/bin/vivaldi"):
-            self.applicationsources["vivaldi"] = [_("Vivaldi")]
-        if os.path.isfile("/usr/bin/brave-browser"):
-            self.applicationsources["brave"] = [_("Brave")]
-        if os.path.isfile("/usr/bin/google-chrome"):
-            self.applicationsources["chrome"] = [_("Google Chrome")]
-        if os.path.isfile("/usr/bin/microsoft-edge"):
-            self.applicationsources["msedge"] = [_("Microsoft Edge")]
-        
     def refresh_memory(self): # Function to refresh some memory values
         self.memory_refreshing = True
             
@@ -99,10 +84,25 @@ class main():
         
         self.memory_refreshing = False
         
-    def pkgstorage_add(self, packagename):
+                
+    def get_sources(self, packagename):
+        sources = []
+        #Add each browser to applicationsources
+        if os.path.isfile("/usr/bin/vivaldi"):
+            sources.append("vivaldi")
+        if os.path.isfile("/usr/bin/brave-browser"):
+            sources.append("brave")
+        if os.path.isfile("/usr/bin/google-chrome"):
+            sources.append("chrome")
+        if os.path.isfile("/usr/bin/microsoft-edge"):
+            sources.append("msedge")
+        return sources
+        
+    def pkgstorage_add(self, packagename, packagetype):
         if packagename not in self.packagestorage:
             #Get the values
-            packageinfo = self.storebrain.get_item_info(packagename, "peppermint-ice")
+            packageinfo = self.storebrain.get_item_info(packagename, packagetype)
+            
             
             self.packagestorage[packagename] = PackageStore(packageinfo["realname"], packageinfo["iconuri"], "desc", packageinfo["description"], packageinfo["author"], packageinfo["category"], packageinfo["images"], packageinfo["website"], packageinfo["donateurl"], packageinfo["bugreporturl"], packageinfo["tosurl"], packageinfo["privpolurl"], packageinfo["keywords"])
 

@@ -63,13 +63,7 @@
     "donateurl": "",
     "category": "backgrounds",
     "images": [""],
-    "apt-name": "feren-extra-backgrounds",
-    "flatpak-name": "",
-    "snap-name": "",
     "appstream-name": "",
-    "apt-source": "standard",
-    "flatpak-source": "",
-    "snap-source": "",
     "order-of-source-importance": ["apt"]
   },
   "feren-store": {
@@ -81,13 +75,7 @@
     "donateurl": "",
     "category": "system",
     "images": [""],
-    "apt-name": "feren-store",
-    "flatpak-name": "",
-    "snap-name": "",
     "appstream-name": "feren-store.desktop",
-    "apt-source": "standard",
-    "flatpak-source": "",
-    "snap-source": "",
     "order-of-source-importance": ["apt"]
   },
   "google-chromium": {
@@ -99,13 +87,7 @@
     "donateurl": "",
     "category": "browsers",
     "images": ["https://www.gstatic.com/chrome/appstream/chrome-2.png"],
-    "apt-name": "chromium-browser",
-    "flatpak-name": "",
-    "snap-name": "chromium",
     "appstream-name": "chromium.desktop",
-    "apt-source": "",
-    "flatpak-source": "",
-    "snap-source": "snapstore",
     "order-of-source-importance": ["snap"]
   },
   "mozilla-firefox": {
@@ -117,13 +99,7 @@
     "donateurl": "",
     "category": "browsers",
     "images": ["https://www.gstatic.com/chrome/appstream/chrome-2.png"],
-    "apt-name": "",
-    "flatpak-name": "org.mozilla.firefox",
-    "snap-name": "firefox",
     "appstream-name": "firefox.desktop",
-    "apt-source": "",
-    "flatpak-source": "flatpak-flathub",
-    "snap-source": "snapstore",
     "order-of-source-importance": ["flatpak", "snap"]
   }
 }

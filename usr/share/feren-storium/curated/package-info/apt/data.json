@@ -1,5 +1,7 @@
 {
   "feren-extra-backgrounds": {
+    "apt-name": "feren-extra-backgrounds",
+    "apt-source": "standard",
     "author": "Feren OS Team",
     "bugreporturl": "",
     "tosurl": "",
@@ -12,23 +14,13 @@
     "officialpackage": true
   },
   "feren-store": {
+    "apt-name": "feren-store",
+    "apt-source": "standard",
     "author": "Feren OS Team",
     "bugreporturl": "https://github.com/feren-OS/Bug-Reporting-Center/issues/",
     "tosurl": "",
     "privpolurl": "",
     "canihasthemes": 1,
-    "canihastouch": 1,
-    "canihasaccessibility": true,
-    "canihasdpiscaling": true,
-    "canihasphoneadapting": true,
-    "officialpackage": true
-  },
-  "chromium-browser": {
-    "author": "Google",
-    "bugreporturl": "",
-    "tosurl": "",
-    "privpolurl": "",
-    "canihasthemes": 2,
     "canihastouch": 1,
     "canihasaccessibility": true,
     "canihasdpiscaling": true,
