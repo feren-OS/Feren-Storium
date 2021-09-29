@@ -7,6 +7,7 @@ import signal
 from threading import Thread
 import gi
 from gi.repository import GLib
+import gettext
 import getpass
 import collections.abc
 
@@ -16,12 +17,28 @@ class StoreBrainException(Exception): # Name this according to the module to all
 #This class here is the main brains that connect the pieces of code together per each module
 class StoreModuleContainer():
     def __init__(self, storebrain, path):
+        if not os.path.isfile(path + "/module.py"):
+            raise StoreBrainException("Invalid module")
+        with open(path + "/module.py", 'r') as modulecheck:
+            check = False
+            for i in modulecheck:
+                if "class main(" in i:
+                    check = True
+            if check == False:
+                raise StoreBrainException("Invalid module")
+        
         self.path = path
         sys.path.insert(0, path) #Adds the module directory to the path for this class, so the next part knows where module.py is
-        import module
-        importlib.reload(module) #Otherwise only one module will be loaded across all variables
-        #Imports the 'module.py' file of the folder
-        self.main = module.main(storebrain)
+        try:
+            import module
+            importlib.reload(module) #Otherwise only one module will be loaded across all variables
+            #Imports the 'module.py' file of the folder
+            self.main = module.main(storebrain)
+        except Exception as e:
+            sys.path.remove(path)
+            raise StoreBrainException(e)
+        
+        sys.path.remove(path)
 
 
 class StoreBrain():
@@ -33,6 +50,7 @@ class StoreBrain():
         if os.path.exists(MODULES_DIR):
             for dir_name in sorted(os.listdir(MODULES_DIR+"/localpackagemgmt")):
                 path = os.path.join(MODULES_DIR+"/localpackagemgmt", dir_name)
+                module = None
                 try:
                     module = StoreModuleContainer(self, path)
                     self.localpkgmgmt_modules[dir_name] = module.main
@@ -40,6 +58,7 @@ class StoreBrain():
                     print("Failed to load local package management module %s: \n%s\n" % (dir_name, e))
             for dir_name in sorted(os.listdir(MODULES_DIR+"/packagemgmt")):
                 path = os.path.join(MODULES_DIR+"/packagemgmt", dir_name)
+                module = None
                 try:
                     module = StoreModuleContainer(self, path)
                     self.pkgmgmt_modules[dir_name] = module.main
@@ -47,6 +66,7 @@ class StoreBrain():
                     print("Failed to load package management module %s: \n%s\n" % (dir_name, e))
             for dir_name in sorted(os.listdir(MODULES_DIR+"/packageinfo")):
                 path = os.path.join(MODULES_DIR+"/packageinfo", dir_name)
+                module = None
                 try:
                     module = StoreModuleContainer(self, path)
                     self.pkginfo_modules[dir_name] = module.main
@@ -54,6 +74,7 @@ class StoreBrain():
                     print("Failed to load package information module %s: \n%s\n" % (dir_name, e))
             for dir_name in sorted(os.listdir(MODULES_DIR+"/settings")):
                 path = os.path.join(MODULES_DIR+"/settings", dir_name)
+                module = None
                 try:
                     module = StoreModuleContainer(self, path)
                     self.settings_modules[dir_name] = module.main
@@ -64,7 +85,7 @@ class StoreBrain():
     def __init__(self):
         self.gui_module = StoreModuleContainer(self, "/usr/lib/feren-storium/modules/gui/gtk3-demo").main
         # TODO: Have it be determined by gsettings
-        self.settings_gui_module = StoreModuleContainer(self, "/usr/lib/feren-storium/modules/settings-gui/gtk3-demo").main
+        #self.settings_gui_module = StoreModuleContainer(self, "/usr/lib/feren-storium/modules/settings-gui/gtk3-demo").main
         # TODO: Have it be determined by gsettings
         self.localpkgmgmt_modules = {}
         self.pkgmgmt_modules = {}
@@ -158,13 +179,15 @@ class StoreBrain():
         #"modulename:internalname": "dropdown human readable name"
         # Add package name to all packagestorages of modules that can house this package
         for module in self.pkgmgmt_modules:
+            sources = []
             try:
                 if packagename in self.pkgmgmt_modules[module].packagestorage:
                     sources = self.pkgmgmt_modules[module].get_sources(packagename)
+                    print(module, sources)
                     for source in sources:
                         sourcesdict[module + ":" + source] = source #TODO: Make a Sources Module that can tell us about the names
-            except Exception as e:
-                print(e)
+            except:
+                pass
         return sourcesdict
     
     

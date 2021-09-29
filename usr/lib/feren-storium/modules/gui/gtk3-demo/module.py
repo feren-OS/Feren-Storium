@@ -36,6 +36,10 @@ class AppDetailsHeader(Gtk.VBox):
         self.app_shortdesc.set_label("APPLICATION SHORT DESCRIPTION")
         
         self.app_source_dropdown = Gtk.ComboBox()
+        #NOTE TO SELF: NEVER put this in the dropdown refreshing code - it'll cause duplicated labels
+        cell = Gtk.CellRendererText()
+        self.app_source_dropdown.pack_start(cell, True)
+        self.app_source_dropdown.add_attribute(cell, "text", 0)
         
         self.app_mgmt_progress = Gtk.ProgressBar()
         
@@ -66,6 +70,10 @@ class AppDetailsHeader(Gtk.VBox):
         self.updateapp_btn.connect("clicked", self.updateapp_pressed)
         self.removeapp_btn.connect("clicked", self.removeapp_pressed)
         self.cancelapp_btn.connect("clicked", self.cancelapp_pressed)
+        
+        #For sources
+        self.sources_ids = []
+        
         
         pass
     
@@ -99,8 +107,16 @@ class AppDetailsHeader(Gtk.VBox):
         self.set_icon(info["iconuri"], currentpackage)
         pass #TODO
     
-    def populate_sources(self, currentpackage):
-        sourcedict = self.storebrain.package_module[self.storebrain.get_item_info(currentpackage)["order-of-source-importance"][0]]
+    def populate_sources(self, currentpackage, sourcedict):
+        iface_list_store = Gtk.ListStore(GObject.TYPE_STRING)
+        self.source_ids = []
+        for item in sourcedict:
+            print(item, sourcedict[item])
+            iface_list_store.append([sourcedict[item]])
+            self.source_ids.append(item)
+            
+        self.app_source_dropdown.set_model(iface_list_store)
+        self.app_source_dropdown.set_active(0)
 
     def set_progress(self, value):
         self.app_mgmt_progress.set_fraction(value / 100)
@@ -402,7 +418,7 @@ class AppMainView(Gtk.Stack):
     def packagepage_steps(self, packagename):
         
         self.storebrain.add_to_packageinfo(packagename, "peppermint-ice") #TODO: Make this be the default source value instead
-        print(packagename, self.storebrain.get_sources(packagename))
+        self.AppDetailsHeader.populate_sources(packagename, self.storebrain.get_sources(packagename))
         #self.AppDetailsHeader.
         
         self.set_visible_child(self.sw4)
