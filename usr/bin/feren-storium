@@ -119,7 +119,6 @@ class StoreBrain():
                 
     def refresh_overall_package_data(self):
         self.overall_package_data = {}
-        self.overall_package_data_merged = {}
         self.package_name_categories = {}
         #Refill overall package data using modules
         for module in self.pkginfo_modules:
@@ -139,17 +138,17 @@ class StoreBrain():
         #FIXME: Is there not a more efficient way to do this?
         #First check: Is the search term literally the name of the package or the real name?
         for item in self.package_name_categories:
-            if searchterm == self.get_item_info(item)["realname"]:
+            if searchterm == self.get_item_info(item, "generic:generic")["realname"]:
                 searchresults.append(item)
         if searchterm in self.package_name_categories:
             searchresults.append(searchterm)
         #Second check: Do any names start with the search term?
         for item in self.package_name_categories:
-            if item.startswith(searchterm) or self.get_item_info(item)["realname"].startswith(searchterm):
+            if item.startswith(searchterm) or self.get_item_info(item, "generic:generic")["realname"].startswith(searchterm):
                 searchresults.append(item)
         #Third check: Do any names contain the search term?
         for item in self.package_name_categories:
-            if searchterm in item or searchterm in self.get_item_info(item)["realname"]:
+            if searchterm in item or searchterm in self.get_item_info(item, "generic:generic")["realname"]:
                 searchresults.append(item)
         #Remove duplicates from list using a python3 trick
         searchresults = list(dict.fromkeys(searchresults))
@@ -174,6 +173,7 @@ class StoreBrain():
             except Exception as e:
                 print(e)
     
+    
     def get_sources(self, packagename):
         sourcesdict = {}
         #"modulename:internalname": "dropdown human readable name"
@@ -183,7 +183,21 @@ class StoreBrain():
             try:
                 if packagename in self.pkgmgmt_modules[module].packagestorage:
                     sources = self.pkgmgmt_modules[module].get_sources(packagename)
-                    print(module, sources)
+                    for source in sources:
+                        sourcesdict[module + ":" + source] = source #TODO: Make a Sources Module that can tell us about the names
+            except:
+                pass
+        return sourcesdict
+    
+    def get_subsources(self, packagename, source):
+        subsourcesdict = {}
+        #"modulename:internalname": "dropdown human readable name"
+        # Add package name to all packagestorages of modules that can house this package
+        for module in self.pkgmgmt_modules:
+            sources = []
+            try:
+                if packagename in self.pkgmgmt_modules[module].packagestorage:
+                    sources = self.pkgmgmt_modules[module].get_sources(packagename)
                     for source in sources:
                         sourcesdict[module + ":" + source] = source #TODO: Make a Sources Module that can tell us about the names
             except:
@@ -191,11 +205,17 @@ class StoreBrain():
         return sourcesdict
     
     
-    def get_item_info(self, packagename, pkgtype=""):
-        if pkgtype == "":
-            extrainfo = []
-        else:
-            extrainfo = self.package_info_module(pkgtype).getInfo(packagename, pkgtype)
+    def get_package_sourceorder(self, packagename):
+        for module in self.overall_package_data:
+            if packagename in self.overall_package_data[module]:
+                try:
+                    return self.overall_package_data[module][packagename]["order-of-source-importance"]
+                except:
+                    pass
+            
+    
+    def get_item_info(self, packagename, packagesource):
+        extrainfo = self.pkginfo_modules[packagesource.split(":")[0]].getInfo(packagename, packagesource.split(":")[1])
         
         for module in self.overall_package_data:
             if packagename in self.overall_package_data[module]:
@@ -236,15 +256,6 @@ class StoreBrain():
                 else:
                     return self.pkginfo_modules[module]
         raise StoreBrainException(_("No package info module was found for %s") % packagetype)
-        
-    def get_items_in_categories(self, categories, packagetype=""):
-        if "all" in categories:
-            return self.package_data_categories
-        else:
-            names = {}
-            for category in categories:
-                overalldata[category] = self.package_data_categories[category]
-            return names
         
         
     def run_module(self, module):

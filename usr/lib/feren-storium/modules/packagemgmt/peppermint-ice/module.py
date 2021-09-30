@@ -86,17 +86,22 @@ class main():
         
                 
     def get_sources(self, packagename):
-        sources = []
+        sources = ["peppermint-ice"]
+        return sources
+        
+    def get_subsources(self, packagename, source):
+        subsources = []
         #Add each browser to applicationsources
         if os.path.isfile("/usr/bin/vivaldi"):
-            sources.append("vivaldi")
+            subsources.append("vivaldi")
         if os.path.isfile("/usr/bin/brave-browser"):
-            sources.append("brave")
+            subsources.append("brave")
         if os.path.isfile("/usr/bin/google-chrome"):
-            sources.append("chrome")
+            subsources.append("chrome")
         if os.path.isfile("/usr/bin/microsoft-edge"):
-            sources.append("msedge")
-        return sources
+            subsources.append("msedge")
+        return subsources
+    
         
     def pkgstorage_add(self, packagename, packagetype):
         if packagename not in self.packagestorage:

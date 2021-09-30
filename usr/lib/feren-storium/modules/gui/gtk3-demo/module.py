@@ -40,6 +40,7 @@ class AppDetailsHeader(Gtk.VBox):
         cell = Gtk.CellRendererText()
         self.app_source_dropdown.pack_start(cell, True)
         self.app_source_dropdown.add_attribute(cell, "text", 0)
+        self.app_source_dropdown.connect("changed", self.on_source_dropdown_changed)
         
         self.app_mgmt_progress = Gtk.ProgressBar()
         
@@ -108,15 +109,22 @@ class AppDetailsHeader(Gtk.VBox):
         pass #TODO
     
     def populate_sources(self, currentpackage, sourcedict):
+        print(sourcedict)
         iface_list_store = Gtk.ListStore(GObject.TYPE_STRING)
         self.source_ids = []
         for item in sourcedict:
-            print(item, sourcedict[item])
             iface_list_store.append([sourcedict[item]])
             self.source_ids.append(item)
             
         self.app_source_dropdown.set_model(iface_list_store)
         self.app_source_dropdown.set_active(0)
+        
+    def on_source_dropdown_changed(self, combobox):
+        if combobox.get_active() == -1:
+            return
+        print("DEBUG: Source changed to", self.source_ids[combobox.get_active()])
+        self.mv.current_source_viewed = self.source_ids[combobox.get_active()]
+        self.mv.packagepage_refresh(self.mv.current_item_viewed, self.source_ids[combobox.get_active()])
 
     def set_progress(self, value):
         self.app_mgmt_progress.set_fraction(value / 100)
@@ -416,17 +424,23 @@ class AppMainView(Gtk.Stack):
         self.add_named(self.sw4, "packagepage")
     
     def packagepage_steps(self, packagename):
+        sourcestring = str(self.storebrain.package_module(self.storebrain.get_package_sourceorder(packagename)[0], True)) + ":" + str(self.storebrain.get_package_sourceorder(packagename)[0])
         
-        self.storebrain.add_to_packageinfo(packagename, "peppermint-ice") #TODO: Make this be the default source value instead
+        self.current_source_viewed = sourcestring
+                
+        self.storebrain.add_to_packageinfo(packagename, sourcestring)
         self.AppDetailsHeader.populate_sources(packagename, self.storebrain.get_sources(packagename))
-        #self.AppDetailsHeader.
-        
         self.set_visible_child(self.sw4)
-        #information = self.storebrain.get_item_info(packagename)
-        #self.populate_pkgpage(information, packagename)
-        #self.AppDetailsHeader.populate(information, packagename)
-        #self.storebrain.package_module(self.current_source_viewed).pkgstorage_add(packagename)
-        #self._refresh_page(packagename, information["order-of-source-importance"][0])
+        
+    def packagepage_refresh(self, packagename, source):
+        self.storebrain.add_to_packageinfo(packagename, source.split(":")[1])
+        
+        information = self.storebrain.get_item_info(packagename, source)
+        self.populate_pkgpage(information, packagename)
+        self.AppDetailsHeader.populate(information, packagename)
+        self.storebrain.package_module(source.split(":")[1]).pkgstorage_add(packagename, source.split(":")[1])
+        self._refresh_page(packagename, source.split(":")[1])
+    
     
     def populate_pkgpage(self, packageinfo, currentpackage):
         self.pkgpage_images.set_label("Images: " + str(packageinfo["images"]))
