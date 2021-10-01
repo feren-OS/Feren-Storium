@@ -42,6 +42,12 @@ class AppDetailsHeader(Gtk.VBox):
         self.app_source_dropdown.add_attribute(cell, "text", 0)
         self.app_source_dropdown.connect("changed", self.on_source_dropdown_changed)
         
+        self.app_subsource_dropdown = Gtk.ComboBox()
+        cell2 = Gtk.CellRendererText()
+        self.app_subsource_dropdown.pack_start(cell2, True)
+        self.app_subsource_dropdown.add_attribute(cell2, "text", 0)
+        self.app_subsource_dropdown.connect("changed", self.on_subsource_dropdown_changed)
+        
         self.app_mgmt_progress = Gtk.ProgressBar()
         
         buttonsbox = Gtk.Box()
@@ -62,6 +68,7 @@ class AppDetailsHeader(Gtk.VBox):
         self.pack_start(self.app_title, True, False, 4)
         self.pack_start(self.app_shortdesc, True, False, 4)
         self.pack_start(self.app_source_dropdown, False, False, 4)
+        self.pack_start(self.app_subsource_dropdown, False, False, 4)
         self.pack_start(self.app_mgmt_progress, True, False, 4)
         self.pack_start(buttonsbox, True, False, 4)
         
@@ -73,8 +80,8 @@ class AppDetailsHeader(Gtk.VBox):
         self.cancelapp_btn.connect("clicked", self.cancelapp_pressed)
         
         #For sources
-        self.sources_ids = []
-        
+        self.source_ids = []
+        self.subsource_ids = []
         
         pass
     
@@ -109,7 +116,6 @@ class AppDetailsHeader(Gtk.VBox):
         pass #TODO
     
     def populate_sources(self, currentpackage, sourcedict):
-        print(sourcedict)
         iface_list_store = Gtk.ListStore(GObject.TYPE_STRING)
         self.source_ids = []
         for item in sourcedict:
@@ -118,36 +124,56 @@ class AppDetailsHeader(Gtk.VBox):
             
         self.app_source_dropdown.set_model(iface_list_store)
         self.app_source_dropdown.set_active(0)
+    
+    def populate_subsources(self, currentpackage, subsourcedict):
+        iface_list_store = Gtk.ListStore(GObject.TYPE_STRING)
+        self.subsource_ids = []
+        for item in subsourcedict:
+            iface_list_store.append([subsourcedict[item]])
+            self.subsource_ids.append(item)
+            
+        self.app_subsource_dropdown.set_model(iface_list_store)
+        self.app_subsource_dropdown.set_active(0)
         
     def on_source_dropdown_changed(self, combobox):
         if combobox.get_active() == -1:
             return
         print("DEBUG: Source changed to", self.source_ids[combobox.get_active()])
-        self.mv.current_source_viewed = self.source_ids[combobox.get_active()]
-        self.mv.packagepage_refresh(self.mv.current_item_viewed, self.source_ids[combobox.get_active()])
+        self.mv.current_subsource_viewed = ""
+        self.mv.current_module_viewed = self.source_ids[combobox.get_active()].split(":")[0]
+        self.mv.current_source_viewed = self.source_ids[combobox.get_active()].split(":")[1]
+        self.storebrain.add_to_packageinfo(self.mv.current_item_viewed, self.mv.current_source_viewed)
+        self.mv.packagepage_refresh(self.mv.current_item_viewed, self.mv.current_module_viewed, self.mv.current_source_viewed)
+        self.populate_subsources(self.mv.current_item_viewed, self.storebrain.get_subsources(self.mv.current_source_viewed, self.mv.current_module_viewed))
+        
+    def on_subsource_dropdown_changed(self, combobox):
+        if combobox.get_active() == -1:
+            self.mv.current_subsource_viewed = ""
+            return
+        print("DEBUG: Sub-Source changed to", self.subsource_ids[combobox.get_active()])
+        self.mv.current_subsource_viewed = self.subsource_ids[combobox.get_active()]
 
     def set_progress(self, value):
         self.app_mgmt_progress.set_fraction(value / 100)
 
     def installapp_pressed(self, gtk_widget):
         #TODO: Confirmation and whatnot, let's just get the main event working first
-        source = "msedge"
+        subsource = self.mv.current_subsource_viewed
         bonuses = ["ublock", "nekocap"]
-        self.storebrain.package_module(self.mv.current_source_viewed).install_package(self.mv.current_item_viewed, source, bonuses)
+        self.storebrain.package_module(self.mv.current_source_viewed).install_package(self.mv.current_item_viewed, self.mv.current_source_viewed, self.mv.current_subsource_viewed, bonuses)
 
     def installappnosource_pressed(self, gtk_widget):
         #TODO
         pass
 
     def updateapp_pressed(self, gtk_widget):
-        source = ""
         #TODO: Confirmation and whatnot, let's just get the main event working first
-        self.storebrain.package_module(self.mv.current_source_viewed).update_package(self.mv.current_item_viewed, source)
+        self.storebrain.package_module(self.mv.current_source_viewed).update_package(self.mv.current_item_viewed, self.mv.current_source_viewed, self.mv.current_subsource_viewed)
 
     def removeapp_pressed(self, gtk_widget):
         source = ""
         #TODO: Confirmation and whatnot, let's just get the main event working first
-        self.storebrain.package_module(self.mv.current_source_viewed).remove_package(self.mv.current_item_viewed, source)
+        self.storebrain.package_module(self.mv.current_source_viewed).remove_package(self.mv.current_item_viewed, self.mv.current_source_viewed, self.mv.current_subsource_viewed)
 
     def cancelapp_pressed(self, gtk_widget):
         #TODO
@@ -186,7 +212,9 @@ class AppMainView(Gtk.Stack):
         Gtk.Stack.__init__(self)
         
         self.current_item_viewed = ""
+        self.current_module_viewed = ""
         self.current_source_viewed = ""
+        self.current_subsource_viewed = ""
         self.back_button_history = []
         
         self.gobackmode = False
@@ -424,22 +452,17 @@ class AppMainView(Gtk.Stack):
         self.add_named(self.sw4, "packagepage")
     
     def packagepage_steps(self, packagename):
-        sourcestring = str(self.storebrain.package_module(self.storebrain.get_package_sourceorder(packagename)[0], True)) + ":" + str(self.storebrain.get_package_sourceorder(packagename)[0])
-        
-        self.current_source_viewed = sourcestring
-                
-        self.storebrain.add_to_packageinfo(packagename, sourcestring)
+        self.storebrain.add_to_packageinfo(packagename, self.storebrain.get_package_sourceorder(packagename)[0])
         self.AppDetailsHeader.populate_sources(packagename, self.storebrain.get_sources(packagename))
         self.set_visible_child(self.sw4)
         
-    def packagepage_refresh(self, packagename, source):
-        self.storebrain.add_to_packageinfo(packagename, source.split(":")[1])
+    def packagepage_refresh(self, packagename, module, source):
         
-        information = self.storebrain.get_item_info(packagename, source)
+        information = self.storebrain.get_item_info(packagename, module, source)
         self.populate_pkgpage(information, packagename)
         self.AppDetailsHeader.populate(information, packagename)
-        self.storebrain.package_module(source.split(":")[1]).pkgstorage_add(packagename, source.split(":")[1])
-        self._refresh_page(packagename, source.split(":")[1])
+        self.storebrain.pkgmgmt_modules[module].pkgstorage_add(packagename, source)
+        self._refresh_page(packagename, source)
     
     
     def populate_pkgpage(self, packageinfo, currentpackage):
@@ -528,7 +551,6 @@ class AppMainView(Gtk.Stack):
         
     def _goto_packageview(self, packagename):
         self.current_item_viewed = packagename
-        self.current_source_viewed = "peppermint-ice" #FIXME: TEMPORARY
         self.packagepage_steps(packagename)
 
     def _btn_goto_packageview(self, btn, packagename):

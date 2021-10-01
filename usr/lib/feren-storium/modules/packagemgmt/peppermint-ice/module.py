@@ -106,7 +106,7 @@ class main():
     def pkgstorage_add(self, packagename, packagetype):
         if packagename not in self.packagestorage:
             #Get the values
-            packageinfo = self.storebrain.get_item_info(packagename, packagetype)
+            packageinfo = self.storebrain.get_item_info(packagename, self.modulename, packagetype)
             
             
             self.packagestorage[packagename] = PackageStore(packageinfo["realname"], packageinfo["iconuri"], "desc", packageinfo["description"], packageinfo["author"], packageinfo["category"], packageinfo["images"], packageinfo["website"], packageinfo["donateurl"], packageinfo["bugreporturl"], packageinfo["tosurl"], packageinfo["privpolurl"], packageinfo["keywords"])
@@ -136,7 +136,7 @@ class main():
         self.storebrain.gui_module.mainpage._refresh_page(packagename, "peppermint-ice")
         
     
-    def install_package(self, packagename, source, bonuses=[]):
+    def install_package(self, packagename, source, subsource, bonuses=[]):
         if packagename not in self.packagestorage:
             raise ICEModuleException(_("%s is not in the Package Storage (packagestorage) yet - make sure it's in the packagestorage variable before obtaining package information.") % packagename)
         
@@ -145,7 +145,7 @@ class main():
         self.currentpackagename = packagename
         
         #First remove the files just in case there's a partial installation
-        self.remove_package(packagename, source, True)
+        self.remove_package(packagename, source, subsource, True)
         
         #Create the .desktop file's home if it doesn't exist
         if not os.path.isdir(os.path.expanduser("~") + "/.local/share/applications"):
@@ -179,12 +179,12 @@ class main():
             with open(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/First Run" % packagename, 'w') as fp:
                 pass
         except Exception as exceptionstr:
-            self.remove_package(packagename, source, True) #Remove profile's files/folders on failure
+            self.remove_package(packagename, subsource, True) #Remove profile's files/folders on failure
             raise ICEModuleException(_("Failed to install {0}: {1} was encountered when making the Chromium-based profile").format(packagename, exceptionstr))
         try:
             os.mkdir(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/Default" % packagename)
         except Exception as exceptionstr:
-            self.remove_package(packagename, source, True) #Remove profile's files/folders on failure
+            self.remove_package(packagename, subsource, True) #Remove profile's files/folders on failure
             raise ICEModuleException(_("Failed to install {0}: {1} was encountered when making the Chromium-based profile").format(packagename, exceptionstr))
         
         
@@ -229,7 +229,7 @@ class main():
             with open(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/Default/Preferences" % packagename, 'w') as fp:
                 fp.write(json.dumps(profiletomake, separators=(',', ':'))) # This dumps minified json (how convenient), which is EXACTLY what Chrome uses for Preferences, so it's literally pre-readied
         except Exception as exceptionstr:
-            self.remove_package(packagename, source, True) #Remove profile's files/folders on failure
+            self.remove_package(packagename, subsource, True) #Remove profile's files/folders on failure
             raise ICEModuleException(_("Failed to install {0}: {1} was encountered when writing the Chromium-based profile").format(packagename, exceptionstr))
         
         
@@ -260,7 +260,7 @@ class main():
                 fp.write("Name={0}\n".format(self.packagestorage[packagename].realname))
                 fp.write("Comment={0}\n".format(_("Website (obtained from Store)")))
                 
-                fp.write("Exec=/usr/bin/feren-storium-icelaunch {0} {1} {2} {3} {4} {5} {6}\n".format(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s" % packagename, source, self.packagestorage[packagename].website, packagename, ublockarg, nekocaparg, darkreadarg))
+                fp.write("Exec=/usr/bin/feren-storium-icelaunch {0} {1} {2} {3} {4} {5} {6}\n".format(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s" % packagename, subsource, self.packagestorage[packagename].website, packagename, ublockarg, nekocaparg, darkreadarg))
 
                 fp.write("Terminal=false\n")
                 fp.write("X-MultipleArgs=false\n")
@@ -297,7 +297,7 @@ class main():
                 fp.write("StartupWMClass=%s\n" % packagename)
                 fp.write("StartupNotify=true\n")
         except Exception as exceptionstr:
-            self.remove_package(packagename, source, True) #Remove profile's files/folders on failure
+            self.remove_package(packagename, subsource, True) #Remove profile's files/folders on failure
             raise ICEModuleException(_("Failed to install {0}: {1} was encountered when creating a shortcut in the Applications Menu").format(packagename, exceptionstr))
             
         self.storebrain.set_progress(packagename, "peppermint-ice", 99)
@@ -311,7 +311,7 @@ class main():
         self.finishing_cleanup(packagename)
         return True
     
-    def remove_package(self, packagename, source, forinstall=False):
+    def remove_package(self, packagename, source, subsource, forinstall=False):
         if packagename not in self.packagestorage:
             raise ICEModuleException(_("%s is not in the Package Storage (packagestorage) yet - make sure it's in the packagestorage variable before obtaining package information.") % packagename)
         
@@ -342,7 +342,7 @@ class main():
             self.finishing_cleanup(packagename)
         return True
     
-    def update_package(self, packagename, source):
+    def update_package(self, packagename, source, subsource):
         #You SHOULD NOT be able to hit Update for websites anyway, so raise an error
         self.finishing_cleanup(packagename)
         raise ICEModuleException(_("You wouldn't update an Ice Website Application."))

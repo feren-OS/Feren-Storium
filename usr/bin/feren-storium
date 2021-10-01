@@ -38,6 +38,8 @@ class StoreModuleContainer():
             sys.path.remove(path)
             raise StoreBrainException(e)
         
+        self.main.modulename = path.split("/")[-1]
+        
         sys.path.remove(path)
 
 
@@ -72,6 +74,14 @@ class StoreBrain():
                     self.pkginfo_modules[dir_name] = module.main
                 except Exception as e:
                     print("Failed to load package information module %s: \n%s\n" % (dir_name, e))
+            for dir_name in sorted(os.listdir(MODULES_DIR+"/sourceinfo")):
+                path = os.path.join(MODULES_DIR+"/sourceinfo", dir_name)
+                module = None
+                try:
+                    module = StoreModuleContainer(self, path)
+                    self.sourceinfo_modules[dir_name] = module.main
+                except Exception as e:
+                    print("Failed to load source information module %s: \n%s\n" % (dir_name, e))
             for dir_name in sorted(os.listdir(MODULES_DIR+"/settings")):
                 path = os.path.join(MODULES_DIR+"/settings", dir_name)
                 module = None
@@ -90,6 +100,7 @@ class StoreBrain():
         self.localpkgmgmt_modules = {}
         self.pkgmgmt_modules = {}
         self.pkginfo_modules = {}
+        self.sourceinfo_modules = {}
         self.settings_modules = {}
         
         
@@ -170,39 +181,35 @@ class StoreBrain():
         for module in self.pkgmgmt_modules:
             try:
                 self.pkgmgmt_modules[module].pkgstorage_add(packagename, packagesource)
-            except Exception as e:
-                print(e)
+            except:
+                pass
     
     
     def get_sources(self, packagename):
         sourcesdict = {}
         #"modulename:internalname": "dropdown human readable name"
-        # Add package name to all packagestorages of modules that can house this package
         for module in self.pkgmgmt_modules:
             sources = []
             try:
                 if packagename in self.pkgmgmt_modules[module].packagestorage:
                     sources = self.pkgmgmt_modules[module].get_sources(packagename)
                     for source in sources:
-                        sourcesdict[module + ":" + source] = source #TODO: Make a Sources Module that can tell us about the names
+                        sourcesdict[module + ":" + source] = self.source_info_module(module).getSourceSelectName(module, source)
             except:
                 pass
         return sourcesdict
     
-    def get_subsources(self, packagename, source):
+    def get_subsources(self, sourceid, sourcetype):
         subsourcesdict = {}
-        #"modulename:internalname": "dropdown human readable name"
-        # Add package name to all packagestorages of modules that can house this package
-        for module in self.pkgmgmt_modules:
-            sources = []
-            try:
-                if packagename in self.pkgmgmt_modules[module].packagestorage:
-                    sources = self.pkgmgmt_modules[module].get_sources(packagename)
-                    for source in sources:
-                        sourcesdict[module + ":" + source] = source #TODO: Make a Sources Module that can tell us about the names
-            except:
-                pass
-        return sourcesdict
+        #"internalname": "dropdown human readable name"
+        
+        try:
+            sources = self.source_info_module(sourceid).getSubSources(sourceid, sourcetype)
+            for source in sources:
+                subsourcesdict[source] = self.source_info_module(sourcetype).getSourceSelectName(sourceid, sourcetype, source)
+        except:
+            subsourcesdict = {}
+        return subsourcesdict
     
     
     def get_package_sourceorder(self, packagename):
@@ -214,8 +221,8 @@ class StoreBrain():
                     pass
             
     
-    def get_item_info(self, packagename, packagesource):
-        extrainfo = self.pkginfo_modules[packagesource.split(":")[0]].getInfo(packagename, packagesource.split(":")[1])
+    def get_item_info(self, packagename, modulename, packagesource):
+        extrainfo = self.pkginfo_modules[modulename].getInfo(packagename, packagesource)
         
         for module in self.overall_package_data:
             if packagename in self.overall_package_data[module]:
@@ -256,6 +263,22 @@ class StoreBrain():
                 else:
                     return self.pkginfo_modules[module]
         raise StoreBrainException(_("No package info module was found for %s") % packagetype)
+        
+    def source_info_module(self, sourcetype, name=False):
+        #Return the first one we find's name
+        for module in self.sourceinfo_modules:
+            if sourcetype in self.sourceinfo_modules[module].types_provided:
+                if name:
+                    return module
+                else:
+                    return self.sourceinfo_modules[module]
+        for module in self.sourceinfo_modules: #TODO: Figure out how to combine outputs
+            if "all" in self.sourceinfo_modules[module].types_provided:
+                if name:
+                    return module
+                else:
+                    return self.sourceinfo_modules[module]
+        raise StoreBrainException(_("No source info module was found for %s") % sourcetype)
         
         
     def run_module(self, module):
