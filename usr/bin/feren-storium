@@ -14,6 +14,8 @@ import collections.abc
 class StoreBrainException(Exception): # Name this according to the module to allow easier debugging
     pass
 
+#TODO: Move overall_package_data, etc. to be 'generic' in Storium, and each other one's ones in the modules themselves, and maybe make Generic Modules part of THIS file
+
 #This class here is the main brains that connect the pieces of code together per each module
 class StoreModuleContainer():
     def __init__(self, storebrain, path):
