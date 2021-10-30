@@ -14,11 +14,16 @@ import collections.abc
 class StoreBrainException(Exception): # Name this according to the module to allow easier debugging
     pass
 
-#TODO: Move overall_package_data, etc. to be 'generic' in Storium, and each other one's ones in the modules themselves, and maybe make Generic Modules part of THIS file
+#TODO: Move overall_package_data, etc. to be 'generic' in Storium, and each other one's ones in the modules themselves
 
 #This class here is the main brains that connect the pieces of code together per each module
 class StoreModuleContainer():
     def __init__(self, storebrain, path):
+        self.path = None
+        self.main = None
+        if 'module' in sys.modules:
+            sys.modules.pop('module')
+        
         if not os.path.isfile(path + "/module.py"):
             raise StoreBrainException("Invalid module")
         with open(path + "/module.py", 'r') as modulecheck:
@@ -34,13 +39,16 @@ class StoreModuleContainer():
         try:
             import module
             importlib.reload(module) #Otherwise only one module will be loaded across all variables
-            #Imports the 'module.py' file of the folder
-            self.main = module.main(storebrain)
+            
+            if module.should_load() == True:
+                #Imports the 'module.py' file of the folder
+                self.main = module.main(storebrain)
+                self.main.modulename = path.split("/")[-1]
         except Exception as e:
             sys.path.remove(path)
+            self.main = None
             raise StoreBrainException(e)
         
-        self.main.modulename = path.split("/")[-1]
         
         sys.path.remove(path)
 
@@ -76,6 +84,14 @@ class StoreBrain():
                     self.pkginfo_modules[dir_name] = module.main
                 except Exception as e:
                     print("Failed to load package information module %s: \n%s\n" % (dir_name, e))
+            for dir_name in sorted(os.listdir(MODULES_DIR+"/search")):
+                path = os.path.join(MODULES_DIR+"/search", dir_name)
+                module = None
+                try:
+                    module = StoreModuleContainer(self, path)
+                    self.search_modules[dir_name] = module.main
+                except Exception as e:
+                    print("Failed to load search module %s: \n%s\n" % (dir_name, e))
             for dir_name in sorted(os.listdir(MODULES_DIR+"/sourceinfo")):
                 path = os.path.join(MODULES_DIR+"/sourceinfo", dir_name)
                 module = None
@@ -102,6 +118,7 @@ class StoreBrain():
         self.localpkgmgmt_modules = {}
         self.pkgmgmt_modules = {}
         self.pkginfo_modules = {}
+        self.search_modules = {}
         self.sourceinfo_modules = {}
         self.settings_modules = {}
         
@@ -110,6 +127,7 @@ class StoreBrain():
         self.current_package_viewed = ""
         self.current_module_selected = ""
         self.current_pkgsource_selected = ""
+        self.current_pkgsubsource_selected = ""
         
         
         self.tempdir = "/tmp/feren-storium-"+getpass.getuser()
@@ -122,51 +140,34 @@ class StoreBrain():
         #TODO: Remove this later on
         self.debug_module = StoreModuleContainer(self, "/usr/lib/feren-storium/modules/tempdebug").main
         
+        #Name of 'generic' modules, as Store's generic modules play a big part in it
+        self.generic_module = "generic"
+        
         self.load_modules()
         
         # For search and whatnot
-        self.overall_package_data = {}
-        self.package_name_categories = {}
         self.refresh_overall_package_data()
+        
+        #Link for module usage
+        self.genericpkginfo = self.pkginfo_modules[self.generic_module]
                 
                 
     def refresh_overall_package_data(self):
-        self.overall_package_data = {}
-        self.package_name_categories = {}
-        #Refill overall package data using modules
+        #Make the generic module make a {category: [ids]} dictionary for homepage and whatnot
+        self.pkginfo_modules[self.generic_module].build_categories_ids()
+        #Build each module's ID lists
         for module in self.pkginfo_modules:
-            self.overall_package_data[module] = self.pkginfo_modules[module].getPackageJSON()
-            
-        #Also update package_name_categories for layouting
-        for module in self.overall_package_data:
-            for item in self.overall_package_data[module]:
-                try:
-                    self.package_name_categories[item] = self.overall_package_data[module][item]["category"]
-                except:
-                    pass
+            self.pkginfo_modules[module].build_ids_list()
+        #TODO: Implement these into the modules and then edit the existing modules to make use of these new-added variables
+        
             
         
     def item_search(self, searchterm):
-        searchresults = []
-        #FIXME: Is there not a more efficient way to do this?
-        #First check: Is the search term literally the name of the package or the real name?
-        for item in self.package_name_categories:
-            if searchterm == self.get_item_info(item, "generic:generic")["realname"]:
-                searchresults.append(item)
-        if searchterm in self.package_name_categories:
-            searchresults.append(searchterm)
-        #Second check: Do any names start with the search term?
-        for item in self.package_name_categories:
-            if item.startswith(searchterm) or self.get_item_info(item, "generic:generic")["realname"].startswith(searchterm):
-                searchresults.append(item)
-        #Third check: Do any names contain the search term?
-        for item in self.package_name_categories:
-            if searchterm in item or searchterm in self.get_item_info(item, "generic:generic")["realname"]:
-                searchresults.append(item)
-        #Remove duplicates from list using a python3 trick
-        searchresults = list(dict.fromkeys(searchresults))
-        
-        return searchresults
+        overall_results = {}
+        for module in self.search_modules:
+            overall_results = self.dict_recurupdate(overall_results, self.search_modules[module].pop('status', None))
+            
+        return overall_results
     
     
     def dict_recurupdate(self, d, u): # I'm sure it's a recursive dictionary updater function, from what I can read of this function
@@ -223,18 +224,26 @@ class StoreBrain():
                     pass
             
     
-    def get_item_info(self, packagename, modulename, packagesource):
-        extrainfo = self.pkginfo_modules[modulename].getInfo(packagename, packagesource)
+    def get_item_info(self, packagename, packagesource, mergewithgeneric=True):
+        if mergewithgeneric == True:
+            extrainfo = self.get_generic_item_info(packagename)
+        else:
+            extrainfo = {}
         
-        for module in self.overall_package_data:
-            if packagename in self.overall_package_data[module]:
-                return self.dict_recurupdate(self.overall_package_data[module][packagename], extrainfo)
-        
-        raise StoreBrainException(_("No information was found for %s") % packagename)
+        for module in self.pkginfo_modules:
+            if module != self.pkginfo_modules[self.generic_module]: #If the generic module, skip
+                if packagesource in self.pkginfo_modules[module].types_provided or "all" in self.pkginfo_modules[module].types_provided: #Add data from each pkginfo module that has the source
+                    extrainfo = self.dict_recurupdate(extrainfo, self.pkginfo_modules[module].getInfo(packagename, packagesource))
+        if extrainfo != {}:
+            return extrainfo
+        else:
+            raise StoreBrainException(_("No information was found for %s") % packagename)
     
-    def set_progress(self, packagename, packagetype, value):
-        self.gui_module.set_progress(packagename, packagetype, value)
-        
+    def get_generic_item_info(self, packagename):
+        try:
+            return self.pkginfo_modules[self.generic_module].getInfo(packagename, "all") #We use 'all' as a placebo since it's not important in a generic module
+        except:
+            raise StoreBrainException(_("No information was found for %s") % packagename)        
     
     def package_module(self, packagetype, name=False):
         #Return the first one we find's name
@@ -281,6 +290,11 @@ class StoreBrain():
                 else:
                     return self.sourceinfo_modules[module]
         raise StoreBrainException(_("No source info module was found for %s") % sourcetype)
+    
+    
+    
+    def set_progress(self, packagename, packagetype, value):
+        self.gui_module.set_progress(packagename, packagetype, value)
         
         
     def run_module(self, module):
@@ -302,6 +316,8 @@ class StoreBrain():
         
         self.gui_module.init()
      
+     
+
      
      
 if __name__ == "__main__":

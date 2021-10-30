@@ -12,6 +12,10 @@ from threading import Thread
 from queue import Queue, Empty
 
 
+def should_load(): #Should this module be loaded?
+    return True
+
+
 ####Store Window
 class DebugWindow(object):
     def __init__(self):

@@ -17,10 +17,27 @@ class APTModuleException(Exception): # Name this according to the module to allo
     pass
 
 
+class PackageStore():
+    def __init__(self, realname, iconuri, shortdesc, description, author, category, images, website, donateurl, bugreporturl, tosurl, privpolurl, keywords, canusethemes, canusetouch, canuseaccessibility, canusedpiscaling, canusephoneadapting, officialpkg):
+        self.realname = realname
+        self.iconuri = iconuri
+        self.shortdesc = shortdesc
+        self.description = description
+        self.author = author
+        self.category = category
+        self.images = images
+        self.website = website
+        self.donateurl = donateurl
+        self.bugreporturl = bugreporturl
+        self.tosurl = tosurl
+        self.privpolurl = privpolurl
+        self.keywords = keywords
 
-class PackageMgmtModule():
 
-    def __init__(self, storegui):
+
+class main():
+
+    def __init__(self, storebrain):
 
         gettext.install("feren-storium", "/usr/share/locale", names="ngettext")
 
@@ -32,16 +49,15 @@ class PackageMgmtModule():
         #Can manage Application Sources?
         self.canmanagesources = True
         
-        #Application Sources (leave at {} if canmanagesources is False I guess)
-        # internal name: Human-readable name
-        self.applicationsources = {"standard": [_("Standard Installation")], /
-                                   "google-chrome": [_("Google (Official)")], /
-                                   "google-earth": [_("Google (Official)")], /
-                                   "vivaldi": [_("Vivaldi (Official)")], /
-                                   "microsoft-edge": [_("Microsoft (Official)")], /
-                                   "visual-studio": [_("Microsoft (Official)")], /
-                                   "opera": [_("Opera (Official)")], /
-                                   "waterfox": [_("hawkeye116477")]}
+        #Application Sources (leave at [] if canmanagesources is False I guess)
+        # [internal name]
+        self.applicationsources = ["standard", "google-chrome", "google-earth", "vivaldi", "microsoft-edge", "visual-studio", "opera", "waterfox"]
+        
+        #Store Brain
+        self.storebrain = storebrain
+        
+        #What package types does this manage?
+        self.types_managed = ["apt"]
         
         #Configs (obtained by get_configs)
         self.moduleconfigs={}
@@ -73,44 +89,29 @@ class PackageMgmtModule():
         
         self.memory_refreshing = False
         
-    def check_package_in_storage(self, packagename):
+                
+    def get_sources(self, packagename):
+        return self.applicationsources
+    
+    def get_subsources(self, packagename, source):
+        #Leave empty as apt has no subsources
+        return []
+    
+        
+    def pkgstorage_add(self, packagename, packagetype):
         if packagename not in self.packagestorage:
-            debpackage = apt.debfile.DebPackage(packagename, None)
-            
             #Get the values
-            try:
-                pkgdesc = debpackage["Description"].splitlines()
-            except:
-                pkgdesc = [self.storemain.uistrings.nodesc]
-            try:
-                pkgauthor = debpackage["Maintainer"]
-            except:
-                pkgauthor = self.storemain.uistrings.unknownauthor
-            try:
-                pkginstalledsize = debpackage["Installed-Size"]
-            except:
-                pkginstalledsize = self.storemain.uistrings.unknownsize
-            try:
-                pkgsection = debpackage["Section"]
-            except:
-                pkgsection = self.storemain.uistrings.nosection
-            try:
-                pkghomepage = debpackage["Homepage"]
-            except:
-                pkghomepage = ""
+            packageinfo = self.storebrain.get_item_info(packagename, self.modulename, packagetype)
             
-                        
-            self.packagestorage(packagename) = PackageStore(packagename, debpackage.pkgname, debpackage["Version"], pkgauthor, pkginstalledsize, pkgsection, pkghomepage, pkgdesc)
             
-    def get_headerdescription(self, packagename):
-        return self.genericheader
+            self.packagestorage[packagename] = PackageStore(packageinfo["realname"], packageinfo["iconuri"], "desc", packageinfo["description"], packageinfo["author"], packageinfo["category"], packageinfo["images"], packageinfo["website"], packageinfo["donateurl"], packageinfo["bugreporturl"], packageinfo["tosurl"], packageinfo["privpolurl"], packageinfo["keywords"], packageinfo["canihasthemes"], packageinfo["canihastouch"], packageinfo["canihasaccessibility"], packageinfo["canihasdpiscaling"], packageinfo["canihasphoneadapting"], packageinfo["officialpackage"])
 
-    def get_description(self, packagename):
+    def get_information(self, packagename):
         # Return description for package
-        if packagename in packagestorage:
-            return packagestorage[packagename].description
+        if packagename in self.packagestorage:
+            return self.packagestorage[packagename].realname, self.packagestorage[packagename].iconuri, self.packagestorage[packagename].shortdesc, self.packagestorage[packagename].description, self.packagestorage[packagename].author, self.packagestorage[packagename].category, self.packagestorage[packagename].images, self.packagestorage[packagename].website, self.packagestorage[packagename].donateurl, self.packagestorage[packagename].bugreporturl, self.packagestorage[packagename].tosurl, self.packagestorage[packagename].privpolurl, self.packagestorage[packagename].keywords
         else:
-            raise DebModuleException(packagename, _("is not in the Package Storage (packagestorage) yet - make sure it's in the packagestorage variable before obtaining package information."))
+            raise APTModuleException(_("%s is not in the Package Storage (packagestorage) yet - make sure it's in the packagestorage variable before obtaining package information.") % packagename)
 
     def get_status(self, packagename):
         # Return package installation status

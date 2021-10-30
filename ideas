@@ -7,6 +7,12 @@ Appearance not followed:
 Snap and Flatpak:
 /!\ This application may take longer to start than usual
 
+Snap Store source enabling:
+(red) /!\ Enabling Snap Store will result in slightly degraded system performance and applications from this source may be slower to start than others
+
+Flatpak source:
+(yellow) /!\ Applications from these sources may be slower to start than others
+
 Test Scores:
 /!\ This application scores badly in <link>Feren OS's integration tests</link>
 /!\ This application does not currently support touch screens

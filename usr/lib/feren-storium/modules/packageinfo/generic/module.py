@@ -10,6 +10,10 @@ import json
 import locale
 
 
+def should_load(): #Should this module be loaded?
+    return True
+
+
 class GenericInfoModuleException(Exception): # Name this according to the module to allow easier debugging
     pass
 
@@ -43,6 +47,35 @@ class main():
         
         #Force a memory refresh
         self.refresh_memory()
+        
+        #Package IDs List
+        self.pkg_ids = []
+        #Package Categories - IDs List
+        self.pkg_categoryids = {}
+        
+        
+    def build_ids_list(self): #Build list of package IDs
+        self.pkg_ids = []
+        for i in [self.json_storage["package-info/generic"]]:
+            try:
+                for package in i:
+                    if package not in self.pkg_ids:
+                        self.pkg_ids.append(package)
+            except:
+                pass
+        
+    def build_categories_ids(self): #Build categories list for package IDs
+        self.pkg_categoryids = {}
+        for i in [self.json_storage["package-info/generic"]]:
+            try:
+                for package in i:
+                    category = i[package]["category"]
+                    if category not in self.pkg_categoryids:
+                        self.pkg_categoryids[category] = []
+                    if package not in self.pkg_categoryids[category]:
+                        self.pkg_categoryids[category].append(package)
+            except:
+                pass
         
     def refresh_memory(self): # Function to refresh some memory values
         self.memory_refreshing = True
@@ -84,10 +117,11 @@ class main():
         images = self.getImages(packagename, packagetype)
         website = self.getWebsite(packagename, packagetype)
         donateurl = self.getDonateURL(packagename, packagetype)
+        pkgtype = self.getPkgType(packagename, packagetype)
         
         
         #Return values
-        return {"realname": realname, "iconuri": iconuri, "shortdescription": shortdescription, "description": description, "category": category, "images": images, "website": website, "donateurl": donateurl, "packagetype": packagetype}
+        return {"realname": realname, "iconuri": iconuri, "shortdescription": shortdescription, "description": description, "category": category, "images": images, "website": website, "donateurl": donateurl, "packagetype": pkgtype}
         
       
     def getRealName(self, packagename, packagetype):
@@ -148,6 +182,14 @@ class main():
             donateurl = self.json_storage["package-info/generic"][packagename]["donation"]
         except:
             donateurl = ""
+        return donateurl
+      
+    def getPkgType(self, packagename, packagetype):
+        try:
+            pkgtype = self.json_storage["package-info/generic"][packagename]["order-of-source-importance"][0]
+        except:
+            raise GenericInfoModuleException(packagename, _("has no, or an invalid, order-of-importance value in the package metadata. Packages MUST have an order-of-importance value when curated."))
+            return
         return donateurl
 
 

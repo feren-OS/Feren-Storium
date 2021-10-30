@@ -10,6 +10,11 @@ import json
 import locale
 
 
+def should_load(): #Should this module be loaded?
+    return True
+    #TODO: Move APT into its own module
+
+
 class ApplicationInfoModuleException(Exception): # Name this according to the module to allow easier debugging
     pass
 
@@ -44,12 +49,32 @@ class main():
         #Force a memory refresh
         self.refresh_memory()
         
+        #Package IDs List
+        self.pkg_ids = []
+        #Package Categories - IDs List
+        self.pkg_categoryids = {}
+        
+        
+    def build_ids_list(self): #Build list of package IDs
+        self.pkg_ids = []
+        for i in [self.json_storage["package-info/apt"], self.json_storage["package-info/flatpak"], self.json_storage["package-info/snap"]]:
+            try:
+                for package in i:
+                    if package not in self.pkg_ids:
+                        self.pkg_ids.append(package)
+            except:
+                pass
+        
+    def build_categories_ids(self): #Build categories list for package IDs
+        self.pkg_categoryids = {}
+        #Do nothing else as this isn't a generic module
+        
     def refresh_memory(self): # Function to refresh some memory values
         self.memory_refreshing = True
         
         self.json_storage = {}
         
-        for i in ["package-sources-info", "package-info/apt", "package-info/flatpak", "package-info/generic", "package-info/snap"]:
+        for i in ["package-sources-info/generic", "package-info/apt", "package-info/flatpak", "package-info/generic", "package-info/snap"]:
             with open("/usr/share/feren-storium/curated/" + i + "/data.json", 'r') as fp:            
                 self.json_storage[i] = json.loads(fp.read())
         
@@ -81,7 +106,7 @@ class main():
         except:
             raise ApplicationInfoModuleException(packagename, _("is not associated with any Store internal name. If you are getting an exception throw, it means you have not used a Try to respond to the package not being in the Store."))
         
-        
+    #TODO: Remove this
     def getPackageJSON(self):
         #Return a json of all package names
         packagejson = {}

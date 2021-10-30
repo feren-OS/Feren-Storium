@@ -20,6 +20,7 @@ https://github.com/feren-OS/Bug-Reporting-Center/issues/128#issuecomment-6514180
 
 Ideas I want to implement into this application:
 
+- [ ] Make modules able to declare if they should be loaded or not
 - [ ] APT support
 - [ ] .deb support
 - [ ] Flatpak support

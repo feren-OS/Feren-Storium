@@ -47,7 +47,7 @@ class main():
         
         #Application Sources (for ICE let's have the sources be the browsers that're supported)
         # Empty here, will be appended to with self.refresh_memory()
-        self.applicationsources = {}
+        self.applicationsources = []
         
         #Store Brain
         self.storebrain = storebrain
