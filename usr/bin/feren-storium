@@ -176,6 +176,12 @@ class StoreBrain():
             
         return overall_results
     
+    def dict_alphasort(self, d):
+        sortedkeys = {}
+        #Sort the search results
+        for result in sorted(d.keys(), key=lambda x:x.lower()):
+            sortedkeys[result] = d[result]
+        return sortedkeys
     
     def dict_recurupdate(self, d, u): # I'm sure it's a recursive dictionary updater function, from what I can read of this function
         for k, v in u.items():

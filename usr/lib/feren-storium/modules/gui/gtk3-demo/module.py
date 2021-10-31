@@ -488,11 +488,11 @@ class AppMainView(Gtk.Stack):
                 btn = Gtk.Button(label=pkgname)
                 btn.connect("clicked", self._btn_goto_packageview, pkgname)
                 if category.startswith("ice-"):
-                    self.websitesitems.insert(btn, 1)
+                    self.websitesitems.insert(btn, -1)
                 elif category.startswith("themes-"):
-                    self.themesitems.insert(btn, 1)
+                    self.themesitems.insert(btn, -1)
                 else:
-                    self.appsitems.insert(btn, 1)
+                    self.appsitems.insert(btn, -1)
     
         
     def populate_searchpage(self, searchresults):

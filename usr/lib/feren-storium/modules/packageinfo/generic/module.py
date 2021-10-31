@@ -63,6 +63,7 @@ class main():
                         self.pkg_ids.append(package)
             except:
                 pass
+        self.pkg_ids.sort() #Alphabetical sorting of IDs
         
     def build_categories_ids(self): #Build categories list for package IDs
         self.pkg_categoryids = {}
@@ -76,6 +77,8 @@ class main():
                         self.pkg_categoryids[category].append(package)
             except:
                 pass
+        for i in self.pkg_categoryids:
+            self.pkg_categoryids[i].sort() #Alphabetical sorting of IDs
         
     def refresh_memory(self): # Function to refresh some memory values
         self.memory_refreshing = True
