@@ -122,6 +122,9 @@ class StoreBrain():
         self.sourceinfo_modules = {}
         self.settings_modules = {}
         
+        #For Search modules
+        self.current_search = ""
+        
         
         #For modules and GUI - mainly source selection dropdown
         self.current_package_viewed = ""
@@ -164,8 +167,12 @@ class StoreBrain():
         
     def item_search(self, searchterm):
         overall_results = {}
+        temp_var = {}
         for module in self.search_modules:
-            overall_results = self.dict_recurupdate(overall_results, self.search_modules[module].pop('status', None))
+            temp_var = self.search_modules[module].getResults(searchterm)
+            temp_var = dict(temp_var) #For some reason, not doing this pops it inside the module(s) too on the next line
+            temp_var.pop('status', None)
+            overall_results = self.dict_recurupdate(overall_results, temp_var)
             
         return overall_results
     

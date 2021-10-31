@@ -23,6 +23,8 @@ class main():
     def __init__(self, storebrain):
 
         gettext.install("feren-storium", "/usr/share/locale", names="ngettext")
+        
+        self.storebrain = storebrain
 
         #Name to be used in Debugging output
         self.title = _("Generic Search Module")
@@ -38,19 +40,22 @@ class main():
         #Locale (for info modules)
         self.locale = locale.getlocale()[0]
         
-        #Force a memory refresh
-        self.refresh_memory()
-        
         #Storage for past searches, so we can remember them to make redoes faster
         self.search_results = {}
         #TODO: Put 'current search' variable in GUI
+        
+        #Force a memory refresh
+        self.refresh_memory()
         
     def refresh_memory(self): # Function to refresh some memory values
         self.memory_refreshing = True
         
         try:
-            if self.search_results[self.storebrain.current_search] != "":
-                self.search_results = {self.search_results[self.storebrain.current_search]}
+            if self.storebrain.current_search != "":
+                if self.search_results[self.storebrain.current_search]['status'] != 0:
+                    self.search_results = {self.search_results[self.storebrain.current_search]}
+                else:
+                    self.search_results = {}
             else:
                 self.search_results = {}
         except:
@@ -60,7 +65,7 @@ class main():
         self.memory_refreshing = False
         
     def checkIfInResults(self, item, searchterm): #Check if our result isn't already in the results to prevent duplicates
-        if item not in self.search_results[searchterm]['exactmatch'] and item not in self.search_results[searchterm]['begins'] and item not in self.search_results[searchterm]['contains'] item not in self.search_results[searchterm]['ends']:
+        if item not in self.search_results[searchterm]['exactmatch'] and item not in self.search_results[searchterm]['begins'] and item not in self.search_results[searchterm]['contains'] and item not in self.search_results[searchterm]['ends']:
             return False
         else:
             return True
@@ -91,10 +96,10 @@ class main():
             if searchterm not in self.search_results: #Abort search to save resources if it's cancelled
                 return {'exactmatch': {}, 'begins': {}, 'contains': {}, 'ends': {}}
             
-            if searchterm == self.storebrain.pkginfo_modules[self.storebrain.generic_module].getRealName(item, ""):
+            if searchterm.lower() == self.storebrain.pkginfo_modules[self.storebrain.generic_module].getRealName(item, "").lower():
                 if self.checkIfInResults(item, searchterm) == False:
                     self.search_results[searchterm]['exactmatch'][item] = self.getData(item)
-        if searchterm in package_ids:
+        if searchterm.lower() in package_ids:
             if searchterm not in self.search_results:
                 return {'exactmatch': {}, 'begins': {}, 'contains': {}, 'ends': {}}
             
@@ -106,7 +111,7 @@ class main():
             if searchterm not in self.search_results:
                 return {'exactmatch': {}, 'begins': {}, 'contains': {}, 'ends': {}}
             
-            if item.startswith(searchterm) or self.storebrain.pkginfo_modules[self.storebrain.generic_module].getRealName(item, "").startswith(searchterm):
+            if item.startswith(searchterm.lower()) or self.storebrain.pkginfo_modules[self.storebrain.generic_module].getRealName(item, "").lower().startswith(searchterm.lower()):
                 if self.checkIfInResults(item, searchterm) == False:
                     self.search_results[searchterm]['begins'][item] = self.getData(item)
         
@@ -115,7 +120,7 @@ class main():
             if searchterm not in self.search_results:
                 return {'exactmatch': {}, 'begins': {}, 'contains': {}, 'ends': {}}
             
-            if searchterm in item or searchterm in self.storebrain.pkginfo_modules[self.storebrain.generic_module].getRealName(item, ""):
+            if searchterm.lower() in item or searchterm.lower() in self.storebrain.pkginfo_modules[self.storebrain.generic_module].getRealName(item, "").lower():
                 if self.checkIfInResults(item, searchterm) == False:
                     self.search_results[searchterm]['contains'][item] = self.getData(item)
         
@@ -124,7 +129,7 @@ class main():
             if searchterm not in self.search_results:
                 return {'exactmatch': {}, 'begins': {}, 'contains': {}, 'ends': {}}
             
-            if item.endswith(searchterm) or self.storebrain.pkginfo_modules[self.storebrain.generic_module].getRealName(item, "").endswith(searchterm):
+            if item.endswith(searchterm.lower()) or self.storebrain.pkginfo_modules[self.storebrain.generic_module].getRealName(item, "").lower().endswith(searchterm.lower()):
                 if self.checkIfInResults(item, searchterm) == False:
                     self.search_results[searchterm]['ends'][item] = self.getData(item)
         

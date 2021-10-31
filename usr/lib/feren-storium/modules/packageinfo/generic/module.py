@@ -190,7 +190,7 @@ class main():
         except:
             raise GenericInfoModuleException(packagename, _("has no, or an invalid, order-of-importance value in the package metadata. Packages MUST have an order-of-importance value when curated."))
             return
-        return donateurl
+        return pkgtype
 
 
 if __name__ == "__main__":

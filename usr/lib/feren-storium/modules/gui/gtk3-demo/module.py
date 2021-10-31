@@ -482,26 +482,30 @@ class AppMainView(Gtk.Stack):
         
     def populate_mainpage(self):
         #TODO: Split into sections
-        data = self.storebrain.package_name_categories
-        for pkgname in data:
-            btn = Gtk.Button(label=pkgname)
-            btn.connect("clicked", self._btn_goto_packageview, pkgname)
-            if data[pkgname].startswith("ice-"):
-                self.websitesitems.insert(btn, 1)
-            elif data[pkgname].startswith("themes-"):
-                self.themesitems.insert(btn, 1)
-            else:
-                self.appsitems.insert(btn, 1)
+        data = self.storebrain.pkginfo_modules[self.storebrain.generic_module].pkg_categoryids
+        for category in data:
+            for pkgname in data[category]:
+                btn = Gtk.Button(label=pkgname)
+                btn.connect("clicked", self._btn_goto_packageview, pkgname)
+                if category.startswith("ice-"):
+                    self.websitesitems.insert(btn, 1)
+                elif category.startswith("themes-"):
+                    self.themesitems.insert(btn, 1)
+                else:
+                    self.appsitems.insert(btn, 1)
+    
         
     def populate_searchpage(self, searchresults):
         #Destroy the children first (no actual children were harmed in the making of this program)
         for item in self.searchresults.get_children():
             item.destroy()
+            
         
-        for item in searchresults:
-            btn = Gtk.Button(label=item)
-            btn.connect("clicked", self._btn_goto_packageview, item)
-            self.searchresults.insert(btn, -1)
+        for resulttype in searchresults:
+            for item in searchresults[resulttype]:
+                btn = Gtk.Button(label=("({0}) {1}").format(searchresults[resulttype][item]["realname"], item))
+                btn.connect("clicked", self._btn_goto_packageview, item)
+                self.searchresults.insert(btn, -1)
             
         self.searchresults.show_all()
         
@@ -574,7 +578,7 @@ class AppMainView(Gtk.Stack):
 
     def searchbar_search(self, btn):
         if self.searchbar.get_text() == "":
-            self.populate_searchpage([])
+            self.populate_searchpage({'exactmatch': {}, 'begins': {}, 'contains': {}, 'ends': {}})
         else:
             results = self.storebrain.item_search(self.searchbar.get_text())
             self.populate_searchpage(results)
