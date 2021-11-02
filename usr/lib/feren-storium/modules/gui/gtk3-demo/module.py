@@ -132,6 +132,10 @@ class AppDetailsHeader(Gtk.VBox):
             
         self.app_source_dropdown.set_model(iface_list_store)
         self.app_source_dropdown.set_active(0)
+        if len(self.source_ids) <= 1:
+            self.app_source_dropdown.set_sensitive(False)
+        else:
+            self.app_source_dropdown.set_sensitive(True)
     
     def populate_subsources(self, currentpackage, subsourcedict):
         iface_list_store = Gtk.ListStore(GObject.TYPE_STRING)
