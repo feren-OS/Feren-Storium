@@ -14,7 +14,7 @@ import collections.abc
 class StoreBrainException(Exception): # Name this according to the module to allow easier debugging
     pass
 
-#TODO: Move overall_package_data, etc. to be 'generic' in Storium, and each other one's ones in the modules themselves
+#TODO: Change sources usage for package information to package module usage
 
 #This class here is the main brains that connect the pieces of code together per each module
 class StoreModuleContainer():
@@ -191,12 +191,11 @@ class StoreBrain():
                 d[k] = v
         return d
     
-    
-    def add_to_packageinfo(self, packagename, packagesource):
+    def add_to_packageinfo(self, packageid):
         # Add package name to all packagestorages of modules that can house this package
         for module in self.pkgmgmt_modules:
             try:
-                self.pkgmgmt_modules[module].pkgstorage_add(packagename, packagesource)
+                self.pkgmgmt_modules[module].pkgstorage_add(packageid)
             except:
                 pass
     
@@ -210,7 +209,7 @@ class StoreBrain():
                 if packagename in self.pkgmgmt_modules[module].packagestorage:
                     sources = self.pkgmgmt_modules[module].get_sources(packagename)
                     for source in sources:
-                        sourcesdict[module + ":" + source] = self.source_info_module(module).getSourceSelectName(module, source)
+                        sourcesdict[module + ":" + source] = self.sourceinfo_modules[self.generic_module].getSourceSelectName(module, source)
             except:
                 pass
         return sourcesdict
@@ -220,24 +219,24 @@ class StoreBrain():
         #"internalname": "dropdown human readable name"
         
         try:
-            sources = self.source_info_module(sourceid).getSubSources(sourceid, sourcetype)
+            sources = self.sourceinfo_modules[self.generic_module].getSubSources(sourceid, sourcetype)
             for source in sources:
-                subsourcesdict[source] = self.source_info_module(sourcetype).getSourceSelectName(sourceid, sourcetype, source)
+                subsourcesdict[source] = self.sourceinfo_modules[self.generic_module].getSourceSelectName(sourceid, sourcetype, source)
         except:
             subsourcesdict = {}
         return subsourcesdict
     
     
-    def get_package_sourceorder(self, packagename):
+    def get_package_moduleorder(self, packagename):
         for module in self.overall_package_data:
             if packagename in self.overall_package_data[module]:
                 try:
-                    return self.overall_package_data[module][packagename]["order-of-source-importance"]
+                    return self.overall_package_data[module][packagename]["order-of-module-importance"]
                 except:
                     pass
             
     
-    def get_item_info(self, packagename, packagesource, mergewithgeneric=True):
+    def get_item_info(self, packagename, packagetype, mergewithgeneric=True):
         if mergewithgeneric == True:
             extrainfo = self.get_generic_item_info(packagename)
         else:
@@ -245,8 +244,8 @@ class StoreBrain():
         
         for module in self.pkginfo_modules:
             if module != self.pkginfo_modules[self.generic_module]: #If the generic module, skip
-                if packagesource in self.pkginfo_modules[module].types_provided or "all" in self.pkginfo_modules[module].types_provided: #Add data from each pkginfo module that has the source
-                    extrainfo = self.dict_recurupdate(extrainfo, self.pkginfo_modules[module].getInfo(packagename, packagesource))
+                if packagetype in self.pkginfo_modules[module].types_provided or "all" in self.pkginfo_modules[module].types_provided: #Add data from each pkginfo module that has the source
+                    extrainfo = self.dict_recurupdate(extrainfo, self.pkginfo_modules[module].getInfo(packagename, packagetype))
         if extrainfo != {}:
             return extrainfo
         else:

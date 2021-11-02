@@ -114,9 +114,13 @@ class AppDetailsHeader(Gtk.VBox):
         self.app_icon.set_from_pixbuf(icon_pixbuf)
     
     def populate(self, info, currentpackage):
-        self.app_title.set_label(info["realname"])
-        self.app_shortdesc.set_label(info["shortdescription"])
-        self.set_icon(info["iconuri"], currentpackage)
+        self.app_shortdesc.set_label(info["shortdescription"]) #Some sources like ICE have their own descriptions
+        pass #TODO
+    
+    def populate_generic(self, packageinfo, currentpackage):
+        self.app_title.set_label(packageinfo["realname"])
+        self.app_shortdesc.set_label(packageinfo["shortdescription"])
+        self.set_icon(packageinfo["iconuri"], currentpackage)
         pass #TODO
     
     def populate_sources(self, currentpackage, sourcedict):
@@ -146,8 +150,7 @@ class AppDetailsHeader(Gtk.VBox):
         self.mv.current_subsource_viewed = ""
         self.mv.current_module_viewed = self.source_ids[combobox.get_active()].split(":")[0]
         self.mv.current_source_viewed = self.source_ids[combobox.get_active()].split(":")[1]
-        self.storebrain.add_to_packageinfo(self.mv.current_item_viewed, self.mv.current_source_viewed)
-        self.mv.packagepage_refresh(self.mv.current_item_viewed, self.mv.current_module_viewed, self.mv.current_source_viewed)
+        self.mv.change_module(self.mv.current_module_viewed, self.mv.current_item_viewed)
         self.populate_subsources(self.mv.current_item_viewed, self.storebrain.get_subsources(self.mv.current_source_viewed, self.mv.current_module_viewed))
         
     def on_subsource_dropdown_changed(self, combobox):
@@ -184,9 +187,11 @@ class AppDetailsHeader(Gtk.VBox):
         pass
         
     def update_buttons(self, status):
+        self.app_subsource_dropdown.set_visible(False)
         #Update buttons according to status
         if status == 0: #Uninstalled
             self.installapp_btn.set_sensitive(True)
+            self.app_subsource_dropdown.set_visible(True)
         else:
             self.installapp_btn.set_sensitive(False)
         if status == 3: #Available in disabled source
@@ -219,6 +224,7 @@ class AppMainView(Gtk.Stack):
         self.current_module_viewed = ""
         self.current_source_viewed = ""
         self.current_subsource_viewed = ""
+        self.current_generic_pkginfo = {}
         self.back_button_history = []
         
         self.gobackmode = False
@@ -454,32 +460,41 @@ class AppMainView(Gtk.Stack):
         
         
         self.add_named(self.sw4, "packagepage")
-    
-    def packagepage_steps(self, packagename):
-        self.storebrain.add_to_packageinfo(packagename, self.storebrain.get_package_sourceorder(packagename)[0])
-        self.AppDetailsHeader.populate_sources(packagename, self.storebrain.get_sources(packagename))
-        self.set_visible_child(self.sw4)
         
-    def packagepage_refresh(self, packagename, module, source):
-        
-        information = self.storebrain.get_item_info(packagename, module, source)
-        self.populate_pkgpage(information, packagename)
-        self.AppDetailsHeader.populate(information, packagename)
-        self.storebrain.pkgmgmt_modules[module].pkgstorage_add(packagename, source)
-        self._refresh_page(packagename, source)
-    
-    
-    def populate_pkgpage(self, packageinfo, currentpackage):
+    def add_generic_information(self, packageinfo, currentpackage):
         self.pkgpage_images.set_label("Images: " + str(packageinfo["images"]))
         self.pkgpage_description.set_label("Description: " + str(packageinfo["description"]))
         self.pkgpage_category.set_label("Category: " + str(packageinfo["category"]))
         self.pkgpage_website.set_label("Website: " + str(packageinfo["website"]))
-        self.pkgpage_author.set_label("Author: " + str(packageinfo["author"]))
         self.pkgpage_donateurl.set_label("Donate URL: " + str(packageinfo["donateurl"]))
+        
+    def add_module_information(self, packageinfo, currentpackage):
+        self.pkgpage_author.set_label("Author: " + str(packageinfo["author"]))
         self.pkgpage_bugsurl.set_label("Bugs URL: " + str(packageinfo["bugreporturl"]))
         self.pkgpage_tosurl.set_label("TOS URL: " + str(packageinfo["tosurl"]))
         self.pkgpage_privpolurl.set_label("Privacy Policy URL: " + str(packageinfo["privpolurl"]))
         
+    def change_module(self, modulename, currentpackage):
+        packageinfo = self.storebrain.dict_recurupdate(self.current_generic_pkginfo, self.storebrain.get_item_info(currentpackage, modulename, False))
+        self.add_module_information(packageinfo, currentpackage)
+        self.AppDetailsHeader.populate(packageinfo, currentpackage)
+        self.AppDetailsHeader.update_buttons(self.storebrain.package_module(modulename).get_status(currentpackage))
+        
+    def on_packagemgmt_finished(self):
+        self.AppDetailsHeader.update_buttons(self.storebrain.package_module(self.current_source_viewed).get_status(self.current_item_viewed))
+    
+    def goto_packagepage(self, packagename):
+        self.current_item_viewed = packagename
+        self.current_generic_pkginfo = self.storebrain.get_generic_item_info(packagename)
+        self.add_generic_information(self.current_generic_pkginfo, packagename)
+        self.AppDetailsHeader.populate_generic(self.current_generic_pkginfo, packagename)
+        
+        self.storebrain.add_to_packageinfo(packagename)
+        self.AppDetailsHeader.populate_sources(packagename, self.storebrain.get_sources(packagename))
+        
+        self.set_visible_child(self.sw4)
+    
+    
     def populate_mainpage(self):
         #TODO: Split into sections
         data = self.storebrain.pkginfo_modules[self.storebrain.generic_module].pkg_categoryids
@@ -553,16 +568,9 @@ class AppMainView(Gtk.Stack):
         
     def _goto_page(self, page):
         self.set_visible_child(page)
-        
-    def _refresh_page(self, packagename, packagetype):
-        self.AppDetailsHeader.update_buttons(self.storebrain.package_module(packagetype).get_status(packagename))
-        
-    def _goto_packageview(self, packagename):
-        self.current_item_viewed = packagename
-        self.packagepage_steps(packagename)
 
     def _btn_goto_packageview(self, btn, packagename):
-        self._goto_packageview(packagename)
+        self.goto_packagepage(packagename)
 
     def _generate_apps_list(self, category):
         pass

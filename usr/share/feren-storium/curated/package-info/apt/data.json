@@ -6,12 +6,12 @@
     "bugreporturl": "",
     "tosurl": "",
     "privpolurl": "",
-    "canihasthemes": 1,
-    "canihastouch": 1,
-    "canihasaccessibility": true,
-    "canihasdpiscaling": true,
-    "canihasphoneadapting": true,
-    "officialpackage": true
+    "canusethemes": 1,
+    "canusetouchscreen": 1,
+    "canuseaccessibility": true,
+    "canusedpiscaling": true,
+    "canuseonphone": true,
+    "isofficial": true
   },
   "feren-store": {
     "apt-name": "feren-store",
@@ -20,11 +20,11 @@
     "bugreporturl": "https://github.com/feren-OS/Bug-Reporting-Center/issues/",
     "tosurl": "",
     "privpolurl": "",
-    "canihasthemes": 1,
-    "canihastouch": 1,
-    "canihasaccessibility": true,
-    "canihasdpiscaling": true,
-    "canihasphoneadapting": true,
-    "officialpackage": true
+    "canusethemes": 1,
+    "canusetouchscreen": 1,
+    "canuseaccessibility": true,
+    "canusedpiscaling": true,
+    "canuseonphone": true,
+    "isofficial": true
   }
 }

@@ -189,9 +189,9 @@ class main():
       
     def getPkgType(self, packagename, packagetype):
         try:
-            pkgtype = self.json_storage["package-info/generic"][packagename]["order-of-source-importance"][0]
+            pkgtype = self.json_storage["package-info/generic"][packagename]["order-of-module-importance"][0]
         except:
-            raise GenericInfoModuleException(packagename, _("has no, or an invalid, order-of-importance value in the package metadata. Packages MUST have an order-of-importance value when curated."))
+            raise GenericInfoModuleException(packagename, _("has no, or an invalid, order-of-module-importance value in the package metadata. Packages MUST have an order-of-importance value when curated."))
             return
         return pkgtype
 

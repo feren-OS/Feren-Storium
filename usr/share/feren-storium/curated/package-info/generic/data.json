@@ -8,7 +8,7 @@
     "donateurl": "",
     "category": "ice-multimedia",
     "images": [""],
-    "order-of-source-importance": ["peppermint-ice"]
+    "order-of-module-importance": ["peppermint-ice"]
   },
   "storium-ice-microsoft-office-online": {
     "realname": "Microsoft Office Online",
@@ -19,7 +19,7 @@
     "donateurl": "",
     "category": "ice-office",
     "images": [""],
-    "order-of-source-importance": ["peppermint-ice"]
+    "order-of-module-importance": ["peppermint-ice"]
   },
   "storium-ice-facebook-facebook": {
     "realname": "Facebook",
@@ -30,7 +30,7 @@
     "donateurl": "",
     "category": "ice-internet",
     "images": [""],
-    "order-of-source-importance": ["peppermint-ice"]
+    "order-of-module-importance": ["peppermint-ice"]
   },
   "storium-ice-twitter-twitter": {
     "realname": "Twitter",
@@ -41,7 +41,7 @@
     "donateurl": "",
     "category": "ice-internet",
     "images": [""],
-    "order-of-source-importance": ["peppermint-ice"]
+    "order-of-module-importance": ["peppermint-ice"]
   },
   "storium-ice-reddit-reddit": {
     "realname": "Reddit",
@@ -52,7 +52,7 @@
     "donateurl": "",
     "category": "ice-internet",
     "images": [""],
-    "order-of-source-importance": ["peppermint-ice"]
+    "order-of-module-importance": ["peppermint-ice"]
   },
   "feren-extra-backgrounds": {
     "realname": "Feren OS Extra Backgrounds",
@@ -64,7 +64,7 @@
     "category": "backgrounds",
     "images": [""],
     "appstream-name": "",
-    "order-of-source-importance": ["apt"]
+    "order-of-module-importance": ["apt"]
   },
   "feren-store": {
     "realname": "Feren Store",
@@ -76,7 +76,7 @@
     "category": "system",
     "images": [""],
     "appstream-name": "feren-store.desktop",
-    "order-of-source-importance": ["apt"]
+    "order-of-module-importance": ["apt"]
   },
   "google-chromium": {
     "realname": "Chromium",
@@ -88,7 +88,7 @@
     "category": "browsers",
     "images": ["https://www.gstatic.com/chrome/appstream/chrome-2.png"],
     "appstream-name": "chromium.desktop",
-    "order-of-source-importance": ["snap"]
+    "order-of-module-importance": ["snap"]
   },
   "mozilla-firefox": {
     "realname": "Firefox",
@@ -100,6 +100,6 @@
     "category": "browsers",
     "images": ["https://www.gstatic.com/chrome/appstream/chrome-2.png"],
     "appstream-name": "firefox.desktop",
-    "order-of-source-importance": ["flatpak", "snap"]
+    "order-of-module-importance": ["flatpak", "snap"]
   }
 }

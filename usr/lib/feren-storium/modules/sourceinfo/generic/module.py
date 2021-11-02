@@ -10,6 +10,10 @@ import json
 import locale
 
 
+def should_load(): #Should this module be loaded?
+    return True
+
+
 class GenericSourceInfoModuleException(Exception): # Name this according to the module to allow easier debugging
     pass
 
@@ -110,80 +114,81 @@ class main():
       
     def getSettingsTypeName(self, sourcetype):
         try:
-            name = self.json_storage["package-sources-info-generic"][sourcetype]["name"]
+            name = self.json_storage["package-sources-info/generic"][sourcetype]["name"]
         except:
             name = sourcetype
         return name
       
     def getManagedByGUI(self, sourcetype):
         try:
-            managedbygui = self.json_storage["package-sources-info-generic"][sourcetype]["managed-via-gui"]
+            managedbygui = self.json_storage["package-sources-info/generic"][sourcetype]["managed-via-gui"]
         except:
             raise GenericSourceInfoModuleException(sourcetype, _("has incomplete or no source type data (missing 'managed-via-gui')."))
         return managedbygui
       
     def getCanBeToggled(self, sourcetype):
         try:
-            canbetoggled = self.json_storage["package-sources-info-generic"][sourcetype]["can-be-toggled"]
+            canbetoggled = self.json_storage["package-sources-info/generic"][sourcetype]["can-be-toggled"]
         except:
             raise GenericSourceInfoModuleException(sourcetype, _("has incomplete or no source type data (missing 'can-be-toggled')."))
         return canbetoggled
       
     def getHideUnavailableSources(self, sourcetype):
         try:
-            hideunavailable = self.json_storage["package-sources-info-generic"][sourcetype]["hide-unavailable-sources"]
+            hideunavailable = self.json_storage["package-sources-info/generic"][sourcetype]["hide-unavailable-sources"]
         except:
             raise GenericSourceInfoModuleException(sourcetype, _("has incomplete or no source type data (missing 'hide-unavailable-sources')."))
         return hideunavailable
       
     def getSettingsName(self, sourcename, sourcetype):
         try:
-            name = self.json_storage["package-sources-info-generic"][sourcetype][sourcename]["category"]
+            name = self.json_storage["package-sources-info/generic"][sourcetype][sourcename]["category"]
         except:
             name = sourcename
         return category
       
-    def getSourceSelectName(self, sourcename, sourcetype, subsourcename=""):
+    def getSourceSelectName(self, sourcetype, sourcename, subsourcename=""):
         try:
             if subsourcename == "":
-                sourceselectname = self.json_storage["package-sources-info-generic"][sourcetype][sourcename]["sourcename"]
+                sourceselectname = self.json_storage["package-sources-info/generic"][sourcetype][sourcename]["sourcename"]
             else:
-                sourceselectname = self.json_storage["package-sources-info-generic"][sourcetype][sourcename]["subsources"][subsourcename]["sourcename"]
-        except:
+                sourceselectname = self.json_storage["package-sources-info/generic"][sourcetype][sourcename]["subsources"][subsourcename]["sourcename"]
+        except Exception as e:
+            print(e)
             sourceselectname = _("{0} ({1})").format(sourcename, sourcetype)
         return sourceselectname
       
     def getRepository(self, sourcename, sourcetype):
         try:
-            repository = self.json_storage["package-sources-info-generic"][sourcetype][sourcename]["repository"]
+            repository = self.json_storage["package-sources-info/generic"][sourcetype][sourcename]["repository"]
         except:
             raise GenericSourceInfoModuleException(sourcename, _("has incomplete or no source type data (missing 'repository')."))
         return repository
       
     def getRepositoryFile(self, sourcename, sourcetype):
         try:
-            repositoryfile = self.json_storage["package-sources-info-generic"][sourcetype][sourcename]["repository-file"]
+            repositoryfile = self.json_storage["package-sources-info/generic"][sourcetype][sourcename]["repository-file"]
         except:
             raise GenericSourceInfoModuleException(sourcename, _("has incomplete or no source type data (missing 'repository-file')."))
         return repositoryfile
       
     def getRepositoryPackage(self, sourcename, sourcetype):
         try:
-            repositorypackage = self.json_storage["package-sources-info-generic"][sourcetype][sourcename]["repository-package"]
+            repositorypackage = self.json_storage["package-sources-info/generic"][sourcetype][sourcename]["repository-package"]
         except:
             raise GenericSourceInfoModuleException(sourcename, _("has incomplete or no source type data (missing 'repository-package')."))
         return repositorypackage
       
     def getForced(self, sourcename, sourcetype):
         try:
-            forced = self.json_storage["package-sources-info-generic"][sourcetype][sourcename]["forced"]
+            forced = self.json_storage["package-sources-info/generic"][sourcetype][sourcename]["forced"]
         except:
             raise GenericSourceInfoModuleException(sourcename, _("has incomplete or no source type data (missing 'forced')."))
         return forced
       
     def getArchitecture(self, sourcename, sourcetype):
         try:
-            arch = self.json_storage["package-sources-info-generic"][sourcetype][sourcename]["arch"]
+            arch = self.json_storage["package-sources-info/generic"][sourcetype][sourcename]["arch"]
         except:
             raise GenericSourceInfoModuleException(sourcename, _("has incomplete or no source type data (missing 'arch')."))
         return arch
@@ -191,7 +196,7 @@ class main():
     def getSubSources(self, sourcename, sourcetype):
         subsources = []
         try:
-            for subsource in self.json_storage["package-sources-info-generic"][sourcetype][sourcename]["subsources"]:
+            for subsource in self.json_storage["package-sources-info/generic"][sourcetype][sourcename]["subsources"]:
                 subsources.append(subsource)
         except:
             raise GenericSourceInfoModuleException(sourcename, _("has incomplete or no source type data (missing or faulty 'subsources')."))

@@ -12,13 +12,17 @@ gi.require_version('PackageKitGlib', '1.0')
 from gi.repository import PackageKitGlib
 
 
+def should_load(): #Should this module be loaded?
+    return os.path.isfile("/usr/bin/apt")
+
+
 
 class APTModuleException(Exception): # Name this according to the module to allow easier debugging
     pass
 
 
 class PackageStore():
-    def __init__(self, realname, iconuri, shortdesc, description, author, category, images, website, donateurl, bugreporturl, tosurl, privpolurl, keywords, canusethemes, canusetouch, canuseaccessibility, canusedpiscaling, canusephoneadapting, officialpkg):
+    def __init__(self, realname, iconuri, shortdesc, description, author, category, images, website, donateurl, bugreporturl, tosurl, privpolurl, canusethemes, canusetouchscreen, canuseaccessibility, canusedpiscaling, canuseonphone, isofficial, aptname, aptsource):
         self.realname = realname
         self.iconuri = iconuri
         self.shortdesc = shortdesc
@@ -31,7 +35,15 @@ class PackageStore():
         self.bugreporturl = bugreporturl
         self.tosurl = tosurl
         self.privpolurl = privpolurl
-        self.keywords = keywords
+        self.keywords = ""
+        self.isofficial = isofficial
+        self.canusethemes = canusethemes
+        self.canusetouchscreen = canusetouchscreen
+        self.canuseaccessibility = canuseaccessibility
+        self.canusedpiscaling = canusedpiscaling
+        self.canuseonphone = canuseonphone
+        self.aptname = aptname
+        self.aptsource = aptsource
 
 
 
@@ -48,10 +60,6 @@ class main():
         
         #Can manage Application Sources?
         self.canmanagesources = True
-        
-        #Application Sources (leave at [] if canmanagesources is False I guess)
-        # [internal name]
-        self.applicationsources = ["standard", "google-chrome", "google-earth", "vivaldi", "microsoft-edge", "visual-studio", "opera", "waterfox"]
         
         #Store Brain
         self.storebrain = storebrain
@@ -91,20 +99,33 @@ class main():
         
                 
     def get_sources(self, packagename):
-        return self.applicationsources
+        if packagename in self.packagestorage:
+            return [self.packagestorage[packagename].aptsource]
+        else:
+            raise APTModuleException(_("%s is not in the Package Storage (packagestorage) yet - make sure it's in the packagestorage variable before obtaining its sources.") % packagename)
     
     def get_subsources(self, packagename, source):
         #Leave empty as apt has no subsources
         return []
     
         
-    def pkgstorage_add(self, packagename, packagetype):
+    def pkgstorage_add(self, packagename):
         if packagename not in self.packagestorage:
+            packageinfo = {}
+            
             #Get the values
-            packageinfo = self.storebrain.get_item_info(packagename, self.modulename, packagetype)
+            for packagetype in self.types_managed:
+                try:
+                    packageinfo = self.storebrain.get_item_info(packagename, packagetype, True)
+                    if packageinfo != self.storebrain.get_generic_item_info(packagename): #Check we have full information, not just generic information
+                        continue
+                except:
+                    pass
             
+            if packageinfo == {}:
+                return
             
-            self.packagestorage[packagename] = PackageStore(packageinfo["realname"], packageinfo["iconuri"], "desc", packageinfo["description"], packageinfo["author"], packageinfo["category"], packageinfo["images"], packageinfo["website"], packageinfo["donateurl"], packageinfo["bugreporturl"], packageinfo["tosurl"], packageinfo["privpolurl"], packageinfo["keywords"], packageinfo["canihasthemes"], packageinfo["canihastouch"], packageinfo["canihasaccessibility"], packageinfo["canihasdpiscaling"], packageinfo["canihasphoneadapting"], packageinfo["officialpackage"])
+            self.packagestorage[packagename] = PackageStore(packageinfo["realname"], packageinfo["iconuri"], "desc", packageinfo["description"], packageinfo["author"], packageinfo["category"], packageinfo["images"], packageinfo["website"], packageinfo["donateurl"], packageinfo["bugreporturl"], packageinfo["tosurl"], packageinfo["privpolurl"], packageinfo["canusethemes"], packageinfo["canusetouchscreen"], packageinfo["canuseaccessibility"], packageinfo["canusedpiscaling"], packageinfo["canuseonphone"], packageinfo["isofficial"], packageinfo["aptname"], packageinfo["aptsource"])
 
     def get_information(self, packagename):
         # Return description for package
@@ -128,7 +149,7 @@ class main():
         self.currentpackagename = ""
         self.packagemgmtbusy = False
         #TODO: Move this call to Store Brain's Tasks management once implemented
-        self.storebrain.gui_module.mainpage._refresh_page(packagename, "apt")
+        self.storebrain.gui_module.mainpage.on_packagemgmt_finished()
         
     
     def install_package(self, packagename):

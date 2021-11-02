@@ -10,6 +10,10 @@ import json
 import shutil
 
 
+def should_load(): #Should this module be loaded?
+    return True
+
+
 class ICEModuleException(Exception): # Name this according to the module to allow easier debugging
     pass
 
@@ -103,11 +107,21 @@ class main():
         return subsources
     
         
-    def pkgstorage_add(self, packagename, packagetype):
+    def pkgstorage_add(self, packagename):
         if packagename not in self.packagestorage:
-            #Get the values
-            packageinfo = self.storebrain.get_item_info(packagename, self.modulename, packagetype)
+            packageinfo = {}
             
+            #Get the values
+            for packagetype in self.types_managed:
+                try:
+                    packageinfo = self.storebrain.get_item_info(packagename, packagetype, True)
+                    if packageinfo != self.storebrain.get_generic_item_info(packagename): #Check we have full information, not just generic information
+                        continue
+                except:
+                    pass
+            
+            if packageinfo == {}:
+                return
             
             self.packagestorage[packagename] = PackageStore(packageinfo["realname"], packageinfo["iconuri"], "desc", packageinfo["description"], packageinfo["author"], packageinfo["category"], packageinfo["images"], packageinfo["website"], packageinfo["donateurl"], packageinfo["bugreporturl"], packageinfo["tosurl"], packageinfo["privpolurl"], packageinfo["keywords"])
 
@@ -133,7 +147,7 @@ class main():
         self.currentpackagename = ""
         self.packagemgmtbusy = False
         #TODO: Move this call to Store Brain's Tasks management once implemented
-        self.storebrain.gui_module.mainpage._refresh_page(packagename, "peppermint-ice")
+        self.storebrain.gui_module.mainpage.on_packagemgmt_finished()
         
     
     def install_package(self, packagename, source, subsource, bonuses=[]):
