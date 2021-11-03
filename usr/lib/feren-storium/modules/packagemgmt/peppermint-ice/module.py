@@ -19,10 +19,10 @@ class ICEModuleException(Exception): # Name this according to the module to allo
 
 
 class PackageStore():
-    def __init__(self, realname, iconuri, shortdesc, description, author, category, images, website, donateurl, bugreporturl, tosurl, privpolurl, keywords, extrasids, realnameextras, iconuriextras, websiteextras):
+    def __init__(self, realname, iconuri, shortdescription, description, author, category, images, website, donateurl, bugreporturl, tosurl, privpolurl, keywords, extrasids, realnameextras, iconuriextras, websiteextras, keywordsextras):
         self.realname = realname
         self.iconuri = iconuri
-        self.shortdesc = shortdesc
+        self.shortdescription = shortdescription
         self.description = description
         self.author = author
         self.category = category
@@ -37,6 +37,7 @@ class PackageStore():
         self.realnameextras = realnameextras
         self.iconuriextras = iconuriextras
         self.websiteextras = websiteextras
+        self.keywordsextras = keywordsextras
 
 
 class main():
@@ -127,7 +128,7 @@ class main():
             if packageinfo == {}:
                 return
             
-            self.packagestorage[packagename] = PackageStore(packageinfo["realname"], packageinfo["iconuri"], "desc", packageinfo["description"], packageinfo["author"], packageinfo["category"], packageinfo["images"], packageinfo["website"], packageinfo["donateurl"], packageinfo["bugreporturl"], packageinfo["tosurl"], packageinfo["privpolurl"], packageinfo["keywords"], packageinfo["extrasids"], packageinfo["realnameextras"], packageinfo["iconuriextras"], packageinfo["websiteextras"])
+            self.packagestorage[packagename] = PackageStore(packageinfo["realname"], packageinfo["iconuri"], packageinfo["shortdescription"], packageinfo["description"], packageinfo["author"], packageinfo["category"], packageinfo["images"], packageinfo["website"], packageinfo["donateurl"], packageinfo["bugreporturl"], packageinfo["tosurl"], packageinfo["privpolurl"], packageinfo["keywords"], packageinfo["extrasids"], packageinfo["realnameextras"], packageinfo["iconuriextras"], packageinfo["websiteextras"], packageinfo["keywordsextras"])
 
     def get_information(self, packagename):
         # Return description for package
@@ -364,7 +365,7 @@ class main():
                     fp.write("Categories=GTK;Qt;{0}\n".format(location))
                     fp.write("MimeType=text/html;text/xml;application/xhtml_xml;\n")
 
-                    fp.write("Keywords=%s\n" % self.packagestorage[packagename].keywords)
+                    fp.write("Keywords=%s\n" % self.packagestorage[packagename].keywordsextras[extrascount])
 
                     fp.write("StartupNotify=true\n")
             except Exception as exceptionstr:

@@ -1,7 +1,7 @@
 {
   "storium-ice-google-youtube": {
     "realname": "YouTube",
-    "iconuri": "https://lh3.googleusercontent.com/Ned_Tu_ge6GgJZ_lIO_5mieIEmjDpq9kfgD05wapmvzcInvT4qQMxhxq_hEazf8ZsqA=w300",
+    "iconuri": "https://www.gstatic.com/youtube/img/branding/favicon/favicon_192x192.png",
     "shortdescription": "",
     "description": "See what the world is watching -- from the hottest music videos to what’s trending in gaming, entertainment, news, and more. Subscribe to channels you love, share with friends, and watch on any device.",
     "website": "https://youtube.com/",
@@ -12,7 +12,7 @@
   },
   "storium-ice-microsoft-office-online": {
     "realname": "Microsoft Office Online",
-    "iconuri": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5f/Microsoft_Office_logo_%282019%E2%80%93present%29.svg/480px-Microsoft_Office_logo_%282019%E2%80%93present%29.svg.png",
+    "iconuri": "https://blobs.officehome.msocdn.com/versionless/webmanifestimages/OfficeDesktop_256.png",
     "shortdescription": "",
     "description": "Microsoft Office Online allows you to use Word, Excel, PowerPoint, OneNote and more of the Office suite on the go through Microsoft's cloud services. It gives you access to all the essential Office features you should need on a daily basis.",
     "website": "https://www.office.com/?auth=1",
@@ -34,7 +34,7 @@
   },
   "storium-ice-twitter-twitter": {
     "realname": "Twitter",
-    "iconuri": "https://lh3.googleusercontent.com/U2H5O-RNxa4OQKByVCdiqlASgXPvEg5EWx_E8IWWrdROOAetGa4SN-u4YNcnjSHakCCh=s300",
+    "iconuri": "https://abs.twimg.com/responsive-web/client-web/icon-default-large.8e027b65.png",
     "shortdescription": "",
     "description": "Join the conversation! Twitter is your go-to social media app and the source for what's happening in the world. From world news to local news updates, entertainment to sports and gaming, politics to fun stories that go viral, when it happens in the world, it happens on Twitter first. Find friends, gain followers or follow influential people - every voice can impact the world! Join over 2 BILLION users worldwide!",
     "website": "https://twitter.com/",
@@ -45,12 +45,23 @@
   },
   "storium-ice-reddit-reddit": {
     "realname": "Reddit",
-    "iconuri": "https://www.redditstatic.com/desktop2x/img/favicon/apple-icon-180x180.png",
+    "iconuri": "https://www.redditstatic.com/desktop2x/img/favicon/android-icon-192x192.png",
     "shortdescription": "",
     "description": "With over 100K active communities, on Reddit you can laugh, think, discuss and dig deep into topics that matter to you.\nReddit is free and open for everyone to post, share, vote and discuss.\nReddit is powered by people. Your communities upvote and downvote posts to highlight the most interesting and relevant content. On Reddit, your privacy and opinions matter.\nYou can share your passion for your favorite books, movies, video games, sports, TV shows, music and technology with millions of people who share your interests.",
     "website": "https://reddit.com/",
     "donateurl": "",
     "category": "ice-internet",
+    "images": [""],
+    "order-of-module-importance": ["peppermint-ice"]
+  },
+  "storium-ice-pixiv-pixiv": {
+    "realname": "Pixiv",
+    "iconuri": "https://source.pixiv.net/common/images/android-chrome-512x512.png",
+    "shortdescription": "",
+    "description": "TODO",
+    "website": "https://pixiv.net/",
+    "donateurl": "",
+    "category": "ice-graphics",
     "images": [""],
     "order-of-module-importance": ["peppermint-ice"]
   },

@@ -170,8 +170,8 @@ class AppDetailsHeader(Gtk.VBox):
     def installapp_pressed(self, gtk_widget):
         #TODO: Confirmation and whatnot, let's just get the main event working first
         subsource = self.mv.current_subsource_viewed
-        bonuses = ["ublock", "nekocap"]
-        self.storebrain.package_module(self.mv.current_source_viewed).install_package(self.mv.current_item_viewed, self.mv.current_source_viewed, self.mv.current_subsource_viewed, bonuses)
+        bonuses = ["ublock", "nekocap"] #TODO: Remove this, and replace it with a bonus picker
+        self.storebrain.package_module(self.mv.current_module_viewed).install_package(self.mv.current_item_viewed, self.mv.current_source_viewed, self.mv.current_subsource_viewed, bonuses)
 
     def installappnosource_pressed(self, gtk_widget):
         #TODO
@@ -179,12 +179,12 @@ class AppDetailsHeader(Gtk.VBox):
 
     def updateapp_pressed(self, gtk_widget):
         #TODO: Confirmation and whatnot, let's just get the main event working first
-        self.storebrain.package_module(self.mv.current_source_viewed).update_package(self.mv.current_item_viewed, self.mv.current_source_viewed, self.mv.current_subsource_viewed)
+        self.storebrain.package_module(self.mv.current_module_viewed).update_package(self.mv.current_item_viewed, self.mv.current_source_viewed, self.mv.current_subsource_viewed)
 
     def removeapp_pressed(self, gtk_widget):
         source = ""
         #TODO: Confirmation and whatnot, let's just get the main event working first
-        self.storebrain.package_module(self.mv.current_source_viewed).remove_package(self.mv.current_item_viewed, self.mv.current_source_viewed, self.mv.current_subsource_viewed)
+        self.storebrain.package_module(self.mv.current_module_viewed).remove_package(self.mv.current_item_viewed, self.mv.current_source_viewed, self.mv.current_subsource_viewed)
 
     def cancelapp_pressed(self, gtk_widget):
         #TODO
@@ -485,7 +485,7 @@ class AppMainView(Gtk.Stack):
         self.AppDetailsHeader.update_buttons(self.storebrain.package_module(modulename).get_status(currentpackage))
         
     def on_packagemgmt_finished(self):
-        self.AppDetailsHeader.update_buttons(self.storebrain.package_module(self.current_source_viewed).get_status(self.current_item_viewed))
+        self.change_module(self.current_module_viewed, self.current_item_viewed)
     
     def goto_packagepage(self, packagename):
         self.current_item_viewed = packagename

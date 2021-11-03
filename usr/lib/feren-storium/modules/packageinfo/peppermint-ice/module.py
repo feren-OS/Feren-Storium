@@ -99,6 +99,7 @@ class main():
             return
         
         #General in-Store stuff
+        shortdescription = self.getShortDescription(packagename)
         author = self.getAuthor(packagename)
         bugsurl = self.getBugsURL(packagename)
         tosurl = self.getTOSURL(packagename)
@@ -111,12 +112,20 @@ class main():
         realnameextras = self.getExtraRealNames(packagename)
         iconuriextras = self.getIconURIExtras(packagename)
         websiteextras = self.getWebsiteExtras(packagename)
+        keywordsextras = self.getKeywordsExtras(packagename)
         
         
         #Return values
-        return {"author": author, "bugreporturl": bugsurl, "tosurl": tosurl, "privpolurl": privpolurl, "keywords": keywords, "shortdescription": _("Website Application"), "extrasids": extrasids, "realnameextras": realnameextras, "iconuriextras": iconuriextras, "websiteextras": websiteextras}
+        return {"author": author, "bugreporturl": bugsurl, "tosurl": tosurl, "privpolurl": privpolurl, "keywords": keywords, "shortdescription": shortdescription, "extrasids": extrasids, "realnameextras": realnameextras, "iconuriextras": iconuriextras, "websiteextras": websiteextras, "keywordsextras": keywordsextras}
         
 
+    def getShortDescription(self, packagename):
+        try:
+            shortdescription = self.json_storage["package-info/peppermint-ice"][packagename]["shortdescription"]
+        except:
+            shortdescription = _("Website Application")
+        return shortdescription
+    
     def getKeywords(self, packagename):
         try:
             keywords = self.json_storage["package-info/peppermint-ice"][packagename]["keywords"]
@@ -180,6 +189,13 @@ class main():
         except:
             websiteextras = []
         return websiteextras
+      
+    def getKeywordsExtras(self, packagename):
+        try:
+            keywordsextras = self.json_storage["package-info/peppermint-ice"][packagename]["keywordsextras"]
+        except:
+            keywordsextras = []
+        return keywordsextras
 
 
 if __name__ == "__main__":

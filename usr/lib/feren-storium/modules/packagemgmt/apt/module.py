@@ -152,7 +152,7 @@ class main():
         self.storebrain.gui_module.mainpage.on_packagemgmt_finished()
         
     
-    def install_package(self, packagename):
+    def install_package(self, packagename, source, subsource, bonuses=[]):
         #Install package and return exit code
         self.packagemgmtbusy = True
         
@@ -174,7 +174,7 @@ class main():
         self.finishing_cleanup(packagename)
         return outcome.get_exit_code() == PackageKitGlib.ExitEnum.SUCCESS
     
-    def remove_package(self, packagename):
+    def remove_package(self, packagename, source, subsource):
         self.packagemgmtbusy = True
         
         #Remove package and return exit code
@@ -193,7 +193,7 @@ class main():
         self.finishing_cleanup(packagename)
         return outcome.get_exit_code() == PackageKitGlib.ExitEnum.SUCCESS
     
-    def update_package(self, packagename):
+    def update_package(self, packagename, source, subsource):
         self.packagemgmtbusy = True
         
         #Update package and return exit code

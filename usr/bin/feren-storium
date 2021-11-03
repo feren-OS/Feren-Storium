@@ -326,7 +326,7 @@ class StoreBrain():
         
         self.run_module(self.debug_module)
         
-        self.gui_module.init()
+        self.gui_module.init() #TODO: Move this to before the other modules run so we can display a splash screen during loading
      
      
 
