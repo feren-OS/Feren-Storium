@@ -107,9 +107,14 @@ class main():
         #Ice-specific stuff
         keywords = self.getKeywords(packagename)
         
+        extrasids = self.getExtrasIDs(packagename)
+        realnameextras = self.getExtraRealNames(packagename)
+        iconuriextras = self.getIconURIExtras(packagename)
+        websiteextras = self.getWebsiteExtras(packagename)
+        
         
         #Return values
-        return {"author": author, "bugreporturl": bugsurl, "tosurl": tosurl, "privpolurl": privpolurl, "keywords": keywords, "shortdescription": _("Website Application")}
+        return {"author": author, "bugreporturl": bugsurl, "tosurl": tosurl, "privpolurl": privpolurl, "keywords": keywords, "shortdescription": _("Website Application"), "extrasids": extrasids, "realnameextras": realnameextras, "iconuriextras": iconuriextras, "websiteextras": websiteextras}
         
 
     def getKeywords(self, packagename):
@@ -147,6 +152,34 @@ class main():
         except:
             privpolurl = ""
         return privpolurl
+      
+    def getExtrasIDs(self, packagename):
+        try:
+            extrasids = self.json_storage["package-info/peppermint-ice"][packagename]["extrasids"]
+        except:
+            extrasids = []
+        return extrasids
+      
+    def getExtraRealNames(self, packagename):
+        try:
+            realnameextras = self.json_storage["package-info/peppermint-ice"][packagename]["realnameextras"]
+        except:
+            realnameextras = []
+        return realnameextras
+      
+    def getIconURIExtras(self, packagename):
+        try:
+            iconuriextras = self.json_storage["package-info/peppermint-ice"][packagename]["iconuriextras"]
+        except:
+            iconuriextras = []
+        return iconuriextras
+      
+    def getWebsiteExtras(self, packagename):
+        try:
+            websiteextras = self.json_storage["package-info/peppermint-ice"][packagename]["websiteextras"]
+        except:
+            websiteextras = []
+        return websiteextras
 
 
 if __name__ == "__main__":

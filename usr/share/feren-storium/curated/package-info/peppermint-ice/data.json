@@ -11,7 +11,11 @@
     "author": "Microsoft Corporation",
     "bugreporturl": "",
     "tosurl": "",
-    "privpolurl": ""
+    "privpolurl": "",
+    "extrasids": ["word", "excel", "powerpoint", "onenote", "teams", "outlook", "calendar"],
+    "realnameextras": ["Word Online", "Excel Online", "PowerPoint Online", "OneNote Online", "Teams Online", "Outlook Online", "Outlook Calendar"],
+    "iconuriextras": ["https://upload.wikimedia.org/wikipedia/commons/f/fd/Microsoft_Office_Word_%282019%E2%80%93present%29.svg", "https://upload.wikimedia.org/wikipedia/commons/3/34/Microsoft_Office_Excel_%282019%E2%80%93present%29.svg", "https://upload.wikimedia.org/wikipedia/commons/0/0d/Microsoft_Office_PowerPoint_%282019%E2%80%93present%29.svg", "https://upload.wikimedia.org/wikipedia/commons/1/10/Microsoft_Office_OneNote_%282019%E2%80%93present%29.svg", "https://upload.wikimedia.org/wikipedia/commons/c/c9/Microsoft_Office_Teams_%282018%E2%80%93present%29.svg", "https://upload.wikimedia.org/wikipedia/commons/d/df/Microsoft_Office_Outlook_%282018%E2%80%93present%29.svg", "https://techcommunity.microsoft.com/t5/image/serverpage/image-id/172269iB16D1070FD2F4AB3/image-size/large?v=v2&px=1024"],
+    "websiteextras": ["https://www.office.com/launch/word", "https://www.office.com/launch/excel", "https://www.office.com/launch/powerpoint", "https://www.onenote.com/notebooks", "https://teams.microsoft.com", "https://outlook.live.com", "https://outlook.live.com/calendar"]
   },
   "storium-ice-facebook-facebook": {
     "keywords": "Facebook;Messenger;Zucc;Stories;Social;",

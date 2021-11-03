@@ -19,7 +19,7 @@ class ICEModuleException(Exception): # Name this according to the module to allo
 
 
 class PackageStore():
-    def __init__(self, realname, iconuri, shortdesc, description, author, category, images, website, donateurl, bugreporturl, tosurl, privpolurl, keywords):
+    def __init__(self, realname, iconuri, shortdesc, description, author, category, images, website, donateurl, bugreporturl, tosurl, privpolurl, keywords, extrasids, realnameextras, iconuriextras, websiteextras):
         self.realname = realname
         self.iconuri = iconuri
         self.shortdesc = shortdesc
@@ -33,6 +33,10 @@ class PackageStore():
         self.tosurl = tosurl
         self.privpolurl = privpolurl
         self.keywords = keywords
+        self.extrasids = extrasids
+        self.realnameextras = realnameextras
+        self.iconuriextras = iconuriextras
+        self.websiteextras = websiteextras
 
 
 class main():
@@ -123,7 +127,7 @@ class main():
             if packageinfo == {}:
                 return
             
-            self.packagestorage[packagename] = PackageStore(packageinfo["realname"], packageinfo["iconuri"], "desc", packageinfo["description"], packageinfo["author"], packageinfo["category"], packageinfo["images"], packageinfo["website"], packageinfo["donateurl"], packageinfo["bugreporturl"], packageinfo["tosurl"], packageinfo["privpolurl"], packageinfo["keywords"])
+            self.packagestorage[packagename] = PackageStore(packageinfo["realname"], packageinfo["iconuri"], "desc", packageinfo["description"], packageinfo["author"], packageinfo["category"], packageinfo["images"], packageinfo["website"], packageinfo["donateurl"], packageinfo["bugreporturl"], packageinfo["tosurl"], packageinfo["privpolurl"], packageinfo["keywords"], packageinfo["extrasids"], packageinfo["realnameextras"], packageinfo["iconuriextras"], packageinfo["websiteextras"])
 
     def get_information(self, packagename):
         # Return description for package
@@ -313,6 +317,61 @@ class main():
         except Exception as exceptionstr:
             self.remove_package(packagename, subsource, True) #Remove profile's files/folders on failure
             raise ICEModuleException(_("Failed to install {0}: {1} was encountered when creating a shortcut in the Applications Menu").format(packagename, exceptionstr))
+        
+        #Now repeat for extras, if appropriate
+        extrascount = 0 #Classic strat for iteration
+        if self.packagestorage[packagename].extrasids != []:
+            import urllib.request #Grabbing files from internet
+            import urllib.error
+        for extraid in self.packagestorage[packagename].extrasids:
+            try:
+                with open(os.path.expanduser("~") + "/.local/share/applications/{0}-{1}.desktop".format(packagename, extraid), 'w') as fp:
+                    # I mean, this needs no explanation, it's a .desktop file
+                    fp.write("[Desktop Entry]\n")
+                    fp.write("Version=1.0\n")
+                    fp.write("Name={0}\n".format(self.packagestorage[packagename].realnameextras[extrascount]))
+                    fp.write("Comment={0}\n".format(_("Website (obtained from Store)")))
+                    
+                    fp.write("Exec=/usr/bin/feren-storium-icelaunch {0} {1} {2} {3} {4} {5} {6}\n".format(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s" % packagename, subsource, self.packagestorage[packagename].websiteextras[extrascount], packagename, ublockarg, nekocaparg, darkreadarg))
+
+                    fp.write("Terminal=false\n")
+                    fp.write("X-MultipleArgs=false\n")
+                    fp.write("Type=Application\n")
+                    
+                    try:
+                        urllib.request.urlretrieve(self.packagestorage[packagename].iconuriextras[extrascount], (os.path.expanduser("~") + "/.local/share/feren-storium-ice/{0}/icon-{1}".format(packagename, extraid)))
+                        fp.write("Icon=%s\n" % (os.path.expanduser("~") + "/.local/share/feren-storium-ice/{0}/icon-{1}".format(packagename, extraid)))
+                    except:
+                        fp.write("Icon=text-html\n")
+
+                    if self.packagestorage[packagename].category == "ice-accessories":
+                        location = "Utility;"
+                    elif self.packagestorage[packagename].category == "ice-games":
+                        location = "Game;"
+                    elif self.packagestorage[packagename].category == "ice-graphics":
+                        location = "Graphics;"
+                    elif self.packagestorage[packagename].category == "ice-internet":
+                        location = "Network;"
+                    elif self.packagestorage[packagename].category == "ice-office":
+                        location = "Office;"
+                    elif self.packagestorage[packagename].category == "ice-programming":
+                        location = "Development;"
+                    elif self.packagestorage[packagename].category == "ice-multimedia":
+                        location = "AudioVideo;"
+                    elif self.packagestorage[packagename].category == "ice-system":
+                        location = "System;"
+                    
+                    fp.write("Categories=GTK;Qt;{0}\n".format(location))
+                    fp.write("MimeType=text/html;text/xml;application/xhtml_xml;\n")
+
+                    fp.write("Keywords=%s\n" % self.packagestorage[packagename].keywords)
+
+                    fp.write("StartupNotify=true\n")
+            except Exception as exceptionstr:
+                self.remove_package(packagename, subsource, True) #Remove profile's files/folders on failure
+                raise ICEModuleException(_("Failed to install {0}: {1} was encountered when creating extra shortcuts in the Applications Menu").format(packagename, exceptionstr))
+            os.system("chmod +x " + os.path.expanduser("~") + "/.local/share/applications/{0}-{1}.desktop".format(packagename, extraid))
+            extrascount += 1
             
         self.storebrain.set_progress(packagename, "peppermint-ice", 99)
         
@@ -335,10 +394,22 @@ class main():
         
         #Delete the files and the folders and done        
         try:
-            os.remove(os.path.expanduser("~") + "/.local/share/applications/%s.desktop" % packagename)
+            if os.path.isfile(os.path.expanduser("~") + "/.local/share/applications/%s.desktop" % packagename):
+                os.remove(os.path.expanduser("~") + "/.local/share/applications/%s.desktop" % packagename)
         except Exception as exceptionstr:
             if not forinstall:
                 raise ICEModuleException(_("Failed to uninstall {0}: {1} was encountered when removing the shortcut from the Applications Menu").format(packagename, exceptionstr))
+        
+        #Now repeat for extras, if appropriate
+        extrascount = 0 #Classic strat for iteration
+        for extraid in self.packagestorage[packagename].extrasids:
+            try:
+                if os.path.isfile(os.path.expanduser("~") + "/.local/share/applications/{0}-{1}.desktop".format(packagename, extraid)):
+                    os.remove(os.path.expanduser("~") + "/.local/share/applications/{0}-{1}.desktop".format(packagename, extraid))
+            except Exception as exceptionstr:
+                self.remove_package(packagename, subsource, True) #Remove profile's files/folders on failure
+                raise ICEModuleException(_("Failed to uninstall {0}: {1} was encountered when removing extra shortcuts from the Applications Menu").format(packagename, exceptionstr))
+            extrascount += 1
             
         self.storebrain.set_progress(packagename, "peppermint-ice", 50)
         
