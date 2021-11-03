@@ -61,7 +61,7 @@
     "description": "TODO",
     "website": "https://pixiv.net/",
     "donateurl": "",
-    "category": "ice-graphics",
+    "category": "ice-internet",
     "images": [""],
     "order-of-module-importance": ["peppermint-ice"]
   },

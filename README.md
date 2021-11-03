@@ -25,7 +25,7 @@ Ideas I want to implement into this application:
 - [ ] .deb support
 - [ ] Flatpak support
 - [ ] .flatpakref support
-- [ ] Snap support
+- [x] Snap support
 - [x] ICE SSBs Support
 - [x] Add custom messages to command-not-found (nevermind, just used MITMs) (not yet in repo)
 - [ ] Add FYI dialog when opening DEBs for packages already in the Store

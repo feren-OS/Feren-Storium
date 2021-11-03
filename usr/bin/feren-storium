@@ -51,6 +51,34 @@ class StoreModuleContainer():
         
         
         sys.path.remove(path)
+        
+        
+class StoreTasks():
+    #Each task item will be this:
+    # "module:packagename:operation": {"type": "item/source", "module": "modulenamehere", "packagename": "packagenamehere", "operation": 0/1/2, "progress": "0-100", "directto": "packagepageidhere", "realname": "Actual Name for notifications", "source": source, "subsource": subsource, "bonuses": [listgobrrr]}
+    #
+    # type: Is it an item (application) or source (source)?
+    # module: Name of module that'll manage the item (module that'll manage the source on source)
+    # packagename: Storium ID of package (Storium ID of source on source)
+    # operation: 0 for Install, 1 for Update, 2 for Remove (0 for Add, 1 for Remove on source)
+    # progress: int from 0 to 100 of progress so far
+    # directto: On click of Task, redirect to packagepage with id (value goes here)
+    # realname: Human readable name of item for use in Notifications
+    # source: Source to obtain the application from ("" on source)
+    # subsource: Subsource to obtain the application from ("" on source)
+    # bonuses: List of bonuses to add ([] on source)
+    
+    def __init__(self):
+        self.currenttasks = []
+        self.currenttask = -1 #ID of current task
+        self.dontcontinue = False #Used for when a logoff is initiated, as the goal is to inhibit logouts until done
+        self.lockedtasklist = [] #Use when dontcontinue is on to make sure any added Tasks DO NOT get done        
+        #GObject.threads_init()   Leftover from New Store (prior project) - might come in handy, idk.
+    
+        
+    def add_task(self, module, packagename, operation, directto, realname, source, subsource, bonuses):
+        if not newtask in self.currenttasks:
+            pass #TODO
 
 
 class StoreBrain():
