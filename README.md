@@ -20,7 +20,7 @@ https://github.com/feren-OS/Bug-Reporting-Center/issues/128#issuecomment-6514180
 
 Ideas I want to implement into this application:
 
-- [ ] Make modules able to declare if they should be loaded or not
+- [x] Make modules able to declare if they should be loaded or not
 - [ ] APT support
 - [ ] .deb support
 - [ ] Flatpak support
@@ -45,6 +45,10 @@ Ideas I want to implement into this application:
 - [ ] Add options for beta-testing certain applications (switch over to Beta)
 - [ ] Allow easy control of important unattended-upgrades settings
 - [ ] Snaps: ONLY allow Snaps that are known to be maintained by their official developers to be shown in the Store
+- [ ] 'Advanced Mode' where all dependencies are mentioned in the confirmation dialog
+
+
+Scrapped ideas:
 - [ ] Allow the user, in an advanced setting, to turn the Store from curated only into show all available packages (low priority idea here)
 - [ ] If this is on, any non-curated applications should have a persistent warning saying something along the lines of "This application is not curated by us. Feren OS's developers take no responsibility for any damage this package may do to your system. There is also no assurance that this application is officially maintained by its original developers. Please take caution when installing this application."
-- [ ] 'Advanced Mode' where all dependencies are mentioned in the confirmation dialog
+- [ ] ICE Module: Option to use normal browser profile (disables bonuses) (scrapped because browsers have in-built PWAs functionality now which do this anyway)
