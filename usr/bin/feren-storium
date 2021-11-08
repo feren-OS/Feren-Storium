@@ -69,16 +69,63 @@ class StoreTasks():
     # bonuses: List of bonuses to add ([] on source)
     
     def __init__(self):
-        self.currenttasks = []
-        self.currenttask = -1 #ID of current task
+        self.currenttasks = {}
+        self.currenttask = "" #ID of current task
         self.dontcontinue = False #Used for when a logoff is initiated, as the goal is to inhibit logouts until done
-        self.lockedtasklist = [] #Use when dontcontinue is on to make sure any added Tasks DO NOT get done        
+        self.lockedtasklist = {} #Use when dontcontinue is on to make sure any added Tasks DO NOT get done (main point is to use this whenever the user requests logout, etc.)
         #GObject.threads_init()   Leftover from New Store (prior project) - might come in handy, idk.
     
         
-    def add_task(self, module, packagename, operation, directto, realname, source, subsource, bonuses):
+    def add_task(self, module, packagename, operation, directto, realname, source, subsource, bonuses): #Add package management task
+        newtask = module + ":" + packagename + ":" + operation
         if not newtask in self.currenttasks:
-            pass #TODO
+            self.currenttasks[newtask] = {"type": "item", "module": module, "packagename": packagename, "operation": operation, "progress": 0, "directto": packagename, "realname": realname, "source": source, "subsource": subsource, "bonuses": bonuses}
+            
+        self.begin_tasks() #Trigger Tasks action if it isn't already in action
+        
+    def add_task_source(self, module, packagename, operation, directto, realname, source, subsource, bonuses): #Add source management task
+        #TODO
+        newtask = module + ":" + packagename + ":" + operation
+        if not newtask in self.currenttasks:
+            self.currenttasks[newtask] = {"type": "item", "module": module, "packagename": packagename, "operation": operation, "progress": 0, "directto": packagename, "realname": realname, "source": source, "subsource": subsource, "bonuses": bonuses}
+            
+        self.begin_tasks() #Trigger Tasks action if it isn't already in action
+        
+    def begin_tasks(self):
+        if self.currenttask != "":
+            return #It's already running, don't bother running it again
+        
+        
+        while self.currenttasks != {}:
+            if self.dontcontinue == True and self.lockedtasklist == {}:
+                #Abort loop if we're out of locked tasks list items
+                break
+            
+            if list(self.currenttasks.keys())[0] in self.lockedtasklist or self.lockedtasklist == {}:
+                self.do_task(list(self.currenttasks.keys())[0])
+                self.currenttasks.pop(list(self.currenttasks.keys())[0])
+            else:
+                if len(self.currenttasks) > 1: #We'll be accessing non-existent values without this, if there's 1 or less items in here
+                    #Move task to end of dictionary
+                    currenttasksbackup = dict(self.currenttasks) #We've had to do this samuage technique before elsewhere as Python seems to like to make changes to this otherwise also apply to self.currenttasks...? 
+                    self.currenttasks = {}
+                    for item in list(currenttasksbackup.keys())[1:]:
+                        self.currenttasks[item] = currenttasksbackup[item]
+                    self.currenttasks[list(currenttasksbackup.keys())[0]] = currenttasksbackup[list(currenttasksbackup.keys())[0]] #Add it to the end
+                    currenttasksbackup = {}
+            
+            
+        self.currenttask = "" #Free up the function for a future calling since we're gonna return on this so it'll need recalling
+        
+        
+    def do_task(self, task):
+        self.currenttask = task
+        
+        pass #TODO
+    
+    
+    
+    
 
 
 class StoreBrain():

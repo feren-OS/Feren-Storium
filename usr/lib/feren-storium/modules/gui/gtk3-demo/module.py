@@ -170,7 +170,7 @@ class AppDetailsHeader(Gtk.VBox):
     def installapp_pressed(self, gtk_widget):
         #TODO: Confirmation and whatnot, let's just get the main event working first
         subsource = self.mv.current_subsource_viewed
-        bonuses = ["ublock", "nekocap"] #TODO: Remove this, and replace it with a bonus picker
+        bonuses = ["ublock", "nekocap", "imagus"] #TODO: Remove this, and replace it with a bonus picker
         self.storebrain.package_module(self.mv.current_module_viewed).install_package(self.mv.current_item_viewed, self.mv.current_source_viewed, self.mv.current_subsource_viewed, bonuses)
 
     def installappnosource_pressed(self, gtk_widget):

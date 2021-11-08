@@ -238,6 +238,10 @@ class main():
             with open("/usr/share/feren-storium/modules/packagemgmt-ice/chromium-profile/and-darkreader", 'r') as fp:
                 profiletomakeextra = json.loads(fp.read())
             profiletomake = self.storebrain.dict_recurupdate(profiletomake, profiletomakeextra)
+        if "imagus" in bonuses:
+            with open("/usr/share/feren-storium/modules/packagemgmt-ice/chromium-profile/and-imagus", 'r') as fp:
+                profiletomakeextra = json.loads(fp.read())
+            profiletomake = self.storebrain.dict_recurupdate(profiletomake, profiletomakeextra)
         
         
         self.storebrain.set_progress(packagename, "peppermint-ice", 60)
