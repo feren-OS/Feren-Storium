@@ -1,0 +1,20 @@
+{
+  "substitutions": {
+    "storium-ice-microsoft-office-online": ["microsoft-office", "Microsoft Office", "Microsoft Word", "Microsoft Office Word", "Word", "microsoft-office-word", "Microsoft Excel", "Microsoft Office Excel", "Excel", "microsoft-office-excel", "Microsoft PowerPoint", "Microsoft Office PowerPoint", "PowerPoint", "microsoft-office-powerpoint", "Microsoft OneNote", "Microsoft Office OneNote", "OneNote", "microsoft-office-onenote", "Microsoft Office Teams", "Microsoft Teams", "Teams", "microsoft-office-teams", "microsoft-teams", "Microsoft Outlook", "Microsoft Hotmail", "Outlook", "Hotmail", "microsoft-outlook", "microsoft-hotmail", "Microsoft To Do", "Microsoft ToDo", "microsoft-to-do", "microsoft-todo"]
+  },
+  "unavailable": {
+    "adobe-flash": "adobe-flash",
+    "adobe-flash-player": "adobe-flash",
+    "Adobe Flash Player": "adobe-flash",
+    "Flash Player": "adobe-flash",
+    "macromedia-flash": "adobe-flash",
+    "macromedia-flash-player": "adobe-flash",
+    "Microsoft Access": "microsoft-office",
+    "Microsoft Office Access": "microsoft-office",
+    "microsoft-access": "microsoft-office"
+  },
+  "unavailable-labels": {
+    "adobe-flash": "Adobe Flash Player is no longer available as it has been discontinued as of January 2020.",
+    "microsoft-office": "The full Microsoft Office suite can be installed with CrossOver, but CrossOver Linux is not in the Feren OS Store."
+  }
+}

@@ -7,6 +7,7 @@ import gi
 
 #Dependencies
 import locale
+import json
 
 
 def should_load(): #Should this module be loaded?
@@ -27,12 +28,15 @@ class main():
         self.storebrain = storebrain
 
         #Name to be used in Debugging output
-        self.title = _("Generic Search Module")
+        self.title = _("Unavailability Search Module")
         #Name to be shown in the GUI
-        self.humanreadabletitle = _("Generic Search")
+        self.humanreadabletitle = _("Unavailability Search")
         
         #Configs (obtained by get_configs)
-        self.moduleconfigs={}
+        self.moduleconfigs = {}
+        
+        #Information Storage to keep it in - modify list as appropriate for files
+        self.json_storage = {}
         
         #Lock to keep stuff from happening while memory is refreshing
         self.memory_refreshing = False
@@ -60,6 +64,15 @@ class main():
         except:
             print(self.title + ":", _("Could not obtain storebrain.current_search - make sure current_search is a variable in the Storium Brain."))
             self.search_results = {}
+            
+        self.json_storage = {'packages': {}, 'labels': {}}
+        
+        with open("/usr/share/feren-storium/curated/package-search-info/data.json", 'r') as fp:
+            jsondata = json.loads(fp.read())
+            for pkgname in jsondata["unavailable"]:
+                self.json_storage["packages"][pkgname] = jsondata["unavailable"][pkgname]
+            for labelid in jsondata["unavailable-labels"]:
+                self.json_storage["labels"][labelid] = jsondata["unavailable-labels"][labelid]
         
         self.memory_refreshing = False
         
@@ -68,12 +81,6 @@ class main():
             return False
         else:
             return True
-        
-    def getData(self, item): #Get package data for our search results
-        value = self.storebrain.get_generic_item_info(item)
-        value = self.storebrain.dict_recurupdate(value, self.storebrain.get_item_info(item, value["packagetype"], False))
-            
-        return value
     
     def getResults(self, searchterm):
         #If it has already been searched before
@@ -85,52 +92,18 @@ class main():
                 return self.search_results[searchterm]
         
         self.search_results[searchterm] = {'status': 1, 'exactmatch': {}, 'begins': {}, 'contains': {}, 'ends': {}}
-        package_ids = self.storebrain.pkginfo_modules[self.storebrain.generic_module].pkg_ids
+        package_ids = list(self.json_storage["packages"].keys())
         
         #Get JSON data of each result
-        #FIXME: Is there not a more efficient way to do this?
         
-        #First check: Is the search term literally the name of the package or the real name?
-        for item in package_ids:
-            if searchterm not in self.search_results: #Abort search to save resources if it's cancelled
-                return {'exactmatch': {}, 'begins': {}, 'contains': {}, 'ends': {}}
-            
-            if searchterm.lower() == self.storebrain.pkginfo_modules[self.storebrain.generic_module].getRealName(item, "").lower():
-                if self.checkIfInResults(item, searchterm) == False:
-                    self.search_results[searchterm]['exactmatch'][item] = self.getData(item)
-        if searchterm.lower() in package_ids:
-            if searchterm not in self.search_results:
-                return {'exactmatch': {}, 'begins': {}, 'contains': {}, 'ends': {}}
-            
-            if self.checkIfInResults(searchterm, searchterm) == False:
-                self.search_results[searchterm]['exactmatch'][searchterm] = self.getData(searchterm)
-        
-        #Second check: Do any names start with the search term?
+        #Is the search term literally the name of the package or the real name?
         for item in package_ids:
             if searchterm not in self.search_results:
                 return {'exactmatch': {}, 'begins': {}, 'contains': {}, 'ends': {}}
             
-            if item.startswith(searchterm.lower()) or self.storebrain.pkginfo_modules[self.storebrain.generic_module].getRealName(item, "").lower().startswith(searchterm.lower()):
+            if searchterm.lower() == item.lower():
                 if self.checkIfInResults(item, searchterm) == False:
-                    self.search_results[searchterm]['begins'][item] = self.getData(item)
-        
-        #Third check: Do any names contain the search term?
-        for item in package_ids:
-            if searchterm not in self.search_results:
-                return {'exactmatch': {}, 'begins': {}, 'contains': {}, 'ends': {}}
-            
-            if searchterm.lower() in item or searchterm.lower() in self.storebrain.pkginfo_modules[self.storebrain.generic_module].getRealName(item, "").lower():
-                if self.checkIfInResults(item, searchterm) == False:
-                    self.search_results[searchterm]['contains'][item] = self.getData(item)
-        
-        #Fourth check: Do any names end with the search term?
-        for item in package_ids:
-            if searchterm not in self.search_results:
-                return {'exactmatch': {}, 'begins': {}, 'contains': {}, 'ends': {}}
-            
-            if item.endswith(searchterm.lower()) or self.storebrain.pkginfo_modules[self.storebrain.generic_module].getRealName(item, "").lower().endswith(searchterm.lower()):
-                if self.checkIfInResults(item, searchterm) == False:
-                    self.search_results[searchterm]['ends'][item] = self.getData(item)
+                    self.search_results[searchterm]['exactmatch'][item] = {'searchlabel': self.json_storage["labels"][self.json_storage["packages"][item]]}
         
         self.search_results[searchterm]['status'] = 0 #Mark as completed search
         return self.search_results[searchterm]

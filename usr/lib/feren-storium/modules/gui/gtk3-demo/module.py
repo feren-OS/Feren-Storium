@@ -522,9 +522,13 @@ class AppMainView(Gtk.Stack):
         
         for resulttype in searchresults:
             for item in searchresults[resulttype]:
-                btn = Gtk.Button(label=("({0}) {1}").format(searchresults[resulttype][item]["realname"], item))
-                btn.connect("clicked", self._btn_goto_packageview, item)
-                self.searchresults.insert(btn, -1)
+                if "searchlabel" in searchresults[resulttype][item]:
+                    lbl = Gtk.Label(searchresults[resulttype][item]["searchlabel"])
+                    self.searchresults.insert(lbl, 0) #Insert at top
+                else:
+                    btn = Gtk.Button(label=("({0}) {1}").format(searchresults[resulttype][item]["realname"], item))
+                    btn.connect("clicked", self._btn_goto_packageview, item)
+                    self.searchresults.insert(btn, -1)
             
         self.searchresults.show_all()
         

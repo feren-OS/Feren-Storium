@@ -55,9 +55,9 @@ class StoreModuleContainer():
         
 class StoreTasks():
     #Each task item will be this:
-    # "module:packagename:operation": {"type": "item/source", "module": "modulenamehere", "packagename": "packagenamehere", "operation": 0/1/2, "progress": "0-100", "directto": "packagepageidhere", "realname": "Actual Name for notifications", "source": source, "subsource": subsource, "bonuses": [listgobrrr]}
+    # "module:packagename:operation": {"type": "item/packageitem/source", "module": "modulenamehere", "packagename": "packagenamehere", "operation": 0/1/2, "progress": "0-100", "directto": "packagepageidhere", "realname": "Actual Name for notifications", "source": source, "subsource": subsource, "bonuses": [listgobrrr]}
     #
-    # type: Is it an item (application) or source (source)?
+    # type: Is it an item (application) or source (source) or package file item (packageitem)?
     # module: Name of module that'll manage the item (module that'll manage the source on source)
     # packagename: Storium ID of package (Storium ID of source on source)
     # operation: 0 for Install, 1 for Update, 2 for Remove (0 for Add, 1 for Remove on source)
@@ -74,6 +74,10 @@ class StoreTasks():
         self.dontcontinue = False #Used for when a logoff is initiated, as the goal is to inhibit logouts until done
         self.lockedtasklist = {} #Use when dontcontinue is on to make sure any added Tasks DO NOT get done (main point is to use this whenever the user requests logout, etc.)
         #GObject.threads_init()   Leftover from New Store (prior project) - might come in handy, idk.
+        
+        self.currenttaskmodules = [] #Current modules in use for managing tasks (for multi-thread tasks management)
+        self.currentpkgtaskmodules = [] #Same as the above, but for package file tasks
+        
     
         
     def add_task(self, module, packagename, operation, directto, realname, source, subsource, bonuses): #Add package management task
@@ -83,15 +87,28 @@ class StoreTasks():
             
         self.begin_tasks() #Trigger Tasks action if it isn't already in action
         
+    def add_task_package(self, module, packagename, operation, directto, realname, source, subsource, bonuses): #Add package management task for a package file
+        newtask = module + ":" + packagename + ":" + operation
+        if not newtask in self.currenttasks:
+            self.currenttasks[newtask] = {"type": "packageitem", "module": module, "packagename": packagename, "operation": operation, "progress": 0, "directto": packagename, "realname": realname, "source": source, "subsource": subsource, "bonuses": bonuses}
+            
+        self.begin_tasks()
+        
     def add_task_source(self, module, packagename, operation, directto, realname, source, subsource, bonuses): #Add source management task
         #TODO
         newtask = module + ":" + packagename + ":" + operation
         if not newtask in self.currenttasks:
-            self.currenttasks[newtask] = {"type": "item", "module": module, "packagename": packagename, "operation": operation, "progress": 0, "directto": packagename, "realname": realname, "source": source, "subsource": subsource, "bonuses": bonuses}
+            self.currenttasks[newtask] = {"type": "source", "module": module, "packagename": packagename, "operation": operation, "progress": 0, "directto": packagename, "realname": realname, "source": source, "subsource": subsource, "bonuses": bonuses}
             
-        self.begin_tasks() #Trigger Tasks action if it isn't already in action
+        self.begin_tasks()
         
     def begin_tasks(self):
+        thread = Thread(target=self._begin_tasks,
+                        args=())
+        thread.daemon = True
+        thread.start()
+        
+    def _begin_tasks(self):
         if self.currenttask != "":
             return #It's already running, don't bother running it again
         
@@ -121,7 +138,18 @@ class StoreTasks():
     def do_task(self, task):
         self.currenttask = task
         
-        pass #TODO
+        print("TASKS DEBUG: Working on", task)
+        moduletype = self.currenttasks[task]["type"]
+        if moduletype == "item":
+            pass
+        elif moduletype == "packageitem":
+            pass
+        elif moduletype == "source":
+            pass
+        #TODO
+        
+        #do_task is ran via a Thread, so we do the code in a non-threaded way.
+        #TODO: Do we consider reworking this slightly to allow management of 1 item per module?
     
     
     

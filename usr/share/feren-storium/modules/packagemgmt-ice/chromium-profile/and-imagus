@@ -1,0 +1,20 @@
+{
+    "extensions": {
+        "settings": {
+            "immpkjjlgappgfkkfieppnmlhakdmaab": {
+                "location": 1,
+                "manifest": {
+                    "key": "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCQBiLbwQQLVNva17iHgCEjYoc3QTAubJaXUJDCe/VlOajqPPbmBiAyRc4wvK6XmppvbUf8yjQo1mYuccItHrqCiVFDwX/spgI6hslQSGwGLAuHf6ImtxgsNKulWAldROW2RLy0wT1vZbZSYql76Sq7IGKIGTkgveJYQPH4MEBc/QIDAQAB",
+                    "name": "Imagus (Installing...)",
+                    "permissions": ["*://*/*", "downloads", "history", "storage"],
+                    "update_url": "http://clients2.google.com/service/update2/crx",
+                    "version": "0.0",
+                    "manifest_version": 2
+                },
+                "path": "immpkjjlgappgfkkfieppnmlhakdmaab\\0.0",
+                "state": 1,
+                "was_installed_by_default": true
+            }
+        }
+    }
+}
