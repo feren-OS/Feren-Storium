@@ -46,6 +46,9 @@ Ideas I want to implement into this application:
 - [ ] Allow easy control of important unattended-upgrades settings
 - [ ] Snaps: ONLY allow Snaps that are known to be maintained by their official developers to be shown in the Store
 - [ ] 'Advanced Mode' where all dependencies are mentioned in the confirmation dialog
+- [ ] EXE files: EXE inspection thing that checks file details(?) and recommends software in Store based on the EXE in use, otherwise skips to WINE usage
+- [ ] EXE files: Open up WINE in Store
+- [ ] Info/Warning module: WINE disclaimer in WINE info page for reasons
 
 
 Scrapped ideas:

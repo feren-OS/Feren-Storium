@@ -11,10 +11,14 @@
     "macromedia-flash-player": "adobe-flash",
     "Microsoft Access": "microsoft-office",
     "Microsoft Office Access": "microsoft-office",
-    "microsoft-access": "microsoft-office"
+    "microsoft-access": "microsoft-office",
+    "Ice": "peppermint-ice",
+    "Peppermint Ice": "peppermint-ice",
+    "peppermint-ice": "peppermint-ice"
   },
   "unavailable-labels": {
     "adobe-flash": "Adobe Flash Player is no longer available as it has been discontinued as of January 2020.",
-    "microsoft-office": "The full Microsoft Office suite can be installed with CrossOver, but CrossOver Linux is not in the Feren OS Store."
+    "microsoft-office": "The full Microsoft Office suite can be installed with CrossOver, but CrossOver Linux is not in the Feren OS Store.",
+    "peppermint-ice": "If there's a website that's missing from Websites, please submit a request via Send Feedback."
   }
 }
