@@ -75,6 +75,8 @@ class StoreTasks():
         self.lockedtasklist = {} #Use when dontcontinue is on to make sure any added Tasks DO NOT get done (main point is to use this whenever the user requests logout, etc.)
         #GObject.threads_init()   Leftover from New Store (prior project) - might come in handy, idk.
         
+        self.overalltasksorder = [] #For GUI organising of tasks
+        
         self.currenttaskmodules = [] #Current modules in use for managing tasks (for multi-thread tasks management)
         self.currentpkgtaskmodules = [] #Same as the above, but for package file tasks
         
@@ -93,6 +95,7 @@ class StoreTasks():
         newtask = module + ":" + packagename + ":" + str(operation)
         if not newtask in self.currenttasks[module]:
             self.currenttasks[module][newtask] = {"type": "item", "module": module, "packagename": packagename, "operation": operation, "progress": 0, "directto": packagename, "realname": realname, "source": source, "subsource": subsource, "bonuses": bonuses}
+            self.overalltasksorder.append(newtask)
             
         self.begin_tasks() #Trigger Tasks action if it isn't already in action
         
@@ -102,6 +105,7 @@ class StoreTasks():
         newtask = module + ":" + packagename + ":" + str(operation)
         if not newtask in self.currenttasks[module]:
             self.currenttasks[module][newtask] = {"type": "packageitem", "module": module, "packagename": packagename, "operation": operation, "progress": 0, "directto": packagename, "realname": realname, "source": source, "subsource": subsource, "bonuses": []}
+            self.overalltasksorder.append(newtask)
             
         self.begin_tasks()
         
@@ -111,6 +115,7 @@ class StoreTasks():
         newtask = module + ":" + packagename + ":" + str(operation)
         if not newtask in self.currenttasks[module]:
             self.currenttasks[module][newtask] = {"type": "source", "module": module, "packagename": packagename, "operation": operation, "progress": 0, "directto": "", "realname": realname, "source": source, "subsource": subsource, "bonuses": []}
+            self.overalltasksorder.append(newtask)
             
         self.begin_tasks()
         
@@ -126,24 +131,27 @@ class StoreTasks():
             return #It's already running, don't bother running it again
         
         
-        while self.currenttasks[module] != {}:
+        taskoffset = 0 #Increase if we need to skip items because dontcontinue
+        while self.currenttasks[module] != {}:                
             print("TASKS DEBUG ("+module+"): currenttasks is", self.currenttasks[module])
+            print("TASKS DEBUG: overalltasksorder is", self.overalltasksorder)
             if self.dontcontinue == True and self.lockedtasklist[module] == {}:
                 #Abort loop if we're out of locked tasks list items
                 break
             
-            if list(self.currenttasks[module].keys())[0] in self.lockedtasklist[module] or self.lockedtasklist[module] == {}:
-                self.do_task(list(self.currenttasks[module].keys())[0], module)
-                self.currenttasks[module].pop(list(self.currenttasks[module].keys())[0])
+            if len(self.currenttasks[module]) <= taskoffset:
+                taskoffset = 0 #Reset taskoffset if it's higher than the number of tasks
+            
+            #Get the placement of our item in self.overalltasksorder
+            targettask = list(self.currenttasks[module].keys())[taskoffset]
+            ttaskoverallindex = self.overalltasksorder.index(targettask)
+            
+            if targettask in self.lockedtasklist[module] or self.lockedtasklist[module] == {}:
+                self.do_task(targettask, module)
+                self.currenttasks[module].pop(targettask)
+                self.overalltasksorder.pop(targettask)
             else:
-                if len(self.currenttasks[module]) > 1: #We'll be accessing non-existent values without this, if there's 1 or less items in here
-                    #Move task to end of dictionary
-                    currenttasksbackup = dict(self.currenttasks[module]) #We've had to do this samuage technique before elsewhere as Python seems to like to make changes to this otherwise also apply to self.currenttasks[module]...? 
-                    self.currenttasks[module] = {}
-                    for item in list(currenttasksbackup.keys())[1:]:
-                        self.currenttasks[module][item] = currenttasksbackup[item]
-                    self.currenttasks[module][list(currenttasksbackup.keys())[0]] = currenttasksbackup[list(currenttasksbackup.keys())[0]] #Add it to the end
-                    currenttasksbackup = {}
+                taskoffset += 1 #Skip the task if dontcontinue is on and task isn't in the locked task list
             
             
         self.currenttask[module] = "" #Free up the function for a future calling since we're gonna return on this so it'll need recalling
