@@ -149,7 +149,7 @@ class StoreTasks():
             if targettask in self.lockedtasklist[module] or self.lockedtasklist[module] == {}:
                 self.do_task(targettask, module)
                 self.currenttasks[module].pop(targettask)
-                self.overalltasksorder.pop(targettask)
+                self.overalltasksorder.pop(ttaskoverallindex)
             else:
                 taskoffset += 1 #Skip the task if dontcontinue is on and task isn't in the locked task list
             
