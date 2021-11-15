@@ -69,79 +69,102 @@ class StoreTasks():
     # bonuses: List of bonuses to add ([] on source)
     
     def __init__(self):
-        self.currenttasks = {}
-        self.currenttask = "" #ID of current task
-        self.dontcontinue = False #Used for when a logoff is initiated, as the goal is to inhibit logouts until done
+        self.currenttasks = {} #Tasks lists (per module)
+        self.currenttask = {} #ID of current task (per module)
+        self.dontcontinue = False #Used for when a logoff is initiated, or Store is pending a restart during updates, as the goal is to stop after the current tasks
         self.lockedtasklist = {} #Use when dontcontinue is on to make sure any added Tasks DO NOT get done (main point is to use this whenever the user requests logout, etc.)
         #GObject.threads_init()   Leftover from New Store (prior project) - might come in handy, idk.
         
         self.currenttaskmodules = [] #Current modules in use for managing tasks (for multi-thread tasks management)
         self.currentpkgtaskmodules = [] #Same as the above, but for package file tasks
         
+    def add_task_item_ifnotexists(self, module): #Adds Tasks section if it's not a section yet
+        if module not in self.currenttasks:
+            self.currenttasks[module] = {}
+        if module not in self.currenttask:
+            self.currenttask[module] = ""
+        if module not in self.lockedtasklist: #To make things easier to not break
+            self.lockedtasklist[module] = {}
     
         
-    def add_task(self, module, packagename, operation, directto, realname, source, subsource, bonuses): #Add package management task
-        newtask = module + ":" + packagename + ":" + operation
-        if not newtask in self.currenttasks:
-            self.currenttasks[newtask] = {"type": "item", "module": module, "packagename": packagename, "operation": operation, "progress": 0, "directto": packagename, "realname": realname, "source": source, "subsource": subsource, "bonuses": bonuses}
+    def add_task(self, module, packagename, operation, realname, source, subsource, bonuses=[]): #Add package management task
+        self.add_task_item_ifnotexists(module)
+        
+        newtask = module + ":" + packagename + ":" + str(operation)
+        if not newtask in self.currenttasks[module]:
+            self.currenttasks[module][newtask] = {"type": "item", "module": module, "packagename": packagename, "operation": operation, "progress": 0, "directto": packagename, "realname": realname, "source": source, "subsource": subsource, "bonuses": bonuses}
             
         self.begin_tasks() #Trigger Tasks action if it isn't already in action
         
-    def add_task_package(self, module, packagename, operation, directto, realname, source, subsource, bonuses): #Add package management task for a package file
-        newtask = module + ":" + packagename + ":" + operation
-        if not newtask in self.currenttasks:
-            self.currenttasks[newtask] = {"type": "packageitem", "module": module, "packagename": packagename, "operation": operation, "progress": 0, "directto": packagename, "realname": realname, "source": source, "subsource": subsource, "bonuses": bonuses}
+    def add_task_package(self, module, packagename, operation, realname, source, subsource): #Add package management task for a package file
+        self.add_task_item_ifnotexists(module)
+        
+        newtask = module + ":" + packagename + ":" + str(operation)
+        if not newtask in self.currenttasks[module]:
+            self.currenttasks[module][newtask] = {"type": "packageitem", "module": module, "packagename": packagename, "operation": operation, "progress": 0, "directto": packagename, "realname": realname, "source": source, "subsource": subsource, "bonuses": []}
             
         self.begin_tasks()
         
-    def add_task_source(self, module, packagename, operation, directto, realname, source, subsource, bonuses): #Add source management task
-        #TODO
-        newtask = module + ":" + packagename + ":" + operation
-        if not newtask in self.currenttasks:
-            self.currenttasks[newtask] = {"type": "source", "module": module, "packagename": packagename, "operation": operation, "progress": 0, "directto": packagename, "realname": realname, "source": source, "subsource": subsource, "bonuses": bonuses}
+    def add_task_source(self, module, packagename, operation, realname, source, subsource): #Add source management task
+        self.add_task_item_ifnotexists(module)
+        
+        newtask = module + ":" + packagename + ":" + str(operation)
+        if not newtask in self.currenttasks[module]:
+            self.currenttasks[module][newtask] = {"type": "source", "module": module, "packagename": packagename, "operation": operation, "progress": 0, "directto": "", "realname": realname, "source": source, "subsource": subsource, "bonuses": []}
             
         self.begin_tasks()
         
     def begin_tasks(self):
-        thread = Thread(target=self._begin_tasks,
-                        args=())
-        thread.daemon = True
-        thread.start()
+        for module in self.currenttasks: #Initiate tasks working for all modules
+            thread = Thread(target=self._begin_tasks,
+                            args=(module,))
+            thread.daemon = True
+            thread.start()
         
-    def _begin_tasks(self):
-        if self.currenttask != "":
+    def _begin_tasks(self, module):
+        if self.currenttask[module] != "":
             return #It's already running, don't bother running it again
         
         
-        while self.currenttasks != {}:
-            if self.dontcontinue == True and self.lockedtasklist == {}:
+        while self.currenttasks[module] != {}:
+            print("TASKS DEBUG ("+module+"): currenttasks is", self.currenttasks[module])
+            if self.dontcontinue == True and self.lockedtasklist[module] == {}:
                 #Abort loop if we're out of locked tasks list items
                 break
             
-            if list(self.currenttasks.keys())[0] in self.lockedtasklist or self.lockedtasklist == {}:
-                self.do_task(list(self.currenttasks.keys())[0])
-                self.currenttasks.pop(list(self.currenttasks.keys())[0])
+            if list(self.currenttasks[module].keys())[0] in self.lockedtasklist[module] or self.lockedtasklist[module] == {}:
+                self.do_task(list(self.currenttasks[module].keys())[0], module)
+                self.currenttasks[module].pop(list(self.currenttasks[module].keys())[0])
             else:
-                if len(self.currenttasks) > 1: #We'll be accessing non-existent values without this, if there's 1 or less items in here
+                if len(self.currenttasks[module]) > 1: #We'll be accessing non-existent values without this, if there's 1 or less items in here
                     #Move task to end of dictionary
-                    currenttasksbackup = dict(self.currenttasks) #We've had to do this samuage technique before elsewhere as Python seems to like to make changes to this otherwise also apply to self.currenttasks...? 
-                    self.currenttasks = {}
+                    currenttasksbackup = dict(self.currenttasks[module]) #We've had to do this samuage technique before elsewhere as Python seems to like to make changes to this otherwise also apply to self.currenttasks[module]...? 
+                    self.currenttasks[module] = {}
                     for item in list(currenttasksbackup.keys())[1:]:
-                        self.currenttasks[item] = currenttasksbackup[item]
-                    self.currenttasks[list(currenttasksbackup.keys())[0]] = currenttasksbackup[list(currenttasksbackup.keys())[0]] #Add it to the end
+                        self.currenttasks[module][item] = currenttasksbackup[item]
+                    self.currenttasks[module][list(currenttasksbackup.keys())[0]] = currenttasksbackup[list(currenttasksbackup.keys())[0]] #Add it to the end
                     currenttasksbackup = {}
             
             
-        self.currenttask = "" #Free up the function for a future calling since we're gonna return on this so it'll need recalling
+        self.currenttask[module] = "" #Free up the function for a future calling since we're gonna return on this so it'll need recalling
+        print("TASKS DEBUG ("+module+"): currenttasks is all done, returning.")
         
         
-    def do_task(self, task):
-        self.currenttask = task
+    def do_task(self, task, module):
+        self.currenttask[module] = task
+        taskdata = self.currenttasks[module][task]
+        
+        #FIXME: Currently breaks when outside of the package view and a task finishes (also needs GUI connections, and progressbar)
         
         print("TASKS DEBUG: Working on", task)
-        moduletype = self.currenttasks[task]["type"]
+        moduletype = taskdata["type"]
         if moduletype == "item":
-            pass
+            if taskdata["operation"] == 0:
+                self.storebrain.pkgmgmt_modules[taskdata["module"]].task_install_package(taskdata["packagename"], taskdata["source"], taskdata["subsource"], taskdata["bonuses"])
+            elif taskdata["operation"] == 1:
+                self.storebrain.pkgmgmt_modules[taskdata["module"]].task_update_package(taskdata["packagename"], taskdata["source"], taskdata["subsource"])
+            elif taskdata["operation"] == 2:
+                self.storebrain.pkgmgmt_modules[taskdata["module"]].task_remove_package(taskdata["packagename"], taskdata["source"], taskdata["subsource"])
         elif moduletype == "packageitem":
             pass
         elif moduletype == "source":
@@ -149,8 +172,7 @@ class StoreTasks():
         #TODO
         
         #do_task is ran via a Thread, so we do the code in a non-threaded way.
-        #TODO: Do we consider reworking this slightly to allow management of 1 item per module?
-    
+        print("TASKS DEBUG: Finished", task)
     
     
     
@@ -214,6 +236,9 @@ class StoreBrain():
     
     
     def __init__(self):
+        self.tasks = StoreTasks()
+        self.tasks.storebrain = self
+        
         self.gui_module = StoreModuleContainer(self, "/usr/lib/feren-storium/modules/gui/gtk3-demo").main
         # TODO: Have it be determined by gsettings
         #self.settings_gui_module = StoreModuleContainer(self, "/usr/lib/feren-storium/modules/settings-gui/gtk3-demo").main

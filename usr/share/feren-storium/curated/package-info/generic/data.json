@@ -21,6 +21,17 @@
     "images": [""],
     "order-of-module-importance": ["peppermint-ice"]
   },
+  "storium-ice-microsoft-outlook": {
+    "realname": "Outlook",
+    "iconuri": "https://res-1.cdn.office.net/assets/mail/pwa/v1/pngs/Outlook.512x512.png",
+    "shortdescription": "",
+    "description": "TODO",
+    "website": "https://outlook.com/",
+    "donateurl": "",
+    "category": "ice-internet",
+    "images": [""],
+    "order-of-module-importance": ["peppermint-ice"]
+  },
   "storium-ice-facebook-facebook": {
     "realname": "Facebook",
     "iconuri": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/05/Facebook_Logo_%282019%29.png/480px-Facebook_Logo_%282019%29.png",

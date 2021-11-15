@@ -151,8 +151,25 @@ class main():
         #TODO: Move this call to Store Brain's Tasks management once implemented
         self.storebrain.gui_module.mainpage.on_packagemgmt_finished()
         
+    #Add to Tasks
+    def install_package(self, packagename, source, subsource):
+        bonuses = [] #TODO: Add confirmation prompt showing changes, and also allowing bonus selection
+        
+        self.storebrain.tasks.add_task(self.modulename, packagename, 0, self.packagestorage[packagename].realname, source, subsource, bonuses)
     
-    def install_package(self, packagename, source, subsource, bonuses=[]):
+    def update_package(self, packagename, source, subsource):
+        #TODO: Add confirmation prompt showing changes, and also allowing bonus selection
+        
+        self.storebrain.tasks.add_task(self.modulename, packagename, 1, self.packagestorage[packagename].realname, source, subsource)
+    
+    def remove_package(self, packagename, source, subsource):
+        #TODO: Add confirmation prompt showing changes, and also allowing bonus selection
+        
+        self.storebrain.tasks.add_task(self.modulename, packagename, 2, self.packagestorage[packagename].realname, source, subsource)
+        
+    
+    #Actual management TODO: Progress callback
+    def task_install_package(self, packagename, source, subsource, bonuses=[]):
         #Install package and return exit code
         self.packagemgmtbusy = True
         
@@ -174,7 +191,7 @@ class main():
         self.finishing_cleanup(packagename)
         return outcome.get_exit_code() == PackageKitGlib.ExitEnum.SUCCESS
     
-    def remove_package(self, packagename, source, subsource):
+    def task_remove_package(self, packagename, source, subsource):
         self.packagemgmtbusy = True
         
         #Remove package and return exit code
@@ -193,7 +210,7 @@ class main():
         self.finishing_cleanup(packagename)
         return outcome.get_exit_code() == PackageKitGlib.ExitEnum.SUCCESS
     
-    def update_package(self, packagename, source, subsource):
+    def task_update_package(self, packagename, source, subsource):
         self.packagemgmtbusy = True
         
         #Update package and return exit code

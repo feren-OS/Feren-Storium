@@ -154,8 +154,25 @@ class main():
         #TODO: Move this call to Store Brain's Tasks management once implemented
         self.storebrain.gui_module.mainpage.on_packagemgmt_finished()
         
+    #Add to Tasks
+    def install_package(self, packagename, source, subsource):
+        bonuses = ["ublock", "nekocap", "imagus"] #TODO: Add confirmation prompt showing changes, and also allowing bonus selection
+        
+        self.storebrain.tasks.add_task(self.modulename, packagename, 0, self.packagestorage[packagename].realname, source, subsource, bonuses)
     
-    def install_package(self, packagename, source, subsource, bonuses=[]):
+    def update_package(self, packagename, source, subsource):
+        #You SHOULD NOT be able to hit Update for websites anyway, so raise an error
+        self.finishing_cleanup(packagename)
+        raise ICEModuleException(_("You wouldn't update an Ice Website Application."))
+    
+    def remove_package(self, packagename, source, subsource):
+        #TODO: Add confirmation prompt showing changes, and also allowing bonus selection
+        
+        self.storebrain.tasks.add_task(self.modulename, packagename, 2, self.packagestorage[packagename].realname, source, subsource)
+        
+    
+    #Actual management TODO: Progress callback
+    def task_install_package(self, packagename, source, subsource, bonuses=[]):
         if packagename not in self.packagestorage:
             raise ICEModuleException(_("%s is not in the Package Storage (packagestorage) yet - make sure it's in the packagestorage variable before obtaining package information.") % packagename)
         
@@ -164,7 +181,7 @@ class main():
         self.currentpackagename = packagename
         
         #First remove the files just in case there's a partial installation
-        self.remove_package(packagename, source, subsource, True)
+        self.task_remove_package(packagename, source, subsource, True)
         
         #Create the .desktop file's home if it doesn't exist
         if not os.path.isdir(os.path.expanduser("~") + "/.local/share/applications"):
@@ -198,12 +215,12 @@ class main():
             with open(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/First Run" % packagename, 'w') as fp:
                 pass
         except Exception as exceptionstr:
-            self.remove_package(packagename, subsource, True) #Remove profile's files/folders on failure
+            self.task_remove_package(packagename, subsource, True) #Remove profile's files/folders on failure
             raise ICEModuleException(_("Failed to install {0}: {1} was encountered when making the Chromium-based profile").format(packagename, exceptionstr))
         try:
             os.mkdir(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/Default" % packagename)
         except Exception as exceptionstr:
-            self.remove_package(packagename, subsource, True) #Remove profile's files/folders on failure
+            self.task_remove_package(packagename, subsource, True) #Remove profile's files/folders on failure
             raise ICEModuleException(_("Failed to install {0}: {1} was encountered when making the Chromium-based profile").format(packagename, exceptionstr))
         
         
@@ -252,7 +269,7 @@ class main():
             with open(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/Default/Preferences" % packagename, 'w') as fp:
                 fp.write(json.dumps(profiletomake, separators=(',', ':'))) # This dumps minified json (how convenient), which is EXACTLY what Chrome uses for Preferences, so it's literally pre-readied
         except Exception as exceptionstr:
-            self.remove_package(packagename, subsource, True) #Remove profile's files/folders on failure
+            self.task_remove_package(packagename, subsource, True) #Remove profile's files/folders on failure
             raise ICEModuleException(_("Failed to install {0}: {1} was encountered when writing the Chromium-based profile").format(packagename, exceptionstr))
         
         
@@ -320,7 +337,7 @@ class main():
                 fp.write("StartupWMClass=%s\n" % packagename)
                 fp.write("StartupNotify=true\n")
         except Exception as exceptionstr:
-            self.remove_package(packagename, subsource, True) #Remove profile's files/folders on failure
+            self.task_remove_package(packagename, subsource, True) #Remove profile's files/folders on failure
             raise ICEModuleException(_("Failed to install {0}: {1} was encountered when creating a shortcut in the Applications Menu").format(packagename, exceptionstr))
         
         #Now repeat for extras, if appropriate
@@ -373,7 +390,7 @@ class main():
 
                     fp.write("StartupNotify=true\n")
             except Exception as exceptionstr:
-                self.remove_package(packagename, subsource, True) #Remove profile's files/folders on failure
+                self.task_remove_package(packagename, subsource, True) #Remove profile's files/folders on failure
                 raise ICEModuleException(_("Failed to install {0}: {1} was encountered when creating extra shortcuts in the Applications Menu").format(packagename, exceptionstr))
             os.system("chmod +x " + os.path.expanduser("~") + "/.local/share/applications/{0}-{1}.desktop".format(packagename, extraid))
             extrascount += 1
@@ -389,7 +406,7 @@ class main():
         self.finishing_cleanup(packagename)
         return True
     
-    def remove_package(self, packagename, source, subsource, forinstall=False):
+    def task_remove_package(self, packagename, source, subsource, forinstall=False):
         if packagename not in self.packagestorage:
             raise ICEModuleException(_("%s is not in the Package Storage (packagestorage) yet - make sure it's in the packagestorage variable before obtaining package information.") % packagename)
         
@@ -412,7 +429,7 @@ class main():
                 if os.path.isfile(os.path.expanduser("~") + "/.local/share/applications/{0}-{1}.desktop".format(packagename, extraid)):
                     os.remove(os.path.expanduser("~") + "/.local/share/applications/{0}-{1}.desktop".format(packagename, extraid))
             except Exception as exceptionstr:
-                self.remove_package(packagename, subsource, True) #Remove profile's files/folders on failure
+                self.task_remove_package(packagename, subsource, True) #Remove profile's files/folders on failure
                 raise ICEModuleException(_("Failed to uninstall {0}: {1} was encountered when removing extra shortcuts from the Applications Menu").format(packagename, exceptionstr))
             extrascount += 1
             
@@ -432,8 +449,7 @@ class main():
             self.finishing_cleanup(packagename)
         return True
     
-    def update_package(self, packagename, source, subsource):
-        #You SHOULD NOT be able to hit Update for websites anyway, so raise an error
+    def task_update_package(self, packagename, source, subsource):
         self.finishing_cleanup(packagename)
         raise ICEModuleException(_("You wouldn't update an Ice Website Application."))
     

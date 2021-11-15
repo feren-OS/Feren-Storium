@@ -19,6 +19,18 @@
     "websiteextras": ["https://www.office.com/launch/word", "https://www.office.com/launch/excel", "https://www.office.com/launch/powerpoint", "https://www.onenote.com/notebooks", "https://teams.microsoft.com", "https://outlook.live.com", "https://to-do.live.com"],
     "keywordsextras": ["Microsoft;Office;Word;", "Microsoft;Office;Excel;", "Microsoft;Office;PowerPoint;", "Microsoft;Office;OneNote;", "Microsoft;Office;Teams;", "Microsoft;Office;Outlook;", "Microsoft;Office;ToDo;"]
   },
+  "storium-ice-microsoft-outlook": {
+    "keywords": "Microsoft;Outlook;Hotmail;Live;Email;",
+    "author": "Microsoft Corporation",
+    "bugreporturl": "",
+    "tosurl": "",
+    "privpolurl": "",
+    "extrasids": ["calendar"],
+    "realnameextras": ["Outlook Calendar"],
+    "iconuriextras": ["https://techcommunity.microsoft.com/t5/image/serverpage/image-id/172269iB16D1070FD2F4AB3/image-size/large?v=v2&px=1024"],
+    "websiteextras": ["https://outlook.com/calendar"],
+    "keywordsextras": ["Microsoft;Office;Outlook;Live;Calendar;"]
+  },
   "storium-ice-facebook-facebook": {
     "keywords": "Facebook;Messenger;Zucc;Stories;Social;",
     "author": "Facebook",

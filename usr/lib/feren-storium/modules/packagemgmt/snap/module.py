@@ -169,7 +169,25 @@ class main():
         self.storebrain.set_progress(self.currentpackagename, "snap", percent)
         
     
-    def install_package(self, packagename, source, subsource, bonuses=[]):
+    #Add to Tasks
+    def install_package(self, packagename, source, subsource):
+        bonuses = [] #TODO: Add confirmation prompt showing changes, and also allowing bonus selection
+        
+        self.storebrain.tasks.add_task(self.modulename, packagename, 0, self.packagestorage[packagename].realname, source, subsource, bonuses)
+    
+    def update_package(self, packagename, source, subsource):
+        #TODO: Add confirmation prompt showing changes, and also allowing bonus selection
+        
+        self.storebrain.tasks.add_task(self.modulename, packagename, 1, self.packagestorage[packagename].realname, source, subsource)
+    
+    def remove_package(self, packagename, source, subsource):
+        #TODO: Add confirmation prompt showing changes, and also allowing bonus selection
+        
+        self.storebrain.tasks.add_task(self.modulename, packagename, 2, self.packagestorage[packagename].realname, source, subsource)
+        
+    
+    #Actual management TODO: Progress callback
+    def task_install_package(self, packagename, source, subsource, bonuses=[]):
         #Install package and return exit code
         self.packagemgmtbusy = True
         
@@ -185,7 +203,7 @@ class main():
         self.finishing_cleanup(packagename)
         return outcome
     
-    def remove_package(self, packagename, source, subsource):
+    def task_remove_package(self, packagename, source, subsource):
         #Remove package and return exit code
         self.packagemgmtbusy = True
         
@@ -201,7 +219,7 @@ class main():
         self.finishing_cleanup(packagename)
         return outcome
     
-    def update_package(self, packagename, source, subsource):
+    def task_update_package(self, packagename, source, subsource):
         #You SHOULD NOT be able to hit Update for Snaps anyway, so raise an error
         self.finishing_cleanup(packagename)
         raise SnapModuleException(_("Snaps update themselves."))
