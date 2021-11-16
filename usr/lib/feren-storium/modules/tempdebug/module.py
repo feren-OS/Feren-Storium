@@ -63,8 +63,14 @@ class DebugWindow(object):
     def testiteminfo_pressed(self, gtk_widget):
         print(self.storebrain.get_item_info(self.textboxpkgpage.get_text()))
         
-    def testsearch_pressed(self, gtk_widget):
-        print(self.storebrain.item_search(self.textboxsearch.get_text()))
+    def addmessage_pressed(self, gtk_widget):
+        self.storebrain.gui_module.mainpage.add_message("info", self.addmessagetbox.get_text(), self.testbutton_pressed, "button test")
+        
+    def addmessagenobtn_pressed(self, gtk_widget):
+        self.storebrain.gui_module.mainpage.add_message("info", self.addmessagetbox.get_text())
+        
+    def testbutton_pressed(self, gtk_widget):
+        print("button press test")
 
     def _build_app(self):
         # build window
@@ -109,20 +115,23 @@ class DebugWindow(object):
         self.iceremove.connect("clicked", self.testiceremove_pressed)
         self.icegetinfo.connect("clicked", self.testiceinfo_pressed)
         
-        self.itemgetinfo = Gtk.Button(label="get info")
+        self.itemgetinfo = Gtk.Button(label="add message")
         
         yeet.pack_start(self.itemgetinfo, True, False, 4)
         
         self.itemgetinfo.connect("clicked", self.testiteminfo_pressed)
         
-        self.textboxsearch = Gtk.Entry()
-        self.textboxsearch.set_placeholder_text("search")
-        self.testsearchbtn = Gtk.Button(label="testsearch")
+        self.addmessagetbox = Gtk.Entry()
+        self.addmessagetbox.set_placeholder_text("message test")
+        self.addmessage = Gtk.Button(label="add message")
+        self.addmessagenobtn = Gtk.Button(label="add message (no btn)")
         
-        yeet.pack_start(self.textboxsearch, True, False, 4)
-        yeet.pack_start(self.testsearchbtn, True, False, 4)
+        yeet.pack_start(self.addmessagetbox, True, False, 4)
+        yeet.pack_start(self.addmessage, True, False, 4)
+        yeet.pack_start(self.addmessagenobtn, True, False, 4)
         
-        self.testsearchbtn.connect("clicked", self.testsearch_pressed)
+        self.addmessage.connect("clicked", self.addmessage_pressed)
+        self.addmessagenobtn.connect("clicked", self.addmessagenobtn_pressed)
         
         #back_img = Gtk.Image()
         #back_img.set_from_icon_name("go-previous-symbolic", Gtk.IconSize.BUTTON);

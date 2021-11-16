@@ -6,11 +6,11 @@
     "bugreporturl": "",
     "tosurl": "",
     "privpolurl": "",
-    "canihasthemes": 4,
-    "canihastouch": 0,
-    "canihasaccessibility": true,
-    "canihasdpiscaling": true,
-    "canihasphoneadapting": true,
-    "officialpackage": true
+    "canusethemes": 4,
+    "canusetouchscreen": 0,
+    "canuseaccessibility": true,
+    "canusedpiscaling": true,
+    "canuseonphone": true,
+    "isofficial": true
   }
 }

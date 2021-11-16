@@ -6,12 +6,12 @@
     "bugreporturl": "",
     "tosurl": "",
     "privpolurl": "",
-    "canihasthemes": 1,
-    "canihastouch": 1,
-    "canihasaccessibility": true,
-    "canihasdpiscaling": true,
-    "canihasphoneadapting": true,
-    "officialpackage": true
+    "canusethemes": 2,
+    "canusetouchscreen": 1,
+    "canuseaccessibility": true,
+    "canusedpiscaling": true,
+    "canuseonphone": true,
+    "isofficial": true
   },
   "mozilla-firefox": {
     "snap-name": "firefox",
@@ -20,11 +20,11 @@
     "bugreporturl": "",
     "tosurl": "",
     "privpolurl": "",
-    "canihasthemes": 4,
-    "canihastouch": 0,
-    "canihasaccessibility": true,
-    "canihasdpiscaling": true,
-    "canihasphoneadapting": true,
-    "officialpackage": true
+    "canusethemes": 4,
+    "canusetouchscreen": 0,
+    "canuseaccessibility": true,
+    "canusedpiscaling": true,
+    "canuseonphone": true,
+    "isofficial": true
   }
 }

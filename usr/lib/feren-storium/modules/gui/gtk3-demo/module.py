@@ -147,6 +147,11 @@ class AppDetailsHeader(Gtk.VBox):
         self.app_subsource_dropdown.set_model(iface_list_store)
         self.app_subsource_dropdown.set_active(0)
         
+        if self.installapp_btn.get_sensitive() == True and len(self.subsource_ids) > 1:
+            self.app_subsource_dropdown.set_visible(True)
+        else:
+            self.app_subsource_dropdown.set_visible(False)
+        
     def on_source_dropdown_changed(self, combobox):
         if combobox.get_active() == -1:
             return
@@ -155,7 +160,6 @@ class AppDetailsHeader(Gtk.VBox):
         self.mv.current_module_viewed = self.source_ids[combobox.get_active()].split(":")[0]
         self.mv.current_source_viewed = self.source_ids[combobox.get_active()].split(":")[1]
         self.mv.change_module(self.mv.current_module_viewed, self.mv.current_item_viewed)
-        self.populate_subsources(self.mv.current_item_viewed, self.storebrain.get_subsources(self.mv.current_source_viewed, self.mv.current_module_viewed))
         
     def on_subsource_dropdown_changed(self, combobox):
         if combobox.get_active() == -1:
@@ -190,11 +194,9 @@ class AppDetailsHeader(Gtk.VBox):
         pass
         
     def update_buttons(self, status):
-        self.app_subsource_dropdown.set_visible(False)
         #Update buttons according to status
         if status == 0: #Uninstalled
             self.installapp_btn.set_sensitive(True)
-            self.app_subsource_dropdown.set_visible(True)
         else:
             self.installapp_btn.set_sensitive(False)
         if status == 3: #Available in disabled source
@@ -396,59 +398,67 @@ class AppMainView(Gtk.Stack):
         # build package page
         packagepage = Gtk.VBox(spacing=8)
         
+        self.packagepagecontents = Gtk.FlowBox()
+        self.packagepagecontents.set_min_children_per_line(1)
+        self.packagepagecontents.set_max_children_per_line(1)
+        
+        self.packagepagemessages = [] #Storage for package page messages
+        
+        packagepage.pack_start(self.packagepagecontents, True, True, 8)
+        
         images_box = Gtk.Box()
         self.pkgpage_images = Gtk.Label(label="Images: ")
         images_box.pack_start(self.pkgpage_images, False, False, 0)
         
-        packagepage.pack_start(images_box, False, True, 0)
+        self.packagepagecontents.insert(images_box, -1)
         
         description_box = Gtk.Box()
         self.pkgpage_description = Gtk.Label(label="Description: ")
         description_box.pack_start(self.pkgpage_description, False, False, 0)
         
-        packagepage.pack_start(description_box, False, True, 0)
+        self.packagepagecontents.insert(description_box, -1)
         
         category_box = Gtk.Box()
         self.pkgpage_category = Gtk.Label(label="Category: ")
         category_box.pack_start(self.pkgpage_category, False, False, 0)
         
-        packagepage.pack_start(category_box, False, True, 0)
+        self.packagepagecontents.insert(category_box, -1)
         
         website_box = Gtk.Box()
         self.pkgpage_website = Gtk.Label(label="Website: ")
         website_box.pack_start(self.pkgpage_website, False, False, 0)
         
-        packagepage.pack_start(website_box, False, True, 0)
+        self.packagepagecontents.insert(website_box, -1)
         
         author_box = Gtk.Box()
         self.pkgpage_author = Gtk.Label(label="Author: ")
         author_box.pack_start(self.pkgpage_author, False, False, 0)
         
-        packagepage.pack_start(author_box, False, True, 0)
+        self.packagepagecontents.insert(author_box, -1)
         
         donateurl_box = Gtk.Box()
         self.pkgpage_donateurl = Gtk.Label(label="Donate URL: ")
         donateurl_box.pack_start(self.pkgpage_donateurl, False, False, 0)
         
-        packagepage.pack_start(donateurl_box, False, True, 0)
+        self.packagepagecontents.insert(donateurl_box, -1)
         
         bugsurl_box = Gtk.Box()
         self.pkgpage_bugsurl = Gtk.Label(label="Bugs URL: ")
         bugsurl_box.pack_start(self.pkgpage_bugsurl, False, False, 0)
         
-        packagepage.pack_start(bugsurl_box, False, True, 0)
+        self.packagepagecontents.insert(bugsurl_box, -1)
         
         tosurl_box = Gtk.Box()
         self.pkgpage_tosurl = Gtk.Label(label="TOS URL: ")
         tosurl_box.pack_start(self.pkgpage_tosurl, False, False, 0)
         
-        packagepage.pack_start(tosurl_box, False, True, 0)
+        self.packagepagecontents.insert(tosurl_box, -1)
         
         privpolurl_box = Gtk.Box()
         self.pkgpage_privpolurl = Gtk.Label(label="Privacy Policy URL: ")
         privpolurl_box.pack_start(self.pkgpage_privpolurl, False, False, 0)
         
-        packagepage.pack_start(privpolurl_box, False, True, 0)
+        self.packagepagecontents.insert(privpolurl_box, -1)
         
         # build another scrolled window widget and add our package view
         self.sw4 = Gtk.ScrolledWindow()
@@ -464,6 +474,74 @@ class AppMainView(Gtk.Stack):
         
         self.add_named(self.sw4, "packagepage")
         
+    
+    def add_message(self, messagetype, messagecontents, button_callback=None, button_text=""):
+        #TODO: Message types
+        message_box = Gtk.Box()
+        message_text = Gtk.Label()
+        message_text.set_label(messagetype+": "+messagecontents)
+        message_box.pack_start(message_text, False, False, 0)
+        if button_callback != None:
+            message_button = Gtk.Button()
+            message_button.set_label(button_text)
+            message_button.connect('clicked', button_callback)
+            message_box.pack_end(message_button, False, False, 0)
+        self.packagepagecontents.insert(message_box, 0)
+        
+        self.packagepagemessages.append(message_box)
+        
+        message_box.show_all()
+        
+    def add_warnings(self, packageinfo, currentpackage):        
+        #TODO: Allow configuring which of these show and don't
+        
+        #Can be themed?
+        if "canusethemes" in packageinfo:
+            if packageinfo["canusethemes"] == 0: #No
+                self.add_message("minorwarn", "This application will not follow your appearance settings and cannot be themed", self.temp_dummy_pressed, "Learn more")
+            elif packageinfo["canusethemes"] == 2: #Yes, but manually enabled
+                self.add_message("info", "This application can follow your appearance settings but does not by default", self.temp_dummy_pressed, "Learn more")
+            elif packageinfo["canusethemes"] == 3: #Yes, except Feren OS's style
+                #TODO: Appearance check for Feren OS style
+                self.add_message("minorwarn", "This application will not follow your current appearance settings", self.temp_dummy_pressed, "Learn more")
+            elif packageinfo["canusethemes"] == 4: #Yes, but manually enabled
+                self.add_message("info", "This application uses its own themes, and therefore will not follow your appearance settings", self.temp_dummy_pressed, "Learn more")
+            elif packageinfo["canusethemes"] == 5: #LibAdwaita, so no TODO: Have explanation button take to explanation on LibAdwaita
+                self.add_message("minorwarn", "This application forces its own theme, so will not follow your appearance settings", self.temp_dummy_pressed, "Learn more")
+            elif packageinfo["canusethemes"] == 6: #LibGranite, so no TODO: Have explanation button take to explanation on LibGranite
+                self.add_message("minorwarn", "This application forces its own theme, so will not follow your appearance settings", self.temp_dummy_pressed, "Learn more")
+                
+        #Can be used on touchscreens?
+        if "canusetouchscreen" in packageinfo:
+            if packageinfo["canusetouchscreen"] == 0: #No
+                self.add_message("warn", "This application does not currently support touchscreens") #TODO: Add button once standards checks system is implemented
+            elif packageinfo["canusetouchscreen"] == 2: #Yes, but partially
+                self.add_message("minorwarn", "This application partially supports touchscreens")
+                
+        #Can use accessibility?
+        if "canuseaccessibility" in packageinfo:
+            if packageinfo["canuseaccessibility"] == False: #No
+                self.add_message("warn", "You may run into issues with this application if you use Accessibility features") #TODO: Add button once standards checks system is implemented
+                
+        #Can use DPI scaling?
+        if "canusedpiscaling" in packageinfo:
+            if packageinfo["canusedpiscaling"] == False: #No
+                self.add_message("warn", "This application does not scale to your screen resolution") #TODO: Add button once standards checks system is implemented
+                
+        #Can use on Phone?
+        if "canuseonphone" in packageinfo: #TODO: Phone check
+            if packageinfo["canuseonphone"] == False: #No
+                self.add_message("warn", "This application is not designed for use on phones") #TODO: Add button once standards checks system is implemented
+                
+        #Official application?
+        if "isofficial" in packageinfo:
+            if packageinfo["isofficial"] == False: #No
+                self.add_message("warn", "This application is not officially published from this source", self.temp_dummy_pressed, "Learn more")
+    
+    def temp_dummy_pressed(self, gtk_widget): #TODO: Remove once there's Learn more windows
+        print("DEBUG: Dummy press event")
+    
+        
     def add_generic_information(self, packageinfo, currentpackage):
         self.pkgpage_images.set_label("Images: " + str(packageinfo["images"]))
         self.pkgpage_description.set_label("Description: " + str(packageinfo["description"]))
@@ -471,20 +549,34 @@ class AppMainView(Gtk.Stack):
         self.pkgpage_website.set_label("Website: " + str(packageinfo["website"]))
         self.pkgpage_donateurl.set_label("Donate URL: " + str(packageinfo["donateurl"]))
         
-    def add_module_information(self, packageinfo, currentpackage):
+    def add_module_information(self, packageinfo, currentpackage): #TODO: Move this into using the package store data from the package management module
         self.pkgpage_author.set_label("Author: " + str(packageinfo["author"]))
         self.pkgpage_bugsurl.set_label("Bugs URL: " + str(packageinfo["bugreporturl"]))
         self.pkgpage_tosurl.set_label("TOS URL: " + str(packageinfo["tosurl"]))
         self.pkgpage_privpolurl.set_label("Privacy Policy URL: " + str(packageinfo["privpolurl"]))
         
+        self.add_warnings(packageinfo, currentpackage)
+        
+        
     def change_module(self, modulename, currentpackage):
+        while self.packagepagemessages != []: #Tried using the conventional for items in list method, but it kept skipping loads of them
+            for subitem in self.packagepagemessages[0].get_children():
+                subitem.destroy()
+            self.packagepagemessages[0].get_parent().destroy()
+            self.packagepagemessages[0].destroy()
+            self.packagepagemessages.pop(0)
+        
         packageinfo = self.storebrain.dict_recurupdate(self.current_generic_pkginfo, self.storebrain.get_item_info(currentpackage, modulename, False))
         self.add_module_information(packageinfo, currentpackage)
         self.AppDetailsHeader.populate(packageinfo, currentpackage)
         self.AppDetailsHeader.update_buttons(self.storebrain.package_module(modulename).get_status(currentpackage))
         
+        self.AppDetailsHeader.populate_subsources(self.current_item_viewed, self.storebrain.get_subsources(self.current_source_viewed, self.current_module_viewed))
+    
+        
     def on_packagemgmt_finished(self):
         self.change_module(self.current_module_viewed, self.current_item_viewed)
+    
     
     def goto_packagepage(self, packagename):
         self.current_item_viewed = packagename
@@ -512,7 +604,6 @@ class AppMainView(Gtk.Stack):
                 else:
                     self.appsitems.insert(btn, -1)
     
-        
     def populate_searchpage(self, searchresults):
         #Destroy the children first (no actual children were harmed in the making of this program)
         for item in self.searchresults.get_children():

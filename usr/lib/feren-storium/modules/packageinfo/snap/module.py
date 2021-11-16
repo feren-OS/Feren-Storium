@@ -185,7 +185,7 @@ class main():
         # 2: Partially
         
         try:
-            canusetouchscreen = self.json_storage["package-info/" + packagetype][packagename]["canihastouch"]
+            canusetouchscreen = self.json_storage["package-info/" + packagetype][packagename]["canusetouchscreen"]
         except:
             canusetouchscreen = 1 # Use fallback of Yes when unknown to hide the message
         return canusetouchscreen
