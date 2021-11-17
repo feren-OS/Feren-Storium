@@ -6,8 +6,6 @@ gi.require_version('WebKit2', '4.0')
 gi.require_version('Gtk', '3.0')
 
 import sys
-import urllib.request #Grabbing files from internet
-import urllib.error
 import locale #Translations go brrr
 import gettext #Translations go brrr
 import getpass #Used for finding username
@@ -23,15 +21,122 @@ def should_load(): #Should this module be loaded?
     return True
 
 
+####Application icon
+class AppItemIcon(Gtk.Stack):
+    
+    def __init__(self, get_icon_callback):
+        Gtk.Stack.__init__(self)
+        GObject.threads_init()
+        
+        
+        self.get_icon_callback = get_icon_callback
+        
+        self.app_iconimg = Gtk.Image()
+        self.app_iconimg_loading = Gtk.Spinner()
+        self.app_iconimg_loading_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        self.app_iconimg_loading_box.set_center_widget(self.app_iconimg_loading)
+        
+        self.add_named(self.app_iconimg_loading_box, "load")
+        self.add_named(self.app_iconimg, "icon")
+        
+        self.desired_size = 48
+        self.set_icon("file:///usr/share/feren-os/logos/blank.png", "")
+        
+        self.show_all()
+        
+    
+    def set_icon(self, iconuri, packagename):
+        thread = Thread(target=self._set_icon,
+                        args=(iconuri, packagename))
+        thread.daemon = True
+        thread.start()
+        
+    def _set_icon(self, iconuri, packagename):
+        GLib.idle_add(self.set_visible_child, self.app_iconimg_loading_box)
+        GLib.idle_add(self.app_iconimg_loading.start,)
+        
+        try:
+            iconurilocat = self.get_icon_callback(iconuri, packagename)
+        except Exception as e:
+            #TODO: Change to store-missing-icon
+            print(e)
+            iconurilocat = "/usr/share/icons/Inspire/256/apps/feren-store.png"
+        
+        icon_pixbuf = GdkPixbuf.Pixbuf.new_from_file(iconurilocat)
+        icon_pixbuf = icon_pixbuf.scale_simple(self.desired_size, self.desired_size, GdkPixbuf.InterpType.BILINEAR)
+        
+        GLib.idle_add(self.app_iconimg.set_from_pixbuf, icon_pixbuf)
+        GLib.idle_add(self.app_iconimg_loading.stop,)
+        GLib.idle_add(self.set_visible_child, self.app_iconimg)
+
+
+####Item button
+class AppItemButton(Gtk.Button):
+    
+    def __init__(self, packagename, storebrain, showwarns=True):
+        
+        Gtk.Button.__init__(self)
+        self.storebrain = storebrain
+        
+        self.child_items = []
+        
+        packageinfo = self.storebrain.get_generic_item_info(packagename)
+        #TODO: Get default module's item info
+        
+        app_icon = AppItemIcon(self.storebrain.get_icon)
+        app_icon.set_icon(packageinfo["iconuri"], packagename)
+        
+        label_name = Gtk.Label(label=packageinfo["realname"])
+        
+        label_summary = Gtk.Label(label=packageinfo["shortdescription"])
+        
+        vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+
+        #Make sure application name and short descriptions are left-aligned in there
+        app_title_box = Gtk.Box()
+        app_desc_box = Gtk.Box()
+        app_title_box.pack_start(label_name, False, False, 0)
+        app_desc_box.pack_start(label_summary, False, False, 0)
+        
+
+        #Make the column for application name and short description
+        vbox.pack_start(app_title_box, False, False, 0)
+        vbox.pack_end(app_desc_box, False, False, 0)
+
+        hbox = Gtk.Box()
+        hbox.pack_start(app_icon, False, False, 4)
+        hbox.pack_start(vbox, False, False, 8)
+
+        self.add(hbox)
+        
+        self.child_items = [app_icon, label_name, label_summary, vbox, app_title_box, app_desc_box, hbox]
+        
+        if showwarns == True:
+            self.add_warnings(packageinfo)
+        
+        self.show_all()
+                
+    def add_warnings(self, packageinfo):
+        #TODO
+        pass
+    
+    def destroy_everything(self):
+        for item in self.child_items:
+            for child in item.get_children():
+                child.destroy()
+            item.destroy()
+        self.destroy()
+
+
 ####Application Details Header
 class AppDetailsHeader(Gtk.VBox):
 
-    def __init__(self):
+    def __init__(self, storebrain):
         
         Gtk.Box.__init__(self)
+        self.storebrain = storebrain
         
-        self.app_icon = Gtk.Image()
-        self.app_icon.set_from_icon_name("deb", Gtk.IconSize.DND)
+        self.app_icon = AppItemIcon(self.storebrain.get_icon)
         
         self.app_title = Gtk.Label()
         self.app_title.set_label("APPLICATION TITLE")
@@ -89,30 +194,6 @@ class AppDetailsHeader(Gtk.VBox):
         
         pass
     
-    def set_icon(self, iconuri, packagetoview):
-        tempdir = self.storebrain.tempdir + "/icons"
-        
-        #Set the icon shown on the package header
-                
-        desired_width = 48
-        desired_height = 48
-        try:
-            if not iconuri.startswith("file://"):
-                #Download the application icon
-                if not os.path.isfile(tempdir+"/"+packagetoview):
-                    urllib.request.urlretrieve(iconuri, tempdir+"/"+packagetoview)
-                #Set it as the icon in the Store
-                icon_pixbuf = GdkPixbuf.Pixbuf.new_from_file(tempdir+"/"+packagetoview)
-            else:
-                #Set it as the icon in the Store
-                icon_pixbuf = GdkPixbuf.Pixbuf.new_from_file(iconuri.split('file://')[1])
-        except Exception as exceptionstring:
-            print("Could not retrieve icon for", packagetoview, "-", exceptionstring)
-            #TODO: Change to store-missing-icon
-            icon_pixbuf = GdkPixbuf.Pixbuf.new_from_file("/usr/share/icons/Inspire/256/apps/feren-store.png")
-        icon_pixbuf = icon_pixbuf.scale_simple(desired_width, desired_height, GdkPixbuf.InterpType.BILINEAR)
-        self.app_icon.set_from_pixbuf(icon_pixbuf)
-    
     def populate(self, info, currentpackage):
         self.app_shortdesc.set_label(info["shortdescription"]) #Some sources like ICE have their own descriptions
         pass #TODO
@@ -120,7 +201,7 @@ class AppDetailsHeader(Gtk.VBox):
     def populate_generic(self, packageinfo, currentpackage):
         self.app_title.set_label(packageinfo["realname"])
         self.app_shortdesc.set_label(packageinfo["shortdescription"])
-        self.set_icon(packageinfo["iconuri"], currentpackage)
+        self.app_icon.set_icon(packageinfo["iconuri"], currentpackage)
         pass #TODO
     
     def populate_sources(self, currentpackage, sourcedict):
@@ -303,14 +384,11 @@ class AppMainView(Gtk.Stack):
         taskslabel = Gtk.Label(label="Currently working on these tasks:")
         taskslabel_box.pack_start(taskslabel, False, False, 0)
         
-        self.tasksitems = Gtk.FlowBox()
-        self.tasksitems.set_margin_top(4)
-        self.tasksitems.set_margin_bottom(4)
-        self.tasksitems.set_min_children_per_line(1)
-        self.tasksitems.set_max_children_per_line(1)
-        self.tasksitems.set_row_spacing(4)
-        self.tasksitems.set_homogeneous(True)
-        self.tasksitems.set_valign(Gtk.Align.START)
+        self.tasksitemscontainer = Gtk.Box()
+        self.tasksitemscontainer.set_margin_top(4)
+        self.tasksitemscontainer.set_margin_bottom(4)
+        self.tasksitemscontainer.set_valign(Gtk.Align.START)
+        self.tasksitems = None
         
         updateslabel_box = Gtk.Box()
         updateslabel = Gtk.Label(label="Updates are available for:")
@@ -339,7 +417,7 @@ class AppMainView(Gtk.Stack):
         self.installeditems.set_valign(Gtk.Align.START)
                 
         taskspage.pack_start(taskslabel_box, False, True, 0)
-        taskspage.pack_start(self.tasksitems, False, True, 0)
+        taskspage.pack_start(self.tasksitemscontainer, False, True, 0)
         taskspage.pack_start(updateslabel_box, False, True, 0)
         taskspage.pack_start(self.updatesitems, False, True, 0)
         taskspage.pack_start(installedlabel_box, False, True, 0)
@@ -367,17 +445,13 @@ class AppMainView(Gtk.Stack):
         self.searchbar = Gtk.Entry()
         self.searchbar.connect("changed", self.searchbar_search)
         
-        self.searchresults = Gtk.FlowBox()
-        self.searchresults.set_margin_top(4)
-        self.searchresults.set_margin_bottom(4)
-        self.searchresults.set_min_children_per_line(1)
-        self.searchresults.set_max_children_per_line(1)
-        self.searchresults.set_row_spacing(4)
-        self.searchresults.set_homogeneous(True)
-        self.searchresults.set_valign(Gtk.Align.START)
+        self.searchresultscontainer = Gtk.Box()
+        self.searchresultscontainer.set_margin_top(4)
+        self.searchresultscontainer.set_margin_bottom(4)
+        self.searchresults = None
         
         searchpage.pack_start(self.searchbar, False, True, 4)
-        searchpage.pack_start(self.searchresults, False, True, 4)
+        searchpage.pack_start(self.searchresultscontainer, False, True, 4)
         
         # build another scrolled window widget and add our search view
         self.sw3 = Gtk.ScrolledWindow()
@@ -594,8 +668,8 @@ class AppMainView(Gtk.Stack):
         #TODO: Split into sections
         data = self.storebrain.pkginfo_modules[self.storebrain.generic_module].pkg_categoryids
         for category in data:
-            for pkgname in data[category]:
-                btn = Gtk.Button(label=pkgname)
+            for pkgname in data[category]:                
+                btn = AppItemButton(pkgname, self.storebrain, False)
                 btn.connect("clicked", self._btn_goto_packageview, pkgname)
                 if category.startswith("ice-"):
                     self.websitesitems.insert(btn, -1)
@@ -605,9 +679,16 @@ class AppMainView(Gtk.Stack):
                     self.appsitems.insert(btn, -1)
     
     def populate_searchpage(self, searchresults):
-        #Destroy the children first (no actual children were harmed in the making of this program)
-        for item in self.searchresults.get_children():
-            item.destroy()
+        #Destroy the children first (no actual children were harmed in the making of this program) (according to doc, destroying containers destroys children recursively)
+        if self.searchresults != None:
+            self.searchresults.destroy()
+        self.searchresults = Gtk.FlowBox()
+        self.searchresults.set_min_children_per_line(1)
+        self.searchresults.set_max_children_per_line(1)
+        self.searchresults.set_row_spacing(4)
+        self.searchresults.set_homogeneous(True)
+        self.searchresultscontainer.pack_start(self.searchresults, True, True, 0)
+        self.searchresultscontainer.show_all()
             
         
         for resulttype in searchresults:
@@ -615,14 +696,37 @@ class AppMainView(Gtk.Stack):
                 if "searchlabel" in searchresults[resulttype][item]:
                     lbl = Gtk.Label(searchresults[resulttype][item]["searchlabel"])
                     self.searchresults.insert(lbl, 0) #Insert at top
-                else:
-                    btn = Gtk.Button(label=("({0}) {1}").format(searchresults[resulttype][item]["realname"], item))
+                    
+                    
+                else:                    
+                    btn = AppItemButton(item, self.storebrain, False)
                     btn.connect("clicked", self._btn_goto_packageview, item)
                     self.searchresults.insert(btn, -1)
             
         self.searchresults.show_all()
         
-                
+    def refresh_tasks(self):
+        #Destroy the children first (no actual children were harmed in the making of this program) (according to doc, destroying containers destroys children recursively)
+        if self.tasksitems != None:
+            self.tasksitems.destroy()
+        self.tasksitems = Gtk.FlowBox()
+        self.tasksitems.set_min_children_per_line(1)
+        self.tasksitems.set_max_children_per_line(1)
+        self.tasksitems.set_row_spacing(4)
+        self.tasksitems.set_homogeneous(True)
+        self.tasksitems.set_valign(Gtk.Align.START)
+        self.tasksitemscontainer.pack_start(self.tasksitems, True, True, 0)
+        self.tasksitemscontainer.show_all()
+            
+        
+        for item in self.storebrain.tasks.overalltasksorder:
+            itemname = item.split(":")[1]
+            
+            btn = AppItemButton(itemname, self.storebrain, False)
+            btn.connect("clicked", self._btn_goto_packageview, itemname) #TODO: Teleportation to specific module
+            self.tasksitems.insert(btn, -1)
+            
+        self.tasksitems.show_all()
     
 
     def toggle_back(self):
@@ -646,7 +750,7 @@ class AppMainView(Gtk.Stack):
         if not self.back_button_history[-2].startswith("packagepage-"):
             self.set_visible_child_name(self.back_button_history[-2])
         else:
-            self._goto_packageview(self.back_button_history[-2][12:])
+            self.goto_packagepage(self.back_button_history[-2][12:])
         
     def add_to_back(self):
         if self.get_visible_child() == self.sw4:
@@ -710,7 +814,7 @@ class main(object):
 
     def _build_app_post_splashscreen(self, mainwindow, maintoolbar, mv):
         # build rest of window
-        box_application_header = AppDetailsHeader()
+        box_application_header = AppDetailsHeader(self.storebrain)
         #box_application_header.set_visible(False)
         box_application_header.parent_window = self.w
         # add the box to the parent window and show
@@ -718,11 +822,10 @@ class main(object):
         mainwindow.pack_start(box_application_header, False, True, 0)
         mainwindow.pack_end(mv, True, True, 0)
         mv.AppDetailsHeader = box_application_header
-        mv.AppDetailsHeader.storebrain = self.storebrain
         mv.AppDetailsHeader.mv = mv
         self.w.show_all()
 
-    def _build_app(self):
+    def _build_app(self):        
         # build window
         self.w = Gtk.Window()
         self.w.set_position(Gtk.WindowPosition.CENTER)
@@ -857,8 +960,13 @@ class main(object):
         thread.start()
 
     def init(self):
+        GObject.threads_init()
+        
         self._build_app()
         Gtk.main()
+        
+    def refresh_tasks(self):
+        self.mainpage.refresh_tasks()
 
     def _gohome_pressed(self, gtk_widget):
         self.mainpage._goto_page(self.mainpage.sw)

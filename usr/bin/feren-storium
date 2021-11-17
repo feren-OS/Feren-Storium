@@ -11,6 +11,9 @@ import gettext
 import getpass
 import collections.abc
 
+import urllib.request #Grabbing files from internet
+import urllib.error
+
 class StoreBrainException(Exception): # Name this according to the module to allow easier debugging
     pass
 
@@ -132,7 +135,9 @@ class StoreTasks():
         
         
         taskoffset = 0 #Increase if we need to skip items because dontcontinue
-        while self.currenttasks[module] != {}:                
+        while self.currenttasks[module] != {}:
+            self.storebrain.gui_module.refresh_tasks() #Refresh Tasks page
+            
             print("TASKS DEBUG ("+module+"): currenttasks is", self.currenttasks[module])
             print("TASKS DEBUG: overalltasksorder is", self.overalltasksorder)
             if self.dontcontinue == True and self.lockedtasklist[module] == {}:
@@ -150,6 +155,8 @@ class StoreTasks():
                 self.do_task(targettask, module)
                 self.currenttasks[module].pop(targettask)
                 self.overalltasksorder.pop(ttaskoverallindex)
+                
+                self.storebrain.gui_module.refresh_tasks() #Refresh Tasks page
             else:
                 taskoffset += 1 #Skip the task if dontcontinue is on and task isn't in the locked task list
             
@@ -441,8 +448,27 @@ class StoreBrain():
     
     
     
-    def set_progress(self, packagename, packagetype, value):
+    def set_progress(self, packagename, packagetype, value): #TODO: Change into being part of Tasks management
         self.gui_module.set_progress(packagename, packagetype, value)
+        
+        
+    def get_icon(self, iconuri, packagename):
+        if not iconuri.startswith("file://"):
+            try:
+                #Download the application icon
+                if not os.path.isfile(self.tempdir+"/icons/"+packagename):
+                    urllib.request.urlretrieve(iconuri, self.tempdir+"/icons/"+packagename)
+                
+                return self.tempdir+"/icons/"+packagename
+            except Exception as e:
+                raise StoreBrainException(_("Failed to retrieve the icon of "+packagename+" because: %s") % e)
+        else:
+            if os.path.isfile(iconuri.split('file://')[1]):
+                return iconuri.split('file://')[1]
+            else:
+                raise StoreBrainException(_("Failed to retrieve the icon of "+packagename+" because: File Not Found"))
+            
+        
         
         
     def run_module(self, module):
