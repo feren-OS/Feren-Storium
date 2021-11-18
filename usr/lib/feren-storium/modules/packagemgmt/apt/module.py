@@ -148,8 +148,6 @@ class main():
         #Cleanup after package operations
         self.currentpackagename = ""
         self.packagemgmtbusy = False
-        #TODO: Move this call to Store Brain's Tasks management once implemented
-        self.storebrain.gui_module.mainpage.on_packagemgmt_finished()
         
     #Add to Tasks
     def install_package(self, packagename, source, subsource):

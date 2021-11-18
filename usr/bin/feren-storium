@@ -121,8 +121,27 @@ class StoreTasks():
             self.overalltasksorder.append(newtask)
             
         self.begin_tasks()
+    
+        
+    def cancel_task(self, module, packagename): #Cancel task
+        for item in self.currenttasks[module]:
+            if item.startswith(module+":"+packagename+":"):
+                targettask = item
+                break #Exit the loop
+        if self.currenttask[module] == item:
+            print("TASKS DEBUG ("+module+"): Couldn't cancel task - task is already in progress")
+            return
+        self.currenttasks[module].pop(item)
+        self.lockedtasklist[module].pop(item, None)
+        self.overalltasksorder.pop(self.overalltasksorder.index(item))
+        print("TASKS DEBUG ("+module+"): Cancelled a task")
+        
+        self.storebrain.gui_module.refresh_tasks()
+            
         
     def begin_tasks(self):
+        self.storebrain.gui_module.refresh_tasks() #Refresh Tasks view and such in GUI
+        
         for module in self.currenttasks: #Initiate tasks working for all modules
             thread = Thread(target=self._begin_tasks,
                             args=(module,))
@@ -165,7 +184,7 @@ class StoreTasks():
         
     def do_task(self, task, module, gui_callback, progress_callback):
         self.currenttask[module] = task
-        gui_callback() #Refresh Tasks page  TODO: Use gui_callback for completion and errors as well
+        gui_callback() #TODO: Use gui_callback for completion and errors as well
         taskdata = self.currenttasks[module][task]
         
         #FIXME: Currently breaks when outside of the package view and a task finishes (also needs GUI connections, and progressbar)
@@ -186,7 +205,7 @@ class StoreTasks():
         #TODO
         
         #do_task is ran via a Thread, so we do the code in a non-threaded way.
-        print("TASKS DEBUG: Finished", task)
+        print("TASKS DEBUG: Finished", task)        
     
 
 

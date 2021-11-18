@@ -195,44 +195,74 @@ class AppDetailsHeader(Gtk.VBox):
         
         pass
     
-    def populate(self, info, currentpackage):
-        self.app_shortdesc.set_label(info["shortdescription"]) #Some sources like ICE have their own descriptions
+    
+    def populate(self, packageinfo, currentpackage):
+        thread = Thread(target=self._populate_generic,
+                            args=(packageinfo, currentpackage))
+        thread.start()
+    
+    def _populate(self, packageinfo, currentpackage):
+        GLib.idle_add(self.app_shortdesc.set_label, packageinfo["shortdescription"]) #Some sources like ICE have their own descriptions
         pass #TODO
+    
     
     def populate_generic(self, packageinfo, currentpackage):
-        self.app_title.set_label(packageinfo["realname"])
-        self.app_shortdesc.set_label(packageinfo["shortdescription"])
-        self.app_icon.set_icon(packageinfo["iconuri"], currentpackage)
+        thread = Thread(target=self._populate_generic,
+                            args=(packageinfo, currentpackage))
+        thread.start()
+    
+    def _populate_generic(self, packageinfo, currentpackage):
+        GLib.idle_add(self.app_title.set_label, packageinfo["realname"])
+        GLib.idle_add(self.app_shortdesc.set_label, packageinfo["shortdescription"])
+        GLib.idle_add(self.app_icon.set_icon, packageinfo["iconuri"], currentpackage)
         pass #TODO
     
+    
     def populate_sources(self, currentpackage, sourcedict):
+        thread = Thread(target=self._populate_sources,
+                            args=(currentpackage, sourcedict))
+        thread.start()
+    
+    def _populate_sources(self, currentpackage, sourcedict):
         iface_list_store = Gtk.ListStore(GObject.TYPE_STRING)
         self.source_ids = []
         for item in sourcedict:
             iface_list_store.append([sourcedict[item]])
             self.source_ids.append(item)
             
-        self.app_source_dropdown.set_model(iface_list_store)
-        self.app_source_dropdown.set_active(0)
+        GLib.idle_add(self.app_source_dropdown.set_model, iface_list_store)
+        GLib.idle_add(self.app_source_dropdown.set_active, 0)
         if len(self.source_ids) <= 1:
-            self.app_source_dropdown.set_sensitive(False)
+            GLib.idle_add(self.app_source_dropdown.set_sensitive, False)
         else:
-            self.app_source_dropdown.set_sensitive(True)
+            GLib.idle_add(self.app_source_dropdown.set_sensitive, True)
+    
     
     def populate_subsources(self, currentpackage, subsourcedict):
+        thread = Thread(target=self._populate_subsources,
+                            args=(currentpackage, subsourcedict))
+        thread.start()
+    
+    def _populate_subsources(self, currentpackage, subsourcedict):
         iface_list_store = Gtk.ListStore(GObject.TYPE_STRING)
         self.subsource_ids = []
         for item in subsourcedict:
             iface_list_store.append([subsourcedict[item]])
             self.subsource_ids.append(item)
             
-        self.app_subsource_dropdown.set_model(iface_list_store)
-        self.app_subsource_dropdown.set_active(0)
+        GLib.idle_add(self.app_subsource_dropdown.set_model, iface_list_store)
+        GLib.idle_add(self.app_subsource_dropdown.set_active, 0)
         
         if self.installapp_btn.get_sensitive() == True and len(self.subsource_ids) > 1:
-            self.app_subsource_dropdown.set_visible(True)
+            GLib.idle_add(self.app_subsource_dropdown.set_visible, True)
         else:
-            self.app_subsource_dropdown.set_visible(False)
+            GLib.idle_add(self.app_subsource_dropdown.set_visible, False)
+            
+    
+    def on_source_dropdown_changed(self, combobox):
+        thread = Thread(target=self._on_source_dropdown_changed,
+                            args=(combobox,))
+        thread.start()
         
     def on_source_dropdown_changed(self, combobox):
         if combobox.get_active() == -1:
@@ -243,12 +273,19 @@ class AppDetailsHeader(Gtk.VBox):
         self.mv.current_source_viewed = self.source_ids[combobox.get_active()].split(":")[1]
         self.mv.change_module(self.mv.current_module_viewed, self.mv.current_item_viewed)
         
+    
     def on_subsource_dropdown_changed(self, combobox):
+        thread = Thread(target=self._on_subsource_dropdown_changed,
+                            args=(combobox,))
+        thread.start()
+        
+    def _on_subsource_dropdown_changed(self, combobox):
         if combobox.get_active() == -1:
             self.mv.current_subsource_viewed = ""
             return
         print("DEBUG: Sub-Source changed to", self.subsource_ids[combobox.get_active()])
         self.mv.current_subsource_viewed = self.subsource_ids[combobox.get_active()]
+    
 
     def set_progress(self, value):
         self.app_mgmt_progress.set_fraction(value / 100)
@@ -271,36 +308,54 @@ class AppDetailsHeader(Gtk.VBox):
         #TODO: Confirmation and whatnot, let's just get the main event working first
         self.storebrain.package_module(self.mv.current_module_viewed).remove_package(self.mv.current_item_viewed, self.mv.current_source_viewed, self.mv.current_subsource_viewed)
 
+
     def cancelapp_pressed(self, gtk_widget):
-        #TODO
-        pass
+        thread = Thread(target=self._cancelapp_pressed,
+                            args=(gtk_widget,))
+        thread.start()
+        
+    def _cancelapp_pressed(self, gtk_widget):
+        GLib.idle_add(self.cancelapp_btn.set_sensitive, False)
+        self.storebrain.tasks.cancel_task(self.mv.current_module_viewed, self.mv.current_item_viewed)
+    
         
     def update_buttons(self, status):
+        thread = Thread(target=self._update_buttons,
+                            args=(status,))
+        thread.start()
+        
+    def _update_buttons(self, status):
         #Update buttons according to status
         if status == 0: #Uninstalled
-            self.installapp_btn.set_sensitive(True)
+            GLib.idle_add(self.installapp_btn.set_sensitive, True)
         else:
-            self.installapp_btn.set_sensitive(False)
+            GLib.idle_add(self.installapp_btn.set_sensitive, False)
         if status == 3: #Available in disabled source
-            self.installappnosource_btn.set_sensitive(True)
+            GLib.idle_add(self.installappnosource_btn.set_sensitive, True)
         else:
-            self.installappnosource_btn.set_sensitive(False)
+            GLib.idle_add(self.installappnosource_btn.set_sensitive, False)
         if status == 2: #Updatable
-            self.updateapp_btn.set_sensitive(True)
+            GLib.idle_add(self.updateapp_btn.set_sensitive, True)
         else:
-            self.updateapp_btn.set_sensitive(False)
+            GLib.idle_add(self.updateapp_btn.set_sensitive, False)
         if status == 1 or status == 2: #Installed or updatable
-            self.removeapp_btn.set_sensitive(True)
+            GLib.idle_add(self.removeapp_btn.set_sensitive, True)
         else:
-            self.removeapp_btn.set_sensitive(False)
+            GLib.idle_add(self.removeapp_btn.set_sensitive, False)
         if status == 900: #Queued
-            self.cancelapp_btn.set_sensitive(True)
+            GLib.idle_add(self.cancelapp_btn.set_sensitive, True)
         else:
-            self.cancelapp_btn.set_sensitive(False)
+            GLib.idle_add(self.cancelapp_btn.set_sensitive, False)
         #901 - Working on item
         
+    
     def tasks_refresh_pkgpage(self):
-        self.mv.change_module(self.mv.current_module_viewed, self.mv.current_item_viewed)
+        thread = Thread(target=self._tasks_refresh_pkgpage,
+                            args=())
+        thread.start()
+        
+    def _tasks_refresh_pkgpage(self):
+        self.mv._change_module(self.mv.current_module_viewed, self.mv.current_item_viewed)
         #TODO
         
 
@@ -330,6 +385,7 @@ class AppMainView(Gtk.Stack):
         mainlabel_box.pack_start(mainlabel, False, False, 0)
         
         self.appsitems = Gtk.FlowBox()
+        self.appsitems.set_min_children_per_line(3)
         self.appsitems.set_margin_top(4)
         self.appsitems.set_margin_bottom(4)
         #self.appsitems.set_min_children_per_line(1)
@@ -343,6 +399,7 @@ class AppMainView(Gtk.Stack):
         themeslabel_box.pack_start(themeslabel, False, False, 0)
         
         self.themesitems = Gtk.FlowBox()
+        self.themesitems.set_min_children_per_line(3)
         self.themesitems.set_margin_top(4)
         self.themesitems.set_margin_bottom(4)
         #self.themesitems.set_min_children_per_line(1)
@@ -356,6 +413,7 @@ class AppMainView(Gtk.Stack):
         websiteslabel_box.pack_start(websiteslabel, False, False, 0)
         
         self.websitesitems = Gtk.FlowBox()
+        self.websitesitems.set_min_children_per_line(3)
         self.websitesitems.set_margin_top(4)
         self.websitesitems.set_margin_bottom(4)
         #self.websitesitems.set_min_children_per_line(1)
@@ -555,6 +613,11 @@ class AppMainView(Gtk.Stack):
         
     
     def add_message(self, messagetype, messagecontents, button_callback=None, button_text=""):
+        thread = Thread(target=self._add_message,
+                            args=(messagetype, messagecontents, button_callback, button_text))
+        thread.start()
+        
+    def _add_message(self, messagetype, messagecontents, button_callback=None, button_text=""):
         #TODO: Message types
         message_box = Gtk.Box()
         message_text = Gtk.Label()
@@ -565,11 +628,12 @@ class AppMainView(Gtk.Stack):
             message_button.set_label(button_text)
             message_button.connect('clicked', button_callback)
             message_box.pack_end(message_button, False, False, 0)
-        self.packagepagecontents.insert(message_box, 0)
+        GLib.idle_add(self.packagepagecontents.insert, message_box, 0)
         
-        self.packagepagemessages.append(message_box)
+        GLib.idle_add(self.packagepagemessages.append, message_box)
         
-        message_box.show_all()
+        GLib.idle_add(message_box.show_all,)
+    
         
     def add_warnings(self, packageinfo, currentpackage):        
         #TODO: Allow configuring which of these show and don't
@@ -621,28 +685,44 @@ class AppMainView(Gtk.Stack):
         print("DEBUG: Dummy press event")
     
         
-    def add_generic_information(self, packageinfo, currentpackage):
-        self.pkgpage_images.set_label("Images: " + str(packageinfo["images"]))
-        self.pkgpage_description.set_label("Description: " + str(packageinfo["description"]))
-        self.pkgpage_category.set_label("Category: " + str(packageinfo["category"]))
-        self.pkgpage_website.set_label("Website: " + str(packageinfo["website"]))
-        self.pkgpage_donateurl.set_label("Donate URL: " + str(packageinfo["donateurl"]))
+    def add_generic_information(self, modulename, currentpackage):
+        thread = Thread(target=self._add_generic_information,
+                            args=(modulename, currentpackage))
+        thread.start()
         
-    def add_module_information(self, packageinfo, currentpackage): #TODO: Move this into using the package store data from the package management module
-        self.pkgpage_author.set_label("Author: " + str(packageinfo["author"]))
-        self.pkgpage_bugsurl.set_label("Bugs URL: " + str(packageinfo["bugreporturl"]))
-        self.pkgpage_tosurl.set_label("TOS URL: " + str(packageinfo["tosurl"]))
-        self.pkgpage_privpolurl.set_label("Privacy Policy URL: " + str(packageinfo["privpolurl"]))
+    def _add_generic_information(self, packageinfo, currentpackage):
+        GLib.idle_add(self.pkgpage_images.set_label, "Images: " + str(packageinfo["images"]))
+        GLib.idle_add(self.pkgpage_description.set_label, "Description: " + str(packageinfo["description"]))
+        GLib.idle_add(self.pkgpage_category.set_label, "Category: " + str(packageinfo["category"]))
+        GLib.idle_add(self.pkgpage_website.set_label, "Website: " + str(packageinfo["website"]))
+        GLib.idle_add(self.pkgpage_donateurl.set_label, "Donate URL: " + str(packageinfo["donateurl"]))
+    
         
-        self.add_warnings(packageinfo, currentpackage)
+    def add_module_information(self, modulename, currentpackage):
+        thread = Thread(target=self._add_module_information,
+                            args=(modulename, currentpackage))
+        thread.start()
+    
+    def _add_module_information(self, packageinfo, currentpackage): #TODO: Move this into using the package store data from the package management module
+        GLib.idle_add(self.pkgpage_author.set_label, "Author: " + str(packageinfo["author"]))
+        GLib.idle_add(self.pkgpage_bugsurl.set_label, "Bugs URL: " + str(packageinfo["bugreporturl"]))
+        GLib.idle_add(self.pkgpage_tosurl.set_label, "TOS URL: " + str(packageinfo["tosurl"]))
+        GLib.idle_add(self.pkgpage_privpolurl.set_label, "Privacy Policy URL: " + str(packageinfo["privpolurl"]))
+        
+        GLib.idle_add(self.add_warnings, packageinfo, currentpackage)
         
         
     def change_module(self, modulename, currentpackage):
+        thread = Thread(target=self._change_module,
+                            args=(modulename, currentpackage))
+        thread.start()
+        
+    def _change_module(self, modulename, currentpackage):
         while self.packagepagemessages != []: #Tried using the conventional for items in list method, but it kept skipping loads of them
             for subitem in self.packagepagemessages[0].get_children():
-                subitem.destroy()
-            self.packagepagemessages[0].get_parent().destroy()
-            self.packagepagemessages[0].destroy()
+                GLib.idle_add(subitem.destroy,)
+            GLib.idle_add(self.packagepagemessages[0].get_parent().destroy,)
+            GLib.idle_add(self.packagepagemessages[0].destroy,)
             self.packagepagemessages.pop(0)
         
         packageinfo = self.storebrain.dict_recurupdate(self.current_generic_pkginfo, self.storebrain.get_item_info(currentpackage, modulename, False))
@@ -665,24 +745,30 @@ class AppMainView(Gtk.Stack):
         
         self.AppDetailsHeader.populate_subsources(self.current_item_viewed, self.storebrain.get_subsources(self.current_source_viewed, self.current_module_viewed))
     
-        
-    def on_packagemgmt_finished(self):
-        self.change_module(self.current_module_viewed, self.current_item_viewed)
-    
     
     def goto_packagepage(self, packagename):
+        thread = Thread(target=self._goto_packagepage,
+                            args=(packagename,))
+        thread.start()
+    
+    def _goto_packagepage(self, packagename):
         self.current_item_viewed = packagename
         self.current_generic_pkginfo = self.storebrain.get_generic_item_info(packagename)
-        self.add_generic_information(self.current_generic_pkginfo, packagename)
-        self.AppDetailsHeader.populate_generic(self.current_generic_pkginfo, packagename)
+        self._add_generic_information(self.current_generic_pkginfo, packagename)
+        self.AppDetailsHeader._populate_generic(self.current_generic_pkginfo, packagename)
         
         self.storebrain.add_to_packageinfo(packagename)
-        self.AppDetailsHeader.populate_sources(packagename, self.storebrain.get_sources(packagename))
+        self.AppDetailsHeader._populate_sources(packagename, self.storebrain.get_sources(packagename))
         
-        self.set_visible_child(self.sw4)
+        GLib.idle_add(self.set_visible_child, self.sw4)
     
     
     def populate_mainpage(self):
+        thread = Thread(target=self._populate_mainpage,
+                            args=())
+        thread.start()
+    
+    def _populate_mainpage(self):
         #TODO: Split into sections
         data = self.storebrain.pkginfo_modules[self.storebrain.generic_module].pkg_categoryids
         for category in data:
@@ -690,11 +776,12 @@ class AppMainView(Gtk.Stack):
                 btn = AppItemButton(pkgname, self.storebrain, False)
                 btn.connect("clicked", self._btn_goto_packageview, pkgname)
                 if category.startswith("ice-"):
-                    self.websitesitems.insert(btn, -1)
+                    GLib.idle_add(self.websitesitems.insert, btn, -1)
                 elif category.startswith("themes-"):
-                    self.themesitems.insert(btn, -1)
+                    GLib.idle_add(self.themesitems.insert, btn, -1)
                 else:
-                    self.appsitems.insert(btn, -1)
+                    GLib.idle_add(self.appsitems.insert, btn, -1)
+    
     
     def populate_searchpage(self, searchresults):
         thread = Thread(target=self._populate_searchpage,
@@ -725,9 +812,14 @@ class AppMainView(Gtk.Stack):
                     GLib.idle_add(self.searchresults.insert, btn, -1)
             
         GLib.idle_add(self.searchresultscontainer.show_all,)
+    
             
-        
     def refresh_tasks(self):
+        thread = Thread(target=self._refresh_tasks,
+                            args=())
+        thread.start()
+        
+    def _refresh_tasks(self):
         #Destroy the children first (no actual children were harmed in the making of this program) (according to doc, destroying containers destroys children recursively)
         if self.tasksitems != None:
             GLib.idle_add(self.tasksitems.destroy,)
@@ -764,15 +856,22 @@ class AppMainView(Gtk.Stack):
             self.back_btn.set_sensitive(True)
         else:
             self.back_btn.set_sensitive(False)
+    
+            
+    def back_action(self, data):
+        thread = Thread(target=self._back_action,
+                            args=(data,))
+        thread.start()
 
     def _back_action(self, data):
         #Remove from back history
         self.gobackmode = True
-        self.back_btn.set_sensitive(False) #Prevent spamming
+        GLib.idle_add(self.back_btn.set_sensitive, False) #Prevent spamming
         if not self.back_button_history[-2].startswith("packagepage-"):
-            self.set_visible_child_name(self.back_button_history[-2])
+            GLib.idle_add(self.set_visible_child_name, self.back_button_history[-2])
         else:
-            self.goto_packagepage(self.back_button_history[-2][12:])
+            GLib.idle_add(self.goto_packagepage, self.back_button_history[-2][12:])
+    
         
     def add_to_back(self):
         if self.get_visible_child() == self.sw4:
@@ -781,6 +880,7 @@ class AppMainView(Gtk.Stack):
             self.back_button_history.append(self.get_visible_child_name())
         
         self.toggle_back()
+    
         
     def remove_from_back(self):
         if len(self.back_button_history) <= 2:
@@ -789,6 +889,7 @@ class AppMainView(Gtk.Stack):
             self.back_button_history = self.back_button_history[:-1]
         
         self.toggle_back()
+    
         
     def goto_page(self, page):
         thread = Thread(target=self._goto_page,
@@ -797,9 +898,11 @@ class AppMainView(Gtk.Stack):
         
     def _goto_page(self, page):
         GLib.idle_add(self.set_visible_child, page)
+    
 
     def _btn_goto_packageview(self, btn, packagename):
         GLib.idle_add(self.goto_packagepage, packagename)
+    
         
     def searchbar_search(self, btn):
         thread = Thread(target=self._searchbar_search,
@@ -951,7 +1054,7 @@ class main(object):
         mv.get_style_context().add_class(Gtk.STYLE_CLASS_VIEW)
 
         mv.back_btn = back_btn
-        mv.back_signal_handler = mv.back_btn.connect("clicked", mv._back_action)
+        mv.back_signal_handler = mv.back_btn.connect("clicked", mv.back_action)
         mv.header = header
         
         mv.storebrain = self.storebrain

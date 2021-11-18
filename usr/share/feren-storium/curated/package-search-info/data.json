@@ -1,6 +1,7 @@
 {
   "substitutions": {
-    "storium-ice-microsoft-office-online": ["microsoft-office", "Microsoft Office", "Microsoft Word", "Microsoft Office Word", "Word", "microsoft-office-word", "Microsoft Excel", "Microsoft Office Excel", "Excel", "microsoft-office-excel", "Microsoft PowerPoint", "Microsoft Office PowerPoint", "PowerPoint", "microsoft-office-powerpoint", "Microsoft OneNote", "Microsoft Office OneNote", "OneNote", "microsoft-office-onenote", "Microsoft Office Teams", "Microsoft Teams", "Teams", "microsoft-office-teams", "microsoft-teams", "Microsoft Outlook", "Microsoft Hotmail", "Outlook", "Hotmail", "microsoft-outlook", "microsoft-hotmail", "Microsoft To Do", "Microsoft ToDo", "microsoft-to-do", "microsoft-todo"]
+    "storium-ice-microsoft-office-online": ["microsoft-office", "Microsoft Office", "Microsoft Word", "Microsoft Office Word", "Word", "microsoft-office-word", "Microsoft Excel", "Microsoft Office Excel", "Excel", "microsoft-office-excel", "Microsoft PowerPoint", "Microsoft Office PowerPoint", "PowerPoint", "microsoft-office-powerpoint", "Microsoft OneNote", "Microsoft Office OneNote", "OneNote", "microsoft-office-onenote", "Microsoft Office Teams", "Microsoft Teams", "Teams", "microsoft-office-teams", "microsoft-teams", "Microsoft Outlook", "Microsoft Hotmail", "Outlook", "Hotmail", "microsoft-outlook", "microsoft-hotmail", "Microsoft To Do", "Microsoft ToDo", "microsoft-to-do", "microsoft-todo"],
+    "obs-obs-studio": ["obs-studio", "StreamLabs OBS", "StreamLabs OBS Studio", "StreamLabs", "streamlabs-obs-studio", "streamlabs-obs"]
   },
   "unavailable": {
     "adobe-flash": "adobe-flash",
