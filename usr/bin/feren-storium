@@ -136,7 +136,6 @@ class StoreTasks():
         
         taskoffset = 0 #Increase if we need to skip items because dontcontinue
         while self.currenttasks[module] != {}:
-            self.storebrain.gui_module.refresh_tasks() #Refresh Tasks page
             
             print("TASKS DEBUG ("+module+"): currenttasks is", self.currenttasks[module])
             print("TASKS DEBUG: overalltasksorder is", self.overalltasksorder)
@@ -152,11 +151,10 @@ class StoreTasks():
             ttaskoverallindex = self.overalltasksorder.index(targettask)
             
             if targettask in self.lockedtasklist[module] or self.lockedtasklist[module] == {}:
-                self.do_task(targettask, module)
+                self.do_task(targettask, module, self.storebrain.gui_module.refresh_tasks, self.storebrain.set_progress)
                 self.currenttasks[module].pop(targettask)
                 self.overalltasksorder.pop(ttaskoverallindex)
-                
-                self.storebrain.gui_module.refresh_tasks() #Refresh Tasks page
+                self.storebrain.gui_module.refresh_tasks()
             else:
                 taskoffset += 1 #Skip the task if dontcontinue is on and task isn't in the locked task list
             
@@ -165,8 +163,9 @@ class StoreTasks():
         print("TASKS DEBUG ("+module+"): currenttasks is all done, returning.")
         
         
-    def do_task(self, task, module):
+    def do_task(self, task, module, gui_callback, progress_callback):
         self.currenttask[module] = task
+        gui_callback() #Refresh Tasks page  TODO: Use gui_callback for completion and errors as well
         taskdata = self.currenttasks[module][task]
         
         #FIXME: Currently breaks when outside of the package view and a task finishes (also needs GUI connections, and progressbar)
@@ -188,8 +187,6 @@ class StoreTasks():
         
         #do_task is ran via a Thread, so we do the code in a non-threaded way.
         print("TASKS DEBUG: Finished", task)
-    
-    
     
 
 
@@ -398,7 +395,7 @@ class StoreBrain():
         try:
             return self.pkginfo_modules[self.generic_module].getInfo(packagename, "all") #We use 'all' as a placebo since it's not important in a generic module
         except:
-            raise StoreBrainException(_("No information was found for %s") % packagename)        
+            raise StoreBrainException(_("No information was found for %s") % packagename)
     
     def package_module(self, packagetype, name=False):
         #Return the first one we find's name

@@ -73,14 +73,15 @@ class AppItemIcon(Gtk.Stack):
 ####Item button
 class AppItemButton(Gtk.Button):
     
-    def __init__(self, packagename, storebrain, showwarns=True):
+    def __init__(self, packagename, storebrain, showwarns=True, packageinfo={}):
         
         Gtk.Button.__init__(self)
         self.storebrain = storebrain
         
         self.child_items = []
         
-        packageinfo = self.storebrain.get_generic_item_info(packagename)
+        if packageinfo == {}:
+            packageinfo = self.storebrain.get_generic_item_info(packagename)
         #TODO: Get default module's item info
         
         app_icon = AppItemIcon(self.storebrain.get_icon)
@@ -297,6 +298,10 @@ class AppDetailsHeader(Gtk.VBox):
         else:
             self.cancelapp_btn.set_sensitive(False)
         #901 - Working on item
+        
+    def tasks_refresh_pkgpage(self):
+        self.mv.change_module(self.mv.current_module_viewed, self.mv.current_item_viewed)
+        #TODO
         
 
 
@@ -643,7 +648,20 @@ class AppMainView(Gtk.Stack):
         packageinfo = self.storebrain.dict_recurupdate(self.current_generic_pkginfo, self.storebrain.get_item_info(currentpackage, modulename, False))
         self.add_module_information(packageinfo, currentpackage)
         self.AppDetailsHeader.populate(packageinfo, currentpackage)
-        self.AppDetailsHeader.update_buttons(self.storebrain.package_module(modulename).get_status(currentpackage))
+        
+        currentstatus = None
+        
+        if currentstatus == None and modulename in self.storebrain.tasks.currenttasks and self.storebrain.tasks.currenttasks[modulename] != {}: #Check 1 for Status: If package is current item in queue
+            if list(self.storebrain.tasks.currenttasks[modulename].keys())[0] != "" and self.storebrain.tasks.currenttask[modulename].split(":")[1] == currentpackage:
+                currentstatus = 901
+        if currentstatus == None and modulename in self.storebrain.tasks.currenttasks: #Check 2 for Status: If package is in queue
+            for item in self.storebrain.tasks.currenttasks[modulename]:
+                if item.split(":")[1] == currentpackage:
+                    currentstatus = 900
+        if currentstatus == None:
+            currentstatus = self.storebrain.package_module(modulename).get_status(currentpackage)
+        
+        self.AppDetailsHeader.update_buttons(currentstatus)
         
         self.AppDetailsHeader.populate_subsources(self.current_item_viewed, self.storebrain.get_subsources(self.current_source_viewed, self.current_module_viewed))
     
@@ -679,44 +697,46 @@ class AppMainView(Gtk.Stack):
                     self.appsitems.insert(btn, -1)
     
     def populate_searchpage(self, searchresults):
+        thread = Thread(target=self._populate_searchpage,
+                            args=(searchresults,))
+        thread.start()
+    
+    def _populate_searchpage(self, searchresults):
         #Destroy the children first (no actual children were harmed in the making of this program) (according to doc, destroying containers destroys children recursively)
         if self.searchresults != None:
-            self.searchresults.destroy()
+            GLib.idle_add(self.searchresults.destroy,)
         self.searchresults = Gtk.FlowBox()
-        self.searchresults.set_min_children_per_line(1)
-        self.searchresults.set_max_children_per_line(1)
-        self.searchresults.set_row_spacing(4)
-        self.searchresults.set_homogeneous(True)
-        self.searchresultscontainer.pack_start(self.searchresults, True, True, 0)
-        self.searchresultscontainer.show_all()
-            
+        GLib.idle_add(self.searchresults.set_min_children_per_line, 1)
+        GLib.idle_add(self.searchresults.set_max_children_per_line, 1)
+        GLib.idle_add(self.searchresults.set_row_spacing, 4)
+        GLib.idle_add(self.searchresults.set_homogeneous, True)
+        GLib.idle_add(self.searchresultscontainer.pack_start, self.searchresults, True, True, 0)
         
         for resulttype in searchresults:
             for item in searchresults[resulttype]:
                 if "searchlabel" in searchresults[resulttype][item]:
                     lbl = Gtk.Label(searchresults[resulttype][item]["searchlabel"])
-                    self.searchresults.insert(lbl, 0) #Insert at top
+                    GLib.idle_add(self.searchresults.insert, lbl, 0) #Insert at top
                     
                     
                 else:                    
                     btn = AppItemButton(item, self.storebrain, False)
                     btn.connect("clicked", self._btn_goto_packageview, item)
-                    self.searchresults.insert(btn, -1)
+                    GLib.idle_add(self.searchresults.insert, btn, -1)
             
-        self.searchresults.show_all()
+        GLib.idle_add(self.searchresultscontainer.show_all,)
+            
         
     def refresh_tasks(self):
         #Destroy the children first (no actual children were harmed in the making of this program) (according to doc, destroying containers destroys children recursively)
         if self.tasksitems != None:
-            self.tasksitems.destroy()
+            GLib.idle_add(self.tasksitems.destroy,)
         self.tasksitems = Gtk.FlowBox()
-        self.tasksitems.set_min_children_per_line(1)
-        self.tasksitems.set_max_children_per_line(1)
-        self.tasksitems.set_row_spacing(4)
-        self.tasksitems.set_homogeneous(True)
-        self.tasksitems.set_valign(Gtk.Align.START)
-        self.tasksitemscontainer.pack_start(self.tasksitems, True, True, 0)
-        self.tasksitemscontainer.show_all()
+        GLib.idle_add(self.tasksitems.set_min_children_per_line, 1)
+        GLib.idle_add(self.tasksitems.set_max_children_per_line, 1)
+        GLib.idle_add(self.tasksitems.set_row_spacing, 4)
+        GLib.idle_add(self.tasksitems.set_homogeneous, True)
+        GLib.idle_add(self.tasksitemscontainer.pack_start, self.tasksitems, True, True, 0)
             
         
         for item in self.storebrain.tasks.overalltasksorder:
@@ -724,9 +744,11 @@ class AppMainView(Gtk.Stack):
             
             btn = AppItemButton(itemname, self.storebrain, False)
             btn.connect("clicked", self._btn_goto_packageview, itemname) #TODO: Teleportation to specific module
-            self.tasksitems.insert(btn, -1)
+            GLib.idle_add(self.tasksitems.insert, btn, -1)
             
-        self.tasksitems.show_all()
+        GLib.idle_add(self.tasksitemscontainer.show_all,)
+        
+        GLib.idle_add(self.AppDetailsHeader.tasks_refresh_pkgpage,)
     
 
     def toggle_back(self):
@@ -768,30 +790,28 @@ class AppMainView(Gtk.Stack):
         
         self.toggle_back()
         
+    def goto_page(self, page):
+        thread = Thread(target=self._goto_page,
+                            args=(page,))
+        thread.start()
+        
     def _goto_page(self, page):
-        self.set_visible_child(page)
+        GLib.idle_add(self.set_visible_child, page)
 
     def _btn_goto_packageview(self, btn, packagename):
-        self.goto_packagepage(packagename)
-
-    def _generate_apps_list(self, category):
-        pass
-
-    def _generate_websites_list(self, category):
-        pass
-
-    def update_insite_information(self, packagename, packagetype):
-        pass
-            
-    def packagepagestuff(self):
-        pass
-
+        GLib.idle_add(self.goto_packagepage, packagename)
+        
     def searchbar_search(self, btn):
+        thread = Thread(target=self._searchbar_search,
+                            args=(btn,))
+        thread.start()
+
+    def _searchbar_search(self, btn):
         if self.searchbar.get_text() == "":
-            self.populate_searchpage({'exactmatch': {}, 'begins': {}, 'contains': {}, 'ends': {}})
+            self._populate_searchpage({'exactmatch': {}, 'begins': {}, 'contains': {}, 'ends': {}})
         else:
             results = self.storebrain.item_search(self.searchbar.get_text())
-            self.populate_searchpage(results)
+            self._populate_searchpage(results)
 
 
 
@@ -969,13 +989,13 @@ class main(object):
         self.mainpage.refresh_tasks()
 
     def _gohome_pressed(self, gtk_widget):
-        self.mainpage._goto_page(self.mainpage.sw)
+        self.mainpage.goto_page(self.mainpage.sw)
 
     def _search_pressed(self, gtk_widget):
-        self.mainpage._goto_page(self.mainpage.sw3)
+        self.mainpage.goto_page(self.mainpage.sw3)
 
     def _status_pressed(self, gtk_widget):
-        self.mainpage._goto_page(self.mainpage.sw2)
+        self.mainpage.goto_page(self.mainpage.sw2)
 
     def close(self, p1 = None, p2 = None):
         try:
