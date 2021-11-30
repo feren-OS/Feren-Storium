@@ -3,7 +3,13 @@
     "brave": {
         "new_tab_page": { "hide_all_widgets": true, "show_branded_background_image": false, "show_brave_today": false },
         "shields_settings_version": 2,
-        "hide_brave_rewards_button": true
+        "hide_brave_rewards_button": true,
+        "wallet": {
+            "auto_lock_minutes": 1,
+            "default_wallet2": 1,
+            "show_wallet_icon_on_toolbar": false,
+            "wallet_current_chain_id": "0x1"
+        }
     },
     "browser": { "custom_chrome_frame": true, "has_seen_welcome_page": true },
     "extensions": {
@@ -39,8 +45,19 @@
         },
         "theme": { "id": "pdcjjgefkpoemmlcjfcfkeminneboaob" }
     },
+    "homepage": "https://feren-os.github.io/start-page",
+    "homepage_is_newtabpage": false,
+    "ntp": {
+        "background_image_type": "off",
+        "enable_prerender": false,
+        "layout_mode": 3,
+        "news_feed_display": "off",
+        "quick_links_options": 0,
+        "show_image_of_day": false,
+        "show_settings": false
+    },
     "privacy_sandbox": { "apis_enabled": false, "floc_enabled": false, "manually_controlled": true },
-    "session": { "restore_on_startup": 5 },
+    "session": { "restore_on_startup": 4, "startup_urls": ["https://feren-os.github.io/start-page"] },
     "sessions": { "session_data_status": 3 },
     "signin": { "allowed": false },
     "sync": { "requested": false },
@@ -61,14 +78,15 @@
                 { "available": false, "forMailOnly": false, "id": "calendar", "resizable": false, "width": -1 },
                 { "available": false, "forMailOnly": false, "id": "chat", "resizable": false, "width": 290 }
             ],
-            "state": { "barVisible": true, "panelVisible": false },
+            "state": { "barVisible": false, "panelVisible": false },
             "web": { "items": [], "modified": ["ckmam0bsw00002y5xoafpww5i", "ckn7fhhqx0000hc2roo8jshm4"], "removed_items": [{ "id": "ckmam0bsw00002y5xoafpww5i" }, { "id": "ckn7fhhqx0000hc2roo8jshm4" }], "version": "99999.0.0001.01" },
             "window": { "single_click_opens": true }
         },
         "downloads": { "start_automatically": true },
+        "homepage": "https://feren-os.github.io/start-page",
         "menu": { "icon_type": 1 },
         "startpage": { "navigation": 2, "speed_dial": { "add_button_visible": false, "allow_dnd": false, "controls_visible": false, "delete_visible": false, "favicon_visible": false, "titles_visible": 1 } },
-        "startup": { "has_seen_feature": 1, "last_seen_version": "99999.0.0001.01" },
+        "startup": { "check_is_default": false, "has_seen_feature": 1, "last_seen_version": "99999.0.0001.01" },
         "status_bar": { "display": 2, "minimized": 1 },
         "system": { "show_exit_confirmation_dialog": false },
         "tabs": { "at_edge": true, "dim_hibernated": true, "focus_webview": true, "never_close_last": false, "page_load_info": 3 },

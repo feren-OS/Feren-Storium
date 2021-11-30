@@ -15,9 +15,6 @@ import subprocess
 #[2]: Browser (chrome, vivaldi, brave, msedge)
 #[3]: Website URL
 #[4]: Window Class
-#[5]: uBlock Origin? TRUE/FALSE
-#[6]: NekoCap? TRUE/FALSE
-#[7]: Dark Reader? TRUE/FALSE
 
 #Opera: Removed because Preferences location is incorrect and no application mode
 #Yandex: Removed because it didn't install Extensions
@@ -55,27 +52,27 @@ if not os.path.isdir(sys.argv[1]):
 #TODO: If browser doesn't exist, launch Store command to make it change browser
 if sys.argv[2] == "chrome":
     if os.path.isfile("/usr/bin/google-chrome"):
-        subprocess.Popen(['/usr/bin/google-chrome', '--app=' + sys.argv[3], '--class=' + sys.argv[4], '--user-data-dir=' + sys.argv[1]], close_fds=True)
+        ssbproc = subprocess.Popen(['/usr/bin/google-chrome', '--app=' + sys.argv[3], '--class=' + sys.argv[4], '--user-data-dir=' + sys.argv[1]], close_fds=True)
     else:
         pass
 elif sys.argv[2] == "vivaldi":
     if os.path.isfile("/usr/bin/vivaldi"):
-        subprocess.Popen(['/usr/bin/vivaldi', '--app=' + sys.argv[3], '--class=' + sys.argv[4], '--user-data-dir=' + sys.argv[1]], close_fds=True)
+        ssbproc = subprocess.Popen(['/usr/bin/vivaldi', '--app=' + sys.argv[3], '--class=' + sys.argv[4], '--user-data-dir=' + sys.argv[1]], close_fds=True)
     else:
         pass
 elif sys.argv[2] == "brave":
     if os.path.isfile("/usr/bin/brave-browser"):
-        subprocess.Popen(['/usr/bin/brave-browser', '--app=' + sys.argv[3], '--class=' + sys.argv[4], '--user-data-dir=' + sys.argv[1]], close_fds=True)
+        ssbproc = subprocess.Popen(['/usr/bin/brave-browser', '--app=' + sys.argv[3], '--class=' + sys.argv[4], '--user-data-dir=' + sys.argv[1]], close_fds=True)
     else:
         pass
 elif sys.argv[2] == "msedge":
     if os.path.isfile("/usr/bin/microsoft-edge"):
-        subprocess.Popen(['/usr/bin/microsoft-edge', '--app=' + sys.argv[3], '--class=' + sys.argv[4], '--user-data-dir=' + sys.argv[1]], close_fds=True)
+        ssbproc = subprocess.Popen(['/usr/bin/microsoft-edge', '--app=' + sys.argv[3], '--class=' + sys.argv[4], '--user-data-dir=' + sys.argv[1]], close_fds=True)
     else:
         pass
 #elif sys.argv[2] == "epiphany":
     ##TODO: Better way to detect Flatpaks, and, well, Flatpak itself
-    #subprocess.Popen(['/usr/bin/flatpak', 'override', '--user', 'org.gnome.Epiphany', '--filesystem=' + sys.argv[1] + '/org.gnome.Epiphany.WebApp-FerenStoreIce']).wait() # Make sure profile's accessible
+    #ssbproc = subprocess.Popen(['/usr/bin/flatpak', 'override', '--user', 'org.gnome.Epiphany', '--filesystem=' + sys.argv[1] + '/org.gnome.Epiphany.WebApp-FerenStoreIce']).wait() # Make sure profile's accessible
     
     #if os.path.isfile("/var/lib/flatpak/app/org.gnome.Epiphany/current/active/files/bin/epiphany"):
         #subprocess.Popen(['/usr/bin/flatpak', 'run', 'org.gnome.Epiphany', '--application-mode', '--profile=' + sys.argv[1] + '/org.gnome.Epiphany.WebApp-FerenStoreIce', sys.argv[3]], close_fds=True)
@@ -84,3 +81,18 @@ elif sys.argv[2] == "msedge":
 else:
     print("This browser is either not supported or doesn't exist. Feren Store Ice cannot continue.")
     exit(1)
+    
+if os.path.isfile(sys.argv[1] + "/.storium-active-pid"):
+    with open(sys.argv[1] + "/.storium-active-pid", 'r') as pidfile:
+        lastpid = pidfile.readline()
+    try:
+        lastpid = int(lastpid)
+        try:
+            os.kill(lastpid, 0) #Send a You There? to the PID identified
+        except:
+            os.remove(sys.argv[1] + "/.storium-active-pid") #The PID doesn't exist
+    except:
+        os.remove(sys.argv[1] + "/.storium-active-pid")
+if not os.path.isfile(sys.argv[1] + "/.storium-active-pid"):
+    with open(sys.argv[1] + "/.storium-active-pid", 'w') as pidfile:
+        pidfile.write(str(ssbproc.pid))

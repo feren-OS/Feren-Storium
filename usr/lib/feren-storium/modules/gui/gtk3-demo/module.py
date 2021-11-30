@@ -127,6 +127,68 @@ class AppItemButton(Gtk.Button):
                 child.destroy()
             item.destroy()
         self.destroy()
+        
+    
+####Task Item button
+class TaskItemButton(Gtk.Button):
+    
+    def __init__(self, taskid, storebrain, packageinfo={}):
+        
+        print(packageinfo)
+        #packagename = 
+        
+        Gtk.Button.__init__(self)
+        self.storebrain = storebrain
+        
+        self.child_items = []
+        
+        if packageinfo == {}:
+            packageinfo = self.storebrain.get_generic_item_info(packagename)
+        #TODO: Get default module's item info
+        
+        app_icon = AppItemIcon(self.storebrain.get_icon)
+        app_icon.set_icon(packageinfo["iconuri"], packagename)
+        
+        label_name = Gtk.Label(label=packageinfo["realname"])
+        
+        label_summary = Gtk.Label(label=packageinfo["shortdescription"])
+        
+        vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+
+        #Make sure application name and short descriptions are left-aligned in there
+        app_title_box = Gtk.Box()
+        app_desc_box = Gtk.Box()
+        app_title_box.pack_start(label_name, False, False, 0)
+        app_desc_box.pack_start(label_summary, False, False, 0)
+        
+
+        #Make the column for application name and short description
+        vbox.pack_start(app_title_box, False, False, 0)
+        vbox.pack_end(app_desc_box, False, False, 0)
+
+        hbox = Gtk.Box()
+        hbox.pack_start(app_icon, False, False, 4)
+        hbox.pack_start(vbox, False, False, 8)
+
+        self.add(hbox)
+        
+        self.child_items = [app_icon, label_name, label_summary, vbox, app_title_box, app_desc_box, hbox]
+        
+        if showwarns == True:
+            self.add_warnings(packageinfo)
+        
+        self.show_all()
+                
+    def add_warnings(self, packageinfo):
+        #TODO
+        pass
+    
+    def destroy_everything(self):
+        for item in self.child_items:
+            for child in item.get_children():
+                child.destroy()
+            item.destroy()
+        self.destroy()
 
 
 ####Application Details Header
@@ -197,24 +259,14 @@ class AppDetailsHeader(Gtk.VBox):
     
     
     def populate(self, packageinfo, currentpackage):
-        thread = Thread(target=self._populate_generic,
+        thread = Thread(target=self._populate,
                             args=(packageinfo, currentpackage))
         thread.start()
     
     def _populate(self, packageinfo, currentpackage):
-        GLib.idle_add(self.app_shortdesc.set_label, packageinfo["shortdescription"]) #Some sources like ICE have their own descriptions
-        pass #TODO
-    
-    
-    def populate_generic(self, packageinfo, currentpackage):
-        thread = Thread(target=self._populate_generic,
-                            args=(packageinfo, currentpackage))
-        thread.start()
-    
-    def _populate_generic(self, packageinfo, currentpackage):
-        GLib.idle_add(self.app_title.set_label, packageinfo["realname"])
-        GLib.idle_add(self.app_shortdesc.set_label, packageinfo["shortdescription"])
-        GLib.idle_add(self.app_icon.set_icon, packageinfo["iconuri"], currentpackage)
+        GLib.idle_add(self.app_title.set_label, packageinfo.realname)
+        GLib.idle_add(self.app_icon.set_icon, packageinfo.iconuri, currentpackage)
+        GLib.idle_add(self.app_shortdesc.set_label, packageinfo.shortdesc) #Some sources like ICE have their own descriptions
         pass #TODO
     
     
@@ -370,7 +422,6 @@ class AppMainView(Gtk.Stack):
         self.current_module_viewed = ""
         self.current_source_viewed = ""
         self.current_subsource_viewed = ""
-        self.current_generic_pkginfo = {}
         self.back_button_history = []
         
         self.gobackmode = False
@@ -685,31 +736,24 @@ class AppMainView(Gtk.Stack):
         print("DEBUG: Dummy press event")
     
         
-    def add_generic_information(self, modulename, currentpackage):
-        thread = Thread(target=self._add_generic_information,
-                            args=(modulename, currentpackage))
-        thread.start()
-        
-    def _add_generic_information(self, packageinfo, currentpackage):
-        GLib.idle_add(self.pkgpage_images.set_label, "Images: " + str(packageinfo["images"]))
-        GLib.idle_add(self.pkgpage_description.set_label, "Description: " + str(packageinfo["description"]))
-        GLib.idle_add(self.pkgpage_category.set_label, "Category: " + str(packageinfo["category"]))
-        GLib.idle_add(self.pkgpage_website.set_label, "Website: " + str(packageinfo["website"]))
-        GLib.idle_add(self.pkgpage_donateurl.set_label, "Donate URL: " + str(packageinfo["donateurl"]))
-    
-        
     def add_module_information(self, modulename, currentpackage):
         thread = Thread(target=self._add_module_information,
                             args=(modulename, currentpackage))
         thread.start()
     
     def _add_module_information(self, packageinfo, currentpackage): #TODO: Move this into using the package store data from the package management module
-        GLib.idle_add(self.pkgpage_author.set_label, "Author: " + str(packageinfo["author"]))
-        GLib.idle_add(self.pkgpage_bugsurl.set_label, "Bugs URL: " + str(packageinfo["bugreporturl"]))
-        GLib.idle_add(self.pkgpage_tosurl.set_label, "TOS URL: " + str(packageinfo["tosurl"]))
-        GLib.idle_add(self.pkgpage_privpolurl.set_label, "Privacy Policy URL: " + str(packageinfo["privpolurl"]))
+        GLib.idle_add(self.pkgpage_images.set_label, "Images: " + str(packageinfo.images))
+        GLib.idle_add(self.pkgpage_description.set_label, "Description: " + str(packageinfo.description))
+        GLib.idle_add(self.pkgpage_category.set_label, "Category: " + str(packageinfo.category))
+        GLib.idle_add(self.pkgpage_website.set_label, "Website: " + str(packageinfo.website))
+        GLib.idle_add(self.pkgpage_donateurl.set_label, "Donate URL: " + str(packageinfo.donateurl))
         
-        GLib.idle_add(self.add_warnings, packageinfo, currentpackage)
+        GLib.idle_add(self.pkgpage_author.set_label, "Author: " + str(packageinfo.author))
+        GLib.idle_add(self.pkgpage_bugsurl.set_label, "Bugs URL: " + str(packageinfo.bugreporturl))
+        GLib.idle_add(self.pkgpage_tosurl.set_label, "TOS URL: " + str(packageinfo.tosurl))
+        GLib.idle_add(self.pkgpage_privpolurl.set_label, "Privacy Policy URL: " + str(packageinfo.privpolurl))
+        
+        GLib.idle_add(self.add_warnings, self.storebrain.get_item_info(currentpackage, self.storebrain.get_package_moduleorder(currentpackage)[0]), currentpackage)
         
         
     def change_module(self, modulename, currentpackage):
@@ -725,7 +769,8 @@ class AppMainView(Gtk.Stack):
             GLib.idle_add(self.packagepagemessages[0].destroy,)
             self.packagepagemessages.pop(0)
         
-        packageinfo = self.storebrain.dict_recurupdate(self.current_generic_pkginfo, self.storebrain.get_item_info(currentpackage, modulename, False))
+        packageinfo = self.storebrain.pkgmgmt_modules[modulename].packagestorage[currentpackage]
+        
         self.add_module_information(packageinfo, currentpackage)
         self.AppDetailsHeader.populate(packageinfo, currentpackage)
         
@@ -753,10 +798,6 @@ class AppMainView(Gtk.Stack):
     
     def _goto_packagepage(self, packagename):
         self.current_item_viewed = packagename
-        self.current_generic_pkginfo = self.storebrain.get_generic_item_info(packagename)
-        self._add_generic_information(self.current_generic_pkginfo, packagename)
-        self.AppDetailsHeader._populate_generic(self.current_generic_pkginfo, packagename)
-        
         self.storebrain.add_to_packageinfo(packagename)
         self.AppDetailsHeader._populate_sources(packagename, self.storebrain.get_sources(packagename))
         

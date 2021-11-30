@@ -11,8 +11,7 @@ import gettext
 import getpass
 import collections.abc
 
-import urllib.request #Grabbing files from internet
-import urllib.error
+import requests #Grabbing files from internet
 
 class StoreBrainException(Exception): # Name this according to the module to allow easier debugging
     pass
@@ -209,7 +208,7 @@ class StoreTasks():
     
 
 
-class StoreBrain():
+class StoreBrain():    
     #Load the initial modules
     def load_modules(self):
         MODULES_DIR = "/usr/lib/feren-storium/modules"
@@ -292,6 +291,10 @@ class StoreBrain():
         self.current_pkgsubsource_selected = ""
         
         
+        #Headers information for requests
+        self.reqHeaders = {'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.114 Safari/537.36'}
+        
+        
         self.tempdir = "/tmp/feren-storium-"+getpass.getuser()
         #Make the folder if it doesn't exist
         if not os.path.isdir(self.tempdir):
@@ -309,9 +312,6 @@ class StoreBrain():
         
         # For search and whatnot
         self.refresh_overall_package_data()
-        
-        #Link for module usage
-        self.genericpkginfo = self.pkginfo_modules[self.generic_module]
                 
                 
     def refresh_overall_package_data(self):
@@ -350,6 +350,7 @@ class StoreBrain():
                 d[k] = v
         return d
     
+    
     def add_to_packageinfo(self, packageid):
         # Add package name to all packagestorages of modules that can house this package
         for module in self.pkgmgmt_modules:
@@ -387,15 +388,13 @@ class StoreBrain():
     
     
     def get_package_moduleorder(self, packagename):
-        for module in self.overall_package_data:
-            if packagename in self.overall_package_data[module]:
-                try:
-                    return self.overall_package_data[module][packagename]["order-of-module-importance"]
-                except:
-                    pass
+        try:
+            return self.pkginfo_modules[self.generic_module].getPackageJSON()[packagename]["order-of-module-importance"]
+        except:
+            pass
             
     
-    def get_item_info(self, packagename, packagetype, mergewithgeneric=True):
+    def get_item_info(self, packagename, packagetype, mergewithgeneric=True): #TODO: Figure out what TF to do with this - it currently has packagetype be the module name instead of a source name or whatever
         if mergewithgeneric == True:
             extrainfo = self.get_generic_item_info(packagename)
         else:
@@ -468,12 +467,14 @@ class StoreBrain():
         self.gui_module.set_progress(packagename, packagetype, value)
         
         
-    def get_icon(self, iconuri, packagename):
+    def get_icon(self, iconuri, packagename): #TODO: Move icons from /tmp to ~/.cache, and set a disk space cap on it
         if not iconuri.startswith("file://"):
             try:
                 #Download the application icon
                 if not os.path.isfile(self.tempdir+"/icons/"+packagename):
-                    urllib.request.urlretrieve(iconuri, self.tempdir+"/icons/"+packagename)
+                    r=requests.get(iconuri, headers=self.reqHeaders)
+                    with open(self.tempdir+"/icons/"+packagename, "wb") as f:
+                        f.write(r.content)
                 
                 return self.tempdir+"/icons/"+packagename
             except Exception as e:

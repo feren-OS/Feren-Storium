@@ -125,7 +125,7 @@ class main():
             if packageinfo == {}:
                 return
             
-            self.packagestorage[packagename] = PackageStore(packageinfo["realname"], packageinfo["iconuri"], "desc", packageinfo["description"], packageinfo["author"], packageinfo["category"], packageinfo["images"], packageinfo["website"], packageinfo["donateurl"], packageinfo["bugreporturl"], packageinfo["tosurl"], packageinfo["privpolurl"], packageinfo["canusethemes"], packageinfo["canusetouchscreen"], packageinfo["canuseaccessibility"], packageinfo["canusedpiscaling"], packageinfo["canuseonphone"], packageinfo["isofficial"], packageinfo["aptname"], packageinfo["aptsource"])
+            self.packagestorage[packagename] = PackageStore(packageinfo["realname"], packageinfo["iconuri"], packageinfo["shortdescription"], packageinfo["description"], packageinfo["author"], packageinfo["category"], packageinfo["images"], packageinfo["website"], packageinfo["donateurl"], packageinfo["bugreporturl"], packageinfo["tosurl"], packageinfo["privpolurl"], packageinfo["canusethemes"], packageinfo["canusetouchscreen"], packageinfo["canuseaccessibility"], packageinfo["canusedpiscaling"], packageinfo["canuseonphone"], packageinfo["isofficial"], packageinfo["aptname"], packageinfo["aptsource"])
 
     def get_information(self, packagename):
         # Return description for package

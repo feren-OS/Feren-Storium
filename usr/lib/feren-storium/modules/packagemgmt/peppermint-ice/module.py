@@ -8,6 +8,10 @@ import gi
 #Dependencies
 import json
 import shutil
+from datetime import datetime
+import ast
+import signal
+import time
 
 
 def should_load(): #Should this module be loaded?
@@ -19,10 +23,10 @@ class ICEModuleException(Exception): # Name this according to the module to allo
 
 
 class PackageStore():
-    def __init__(self, realname, iconuri, shortdescription, description, author, category, images, website, donateurl, bugreporturl, tosurl, privpolurl, keywords, extrasids, realnameextras, iconuriextras, websiteextras, keywordsextras):
+    def __init__(self, realname, iconuri, shortdesc, description, author, category, images, website, donateurl, bugreporturl, tosurl, privpolurl, keywords, extrasids, realnameextras, iconuriextras, websiteextras, keywordsextras):
         self.realname = realname
         self.iconuri = iconuri
-        self.shortdescription = shortdescription
+        self.shortdesc = shortdesc
         self.description = description
         self.author = author
         self.category = category
@@ -141,6 +145,7 @@ class main():
         # Return package installation status
         # 0 - Uninstalled
         # 1 - Installed
+        # 2 - Update available TODO: Indication for update available
         if os.path.isfile(os.path.expanduser("~") + "/.local/share/applications/%s.desktop" % packagename) and os.path.isdir(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s" % packagename):
             return 1
         else:
@@ -154,17 +159,17 @@ class main():
         
     #Add to Tasks
     def install_package(self, packagename, source, subsource):
-        bonuses = ["ublock", "nekocap", "imagus"] #TODO: Add confirmation prompt showing changes, and also allowing bonus selection
+        bonuses = ["ublock", "nekocap", "imagus", "googleytdislikes"] #TODO: Add confirmation prompt showing changes, and also allowing bonus selection
         
         self.storebrain.tasks.add_task(self.modulename, packagename, 0, self.packagestorage[packagename].realname, source, subsource, bonuses)
     
     def update_package(self, packagename, source, subsource):
-        #You SHOULD NOT be able to hit Update for websites anyway, so raise an error
-        self.finishing_cleanup(packagename)
-        raise ICEModuleException(_("You wouldn't update an Ice Website Application."))
+        #TODO: Add confirmation prompt showing changes
+        
+        self.storebrain.tasks.add_task(self.modulename, packagename, 1, self.packagestorage[packagename].realname, source, subsource)
     
     def remove_package(self, packagename, source, subsource):
-        #TODO: Add confirmation prompt showing changes, and also allowing bonus selection
+        #TODO: Add confirmation prompt showing changes
         
         self.storebrain.tasks.add_task(self.modulename, packagename, 2, self.packagestorage[packagename].realname, source, subsource)
         
@@ -257,7 +262,35 @@ class main():
             with open("/usr/share/feren-storium/modules/packagemgmt-ice/chromium-profile/and-imagus", 'r') as fp:
                 profiletomakeextra = json.loads(fp.read())
             profiletomake = self.storebrain.dict_recurupdate(profiletomake, profiletomakeextra)
+        if "googleytdislikes" in bonuses:
+            with open("/usr/share/feren-storium/modules/packagemgmt-ice/chromium-profile/and-googleytdislikes", 'r') as fp:
+                profiletomakeextra = json.loads(fp.read())
+            profiletomake = self.storebrain.dict_recurupdate(profiletomake, profiletomakeextra)
         
+        
+        #Extra site-specific tweaks
+        profiletomake["homepage"] = self.packagestorage[packagename].website
+        profiletomake["session"]["startup_urls"] = [self.packagestorage[packagename].website]
+        profiletomake["vivaldi"]["homepage"] = self.packagestorage[packagename].website
+        
+        #TODO: Figure out doing themes for Chrome to colour the windows by their website colours
+        
+        
+        #Write last updated date to be used in update checks
+        try:
+            with open(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/.storium-last-updated" % packagename, 'w') as fp:
+                fp.write(datetime.today().strftime('%Y%m%d')) # This means that Storium can update some parts of it whenever appropriate
+        except Exception as exceptionstr:
+            self.task_remove_package(packagename, subsource, True) #Remove profile's files/folders on failure
+            raise ICEModuleException(_("Failed to install {0}: {1} was encountered when writing the last updated date").format(packagename, exceptionstr))
+        
+        #Write default browser value to be used for the update process
+        try:
+            with open(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/.storium-default-browser" % packagename, 'w') as fp:
+                fp.write(subsource) # Used by module during updating to determine your browser
+        except Exception as exceptionstr:
+            self.task_remove_package(packagename, subsource, True) #Remove profile's files/folders on failure
+            raise ICEModuleException(_("Failed to install {0}: {1} was encountered when setting the browser you selected").format(packagename, exceptionstr))
         
         self.storebrain.set_progress(packagename, "peppermint-ice", 60)
         
@@ -269,28 +302,12 @@ class main():
         except Exception as exceptionstr:
             self.task_remove_package(packagename, subsource, True) #Remove profile's files/folders on failure
             raise ICEModuleException(_("Failed to install {0}: {1} was encountered when writing the Chromium-based profile").format(packagename, exceptionstr))
-        
-        
-        #Write .desktop file
-        if "nekocap" in bonuses:
-            nekocaparg = "true"
-        else:
-            nekocaparg = "false"
-        if "ublock" in bonuses:
-            ublockarg = "true"
-        else:
-            ublockarg = "false"
-        if "darkreader" in bonuses:
-            darkreadarg = "true"
-        else:
-            darkreadarg = "false"
             
             
         self.storebrain.set_progress(packagename, "peppermint-ice", 72)            
             
             
         try:
-
             with open(os.path.expanduser("~") + "/.local/share/applications/%s.desktop" % packagename, 'w') as fp:
                 # I mean, this needs no explanation, it's a .desktop file
                 fp.write("[Desktop Entry]\n")
@@ -298,7 +315,7 @@ class main():
                 fp.write("Name={0}\n".format(self.packagestorage[packagename].realname))
                 fp.write("Comment={0}\n".format(_("Website (obtained from Store)")))
                 
-                fp.write("Exec=/usr/bin/feren-storium-icelaunch {0} {1} {2} {3} {4} {5} {6}\n".format(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s" % packagename, subsource, self.packagestorage[packagename].website, packagename, ublockarg, nekocaparg, darkreadarg))
+                fp.write("Exec=/usr/bin/feren-storium-icelaunch {0} {1} {2} {3}\n".format(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s" % packagename, subsource, self.packagestorage[packagename].website, packagename))
 
                 fp.write("Terminal=false\n")
                 fp.write("X-MultipleArgs=false\n")
@@ -338,6 +355,15 @@ class main():
             self.task_remove_package(packagename, subsource, True) #Remove profile's files/folders on failure
             raise ICEModuleException(_("Failed to install {0}: {1} was encountered when creating a shortcut in the Applications Menu").format(packagename, exceptionstr))
         
+        
+        #Write Extra IDs to be used as a backup
+        try:
+            with open(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/.storium-extra-ids" % packagename, 'w') as fp:
+                fp.write(str(self.packagestorage[packagename].extrasids)) # This means that Storium can manage bonuses later on in time
+        except Exception as exceptionstr:
+            self.task_remove_package(packagename, subsource, True) #Remove profile's files/folders on failure
+            raise ICEModuleException(_("Failed to install {0}: {1} was encountered when making a note of the SSB's extra shortcuts").format(packagename, exceptionstr))
+        
         #Now repeat for extras, if appropriate
         extrascount = 0 #Classic strat for iteration
         if self.packagestorage[packagename].extrasids != []:
@@ -352,7 +378,7 @@ class main():
                     fp.write("Name={0}\n".format(self.packagestorage[packagename].realnameextras[extrascount]))
                     fp.write("Comment={0}\n".format(_("Website (obtained from Store)")))
                     
-                    fp.write("Exec=/usr/bin/feren-storium-icelaunch {0} {1} {2} {3} {4} {5} {6}\n".format(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s" % packagename, subsource, self.packagestorage[packagename].websiteextras[extrascount], packagename, ublockarg, nekocaparg, darkreadarg))
+                    fp.write("Exec=/usr/bin/feren-storium-icelaunch {0} {1} {2} {3}\n".format(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s" % packagename, subsource, self.packagestorage[packagename].websiteextras[extrascount], packagename))
 
                     fp.write("Terminal=false\n")
                     fp.write("X-MultipleArgs=false\n")
@@ -401,10 +427,21 @@ class main():
         self.storebrain.set_progress(packagename, "peppermint-ice", 100)
         
         #Clean up after management
-        self.finishing_cleanup(packagename)
+        self.finishing_cleanup(packagename) #TODO: Make Tasks run this
         return True
     
+    
     def task_remove_package(self, packagename, source, subsource, forinstall=False):
+        if os.path.isfile(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/.storium-active-pid" % packagename):
+            with open(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/.storium-active-pid" % packagename, 'r') as pidfile:
+                currentpid = pidfile.readline()
+                try:
+                    currentpid = int(currentpid)
+                    os.kill(currentpid, signal.SIGKILL) #Kill the process immediately, so we can remove it
+                    time.sleep(0.4) #Should give enough time for everything to clear out process-wise
+                except:
+                    pass
+        
         if packagename not in self.packagestorage:
             raise ICEModuleException(_("%s is not in the Package Storage (packagestorage) yet - make sure it's in the packagestorage variable before obtaining package information.") % packagename)
         
@@ -447,9 +484,273 @@ class main():
             self.finishing_cleanup(packagename)
         return True
     
+    
     def task_update_package(self, packagename, source, subsource):
-        self.finishing_cleanup(packagename)
-        raise ICEModuleException(_("You wouldn't update an Ice Website Application."))
+        if packagename not in self.packagestorage:
+            raise ICEModuleException(_("%s is not in the Package Storage (packagestorage) yet - make sure it's in the packagestorage variable before obtaining package information.") % packagename)
+        
+        if os.path.isfile(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/.storium-active-pid" % packagename):
+            with open(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/.storium-active-pid" % packagename, 'r') as pidfile:
+                currentpid = pidfile.readline()
+            pidisrunning = False
+            try:
+                currentpid = int(currentpid)
+                try:
+                    os.kill(currentpid, 0) #Send a You There? to the PID identified
+                    pidisrunning = True #If we didn't just cause an exception by doing that, the PID exists
+                except:
+                    pass
+            except:
+                try:
+                    os.kill(currentpid, signal.SIGTERM) #Fallback since we don't know if it's running or not
+                    time.sleep(0.4)
+                except:
+                    pass
+            if pidisrunning == True:
+                raise ICEModuleException(_("Failed to update {0}: Running Website Applications cannot be updated until they are closed").format(packagename))
+        
+        #Install package and return exit code
+        self.packagemgmtbusy = True
+        self.currentpackagename = packagename
+        
+        #Create the .desktop file's home if it doesn't exist
+        if not os.path.isdir(os.path.expanduser("~") + "/.local/share/applications"):
+            try:
+                os.mkdir(os.path.expanduser("~") + "/.local/share/applications")
+            except Exception as exceptionstr:
+                raise ICEModuleException(_("Failed to update {0}: {1} was encountered when trying to create the shortcut's location").format(packagename, exceptionstr))
+            
+            
+        self.storebrain.set_progress(packagename, "peppermint-ice", 12)
+            
+        #Get some data from the files
+        if os.path.isfile(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/.storium-default-browser" % packagename):
+            with open(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/.storium-default-browser" % packagename, 'r') as fp:
+                currenticebrowser = fp.readline()
+        else:
+            currenticebrowser = subsource #Fallback
+        if os.path.isfile(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/.storium-extra-ids" % packagename):
+            with open(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/.storium-extra-ids" % packagename, 'r') as fp:
+                currenticeextraids = ast.literal_eval(fp.readline())
+        else:
+            currenticeextraids = [] #Fallback
+            
+            
+        self.storebrain.set_progress(packagename, "peppermint-ice", 24)
+            
+        try:
+            if not os.path.isfile(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/First Run" % packagename):
+                with open(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/First Run" % packagename, 'w') as fp:
+                    pass
+        except Exception as exceptionstr:
+            raise ICEModuleException(_("Failed to update {0}: {1} was encountered when updating the Chromium-based profile").format(packagename, exceptionstr))
+        try:
+            if not os.path.isdir(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/Default" % packagename):
+                os.mkdir(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/Default" % packagename)
+        except Exception as exceptionstr:
+            raise ICEModuleException(_("Failed to update {0}: {1} was encountered when updating the Chromium-based profile").format(packagename, exceptionstr))
+        
+        self.storebrain.set_progress(packagename, "peppermint-ice", 36)
+            
+        
+        usefallbackicon = False
+        #Copy icon for package
+        try:
+            if os.path.isfile(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/icon" % packagename):
+                os.remove(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/icon" % packagename)
+        except Exception as exceptionstr:
+            raise ICEModuleException(_("Failed to update {0}: {1} was encountered when updating the application icon").format(packagename, exceptionstr))
+        try:
+            shutil.copy(self.storebrain.tempdir + "/icons/" + packagename, os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/icon" % packagename)
+        except Exception as exceptionstr:
+            usefallbackicon = True
+            
+            
+        self.storebrain.set_progress(packagename, "peppermint-ice", 48)
+            
+        
+        
+        #Now to update the JSON file
+        with open("/usr/share/feren-storium/modules/packagemgmt-ice/chromium-profile/Preferences", 'r') as fp:
+            profiledefaults = json.loads(fp.read())
+            
+        try:
+            with open(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/Default/Preferences" % packagename, 'r') as fp:
+                profiletoupdate = json.loads(fp.read())
+        except Exception as exceptionstr:
+            raise ICEModuleException(_("Failed to update {0}: {1} was encountered when reading the browser profile (is the profile corrupt?)").format(packagename, exceptionstr))
+        
+        profiletoupdate = self.storebrain.dict_recurupdate(profiletoupdate, profiledefaults)
+        
+        
+        #Extra site-specific tweaks
+        profiletoupdate["homepage"] = self.packagestorage[packagename].website
+        profiletoupdate["session"]["startup_urls"] = [self.packagestorage[packagename].website]
+        profiletoupdate["vivaldi"]["homepage"] = self.packagestorage[packagename].website
+        
+        #TODO: Figure out doing themes for Chrome to colour the windows by their website colours
+        
+        
+        #Write last updated date to be used in update checks
+        try:
+            with open(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/.storium-last-updated" % packagename, 'w') as fp:
+                fp.write(datetime.today().strftime('%Y%m%d'))
+        except Exception as exceptionstr:
+            raise ICEModuleException(_("Failed to update {0}: {1} was encountered when writing the last updated date").format(packagename, exceptionstr))
+        
+        #Write default browser value to be used for the update process
+        try:
+            if not os.path.isfile(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/.storium-default-browser" % packagename):
+                with open(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/.storium-default-browser" % packagename, 'w') as fp:
+                    fp.write(currenticebrowser) # Used by module during updating to determine your browser
+        except Exception as exceptionstr:
+            self.task_remove_package(packagename, subsource, True) #Remove profile's files/folders on failure
+            raise ICEModuleException(_("Failed to update {0}: {1} was encountered when noting the browser selection value").format(packagename, exceptionstr))
+        
+        
+        #Write profile
+        try:
+            with open(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/Default/Preferences" % packagename, 'w') as fp:
+                fp.write(json.dumps(profiletoupdate, separators=(',', ':')))
+        except Exception as exceptionstr:
+            raise ICEModuleException(_("Failed to update {0}: {1} was encountered when writing the Chromium-based profile").format(packagename, exceptionstr))
+            
+            
+        self.storebrain.set_progress(packagename, "peppermint-ice", 72)            
+            
+            
+        try:
+            with open(os.path.expanduser("~") + "/.local/share/applications/%s.desktop" % packagename, 'w') as fp:
+                # I mean, this needs no explanation, it's a .desktop file
+                fp.write("[Desktop Entry]\n")
+                fp.write("Version=1.0\n")
+                fp.write("Name={0}\n".format(self.packagestorage[packagename].realname))
+                fp.write("Comment={0}\n".format(_("Website (obtained from Store)")))
+                
+                fp.write("Exec=/usr/bin/feren-storium-icelaunch {0} {1} {2} {3}\n".format(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s" % packagename, currenticebrowser, self.packagestorage[packagename].website, packagename))
+
+                fp.write("Terminal=false\n")
+                fp.write("X-MultipleArgs=false\n")
+                fp.write("Type=Application\n")
+                
+                if usefallbackicon == True:
+                    fp.write("Icon=text-html\n")
+                else:
+                    fp.write("Icon={0}\n".format(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/icon" % packagename))
+
+                #Ice stuff will have their own categories to allow for easier sectioning of items in Store overall
+                if self.packagestorage[packagename].category == "ice-accessories":
+                    location = "Utility;"
+                elif self.packagestorage[packagename].category == "ice-games":
+                    location = "Game;"
+                elif self.packagestorage[packagename].category == "ice-graphics":
+                    location = "Graphics;"
+                elif self.packagestorage[packagename].category == "ice-internet":
+                    location = "Network;"
+                elif self.packagestorage[packagename].category == "ice-office":
+                    location = "Office;"
+                elif self.packagestorage[packagename].category == "ice-programming":
+                    location = "Development;"
+                elif self.packagestorage[packagename].category == "ice-multimedia":
+                    location = "AudioVideo;"
+                elif self.packagestorage[packagename].category == "ice-system":
+                    location = "System;"
+                
+                fp.write("Categories=GTK;Qt;{0}\n".format(location))
+                fp.write("MimeType=text/html;text/xml;application/xhtml_xml;\n")
+
+                fp.write("Keywords=%s\n" % self.packagestorage[packagename].keywords)
+
+                fp.write("StartupWMClass=%s\n" % packagename)
+                fp.write("StartupNotify=true\n")
+        except Exception as exceptionstr:
+            raise ICEModuleException(_("Failed to update {0}: {1} was encountered when updating the shortcut in the Applications Menu").format(packagename, exceptionstr))
+        
+        
+        #Remove old extra shortcuts
+        for extraid in currenticeextraids:
+            try:
+                if os.path.isfile(os.path.expanduser("~") + "/.local/share/applications/{0}-{1}.desktop".format(packagename, extraid)):
+                    os.remove(os.path.expanduser("~") + "/.local/share/applications/{0}-{1}.desktop".format(packagename, extraid))
+            except Exception as exceptionstr:
+                raise ICEModuleException(_("Failed to update {0}: {1} was encountered when removing extra shortcuts to replace with new ones").format(packagename, exceptionstr))
+            try:
+                if os.path.isfile(os.path.expanduser("~") + "/.local/share/feren-storium-ice/{0}/icon-{1}".format(packagename, extraid)):
+                    os.remove(os.path.expanduser("~") + "/.local/share/feren-storium-ice/{0}/icon-{1}".format(packagename, extraid))
+            except Exception as exceptionstr:
+                raise ICEModuleException(_("Failed to update {0}: {1} was encountered when removing extra icons to replace with new ones").format(packagename, exceptionstr))
+        
+        #Write the new Extra IDs to be used as a backup
+        try:
+            with open(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/.storium-extra-ids" % packagename, 'w') as fp:
+                fp.write(str(self.packagestorage[packagename].extrasids)) # This means that Storium can manage bonuses later on in time
+        except Exception as exceptionstr:
+            raise ICEModuleException(_("Failed to update {0}: {1} was encountered when making a note of the SSB's extra shortcuts").format(packagename, exceptionstr))
+        
+        #Now repeat for extras, if appropriate
+        extrascount = 0 #Classic strat for iteration
+        if self.packagestorage[packagename].extrasids != []:
+            import urllib.request #Grabbing files from internet
+            import urllib.error
+        for extraid in self.packagestorage[packagename].extrasids:
+            try:
+                with open(os.path.expanduser("~") + "/.local/share/applications/{0}-{1}.desktop".format(packagename, extraid), 'w') as fp:
+                    # I mean, this needs no explanation, it's a .desktop file
+                    fp.write("[Desktop Entry]\n")
+                    fp.write("Version=1.0\n")
+                    fp.write("Name={0}\n".format(self.packagestorage[packagename].realnameextras[extrascount]))
+                    fp.write("Comment={0}\n".format(_("Website (obtained from Store)")))
+                    
+                    fp.write("Exec=/usr/bin/feren-storium-icelaunch {0} {1} {2} {3}\n".format(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s" % packagename, currenticebrowser, self.packagestorage[packagename].websiteextras[extrascount], packagename))
+
+                    fp.write("Terminal=false\n")
+                    fp.write("X-MultipleArgs=false\n")
+                    fp.write("Type=Application\n")
+                    
+                    try:
+                        urllib.request.urlretrieve(self.packagestorage[packagename].iconuriextras[extrascount], (os.path.expanduser("~") + "/.local/share/feren-storium-ice/{0}/icon-{1}".format(packagename, extraid)))
+                        fp.write("Icon=%s\n" % (os.path.expanduser("~") + "/.local/share/feren-storium-ice/{0}/icon-{1}".format(packagename, extraid)))
+                    except:
+                        fp.write("Icon=text-html\n")
+
+                    if self.packagestorage[packagename].category == "ice-accessories":
+                        location = "Utility;"
+                    elif self.packagestorage[packagename].category == "ice-games":
+                        location = "Game;"
+                    elif self.packagestorage[packagename].category == "ice-graphics":
+                        location = "Graphics;"
+                    elif self.packagestorage[packagename].category == "ice-internet":
+                        location = "Network;"
+                    elif self.packagestorage[packagename].category == "ice-office":
+                        location = "Office;"
+                    elif self.packagestorage[packagename].category == "ice-programming":
+                        location = "Development;"
+                    elif self.packagestorage[packagename].category == "ice-multimedia":
+                        location = "AudioVideo;"
+                    elif self.packagestorage[packagename].category == "ice-system":
+                        location = "System;"
+                    
+                    fp.write("Categories=GTK;Qt;{0}\n".format(location))
+                    fp.write("MimeType=text/html;text/xml;application/xhtml_xml;\n")
+
+                    fp.write("Keywords=%s\n" % self.packagestorage[packagename].keywordsextras[extrascount])
+
+                    fp.write("StartupNotify=true\n")
+            except Exception as exceptionstr:
+                raise ICEModuleException(_("Failed to update {0}: {1} was encountered when updating extra shortcuts in the Applications Menu").format(packagename, exceptionstr))
+            os.system("chmod +x " + os.path.expanduser("~") + "/.local/share/applications/{0}-{1}.desktop".format(packagename, extraid))
+            extrascount += 1
+            
+        self.storebrain.set_progress(packagename, "peppermint-ice", 99)
+        
+        #Otherwise they'll refuse to launch from the Applications Menu (bug seen in Mint's own Ice code fork)
+        os.system("chmod +x " + os.path.expanduser("~") + "/.local/share/applications/%s.desktop" % packagename)
+            
+        self.storebrain.set_progress(packagename, "peppermint-ice", 100)
+        
+        #Clean up after management
+        self.finishing_cleanup(packagename) #TODO: Make Tasks run this
+    
     
     def get_package_changes(self, pkgsinstalled, pkgsupdated, pkgsremoved):
         #Examine the package changes - pkgsinstalled, pkgsupdated and pkgsremoved are lists
