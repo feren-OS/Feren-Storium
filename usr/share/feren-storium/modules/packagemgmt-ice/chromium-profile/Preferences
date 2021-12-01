@@ -12,6 +12,7 @@
         }
     },
     "browser": { "custom_chrome_frame": true, "has_seen_welcome_page": true },
+    "download": { "default_directory": "", "directory_upgrade": true },
     "extensions": {
         "settings": {
             "pdcjjgefkpoemmlcjfcfkeminneboaob": {

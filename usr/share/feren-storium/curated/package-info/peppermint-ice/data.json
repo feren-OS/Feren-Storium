@@ -1,10 +1,16 @@
 {
   "storium-ice-google-youtube": {
+    "shortdescription": "Website Application - includes YouTube Music",
     "keywords": "Google;You;Videos;Broadcast;",
     "author": "Google",
     "bugreporturl": "",
     "tosurl": "",
-    "privpolurl": ""
+    "privpolurl": "",
+    "extrasids": ["music"],
+    "realnameextras": ["YouTube Music"],
+    "iconuriextras": ["https://www.gstatic.com/youtube/media/ytm/images/applauncher/music_icon_512x512.png"],
+    "websiteextras": ["https://music.youtube.com"],
+    "keywordsextras": ["Google;You;Music;Subscription;"]
   },
   "storium-ice-microsoft-office-online": {
     "shortdescription": "Microsoft Office Online - includes Word, Excel, PowerPoint, OneNote, Teams, Outlook and To Do",

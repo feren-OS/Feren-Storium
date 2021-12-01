@@ -12,6 +12,8 @@ from datetime import datetime
 import ast
 import signal
 import time
+import gi
+from gi.repository import GLib
 
 
 def should_load(): #Should this module be loaded?
@@ -147,7 +149,7 @@ class main():
         # 1 - Installed
         # 2 - Update available TODO: Indication for update available
         if os.path.isfile(os.path.expanduser("~") + "/.local/share/applications/%s.desktop" % packagename) and os.path.isdir(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s" % packagename):
-            return 1
+            return 2 #DEBUG VALUE, actually 1
         else:
             return 0
     
@@ -272,6 +274,7 @@ class main():
         profiletomake["homepage"] = self.packagestorage[packagename].website
         profiletomake["session"]["startup_urls"] = [self.packagestorage[packagename].website]
         profiletomake["vivaldi"]["homepage"] = self.packagestorage[packagename].website
+        profiletomake["download"]["default_directory"] = GLib.get_user_special_dir(GLib.UserDirectory.DIRECTORY_DOWNLOAD) + "/" + _("{0} Downloads").format(self.packagestorage[packagename].realname) #TODO: Allow configuration of downloads location, whether or not to save to individual folders
         
         #TODO: Figure out doing themes for Chrome to colour the windows by their website colours
         
@@ -376,7 +379,7 @@ class main():
                     fp.write("[Desktop Entry]\n")
                     fp.write("Version=1.0\n")
                     fp.write("Name={0}\n".format(self.packagestorage[packagename].realnameextras[extrascount]))
-                    fp.write("Comment={0}\n".format(_("Website (obtained from Store)")))
+                    fp.write("Comment={0}\n".format(_("Website (part of %s)" % self.packagestorage[packagename].realname)))
                     
                     fp.write("Exec=/usr/bin/feren-storium-icelaunch {0} {1} {2} {3}\n".format(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s" % packagename, subsource, self.packagestorage[packagename].websiteextras[extrascount], packagename))
 
@@ -587,6 +590,7 @@ class main():
         profiletoupdate["homepage"] = self.packagestorage[packagename].website
         profiletoupdate["session"]["startup_urls"] = [self.packagestorage[packagename].website]
         profiletoupdate["vivaldi"]["homepage"] = self.packagestorage[packagename].website
+        profiletoupdate["download"]["default_directory"] = GLib.get_user_special_dir(GLib.UserDirectory.DIRECTORY_DOWNLOAD) + "/" + _("{0} Downloads").format(self.packagestorage[packagename].realname)
         
         #TODO: Figure out doing themes for Chrome to colour the windows by their website colours
         
@@ -699,7 +703,7 @@ class main():
                     fp.write("[Desktop Entry]\n")
                     fp.write("Version=1.0\n")
                     fp.write("Name={0}\n".format(self.packagestorage[packagename].realnameextras[extrascount]))
-                    fp.write("Comment={0}\n".format(_("Website (obtained from Store)")))
+                    fp.write("Comment={0}\n".format(_("Website (part of %s)" % self.packagestorage[packagename].realname)))
                     
                     fp.write("Exec=/usr/bin/feren-storium-icelaunch {0} {1} {2} {3}\n".format(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s" % packagename, currenticebrowser, self.packagestorage[packagename].websiteextras[extrascount], packagename))
 

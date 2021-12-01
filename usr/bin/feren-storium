@@ -17,6 +17,7 @@ class StoreBrainException(Exception): # Name this according to the module to all
     pass
 
 #TODO: Change sources usage for package information to package module usage
+#TODO: Change up package storage to merely store package information, rather than be the overcomplicated thing it is right now.
 
 #This class here is the main brains that connect the pieces of code together per each module
 class StoreModuleContainer():
@@ -190,21 +191,24 @@ class StoreTasks():
         
         print("TASKS DEBUG: Working on", task)
         moduletype = taskdata["type"]
-        if moduletype == "item":
-            if taskdata["operation"] == 0:
-                self.storebrain.pkgmgmt_modules[taskdata["module"]].task_install_package(taskdata["packagename"], taskdata["source"], taskdata["subsource"], taskdata["bonuses"])
-            elif taskdata["operation"] == 1:
-                self.storebrain.pkgmgmt_modules[taskdata["module"]].task_update_package(taskdata["packagename"], taskdata["source"], taskdata["subsource"])
-            elif taskdata["operation"] == 2:
-                self.storebrain.pkgmgmt_modules[taskdata["module"]].task_remove_package(taskdata["packagename"], taskdata["source"], taskdata["subsource"])
-        elif moduletype == "packageitem":
-            pass
-        elif moduletype == "source":
-            pass
-        #TODO
-        
-        #do_task is ran via a Thread, so we do the code in a non-threaded way.
-        print("TASKS DEBUG: Finished", task)        
+        try:
+            if moduletype == "item":
+                if taskdata["operation"] == 0:
+                    self.storebrain.pkgmgmt_modules[taskdata["module"]].task_install_package(taskdata["packagename"], taskdata["source"], taskdata["subsource"], taskdata["bonuses"])
+                elif taskdata["operation"] == 1:
+                    self.storebrain.pkgmgmt_modules[taskdata["module"]].task_update_package(taskdata["packagename"], taskdata["source"], taskdata["subsource"])
+                elif taskdata["operation"] == 2:
+                    self.storebrain.pkgmgmt_modules[taskdata["module"]].task_remove_package(taskdata["packagename"], taskdata["source"], taskdata["subsource"])
+            elif moduletype == "packageitem":
+                pass
+            elif moduletype == "source":
+                pass
+            #TODO
+            
+            #do_task is ran via a Thread, so we do the code in a non-threaded way.
+            print("TASKS DEBUG: Finished", task)
+        except Exception as exceptionstr:
+            print("TASKS DEBUG: TASK FAILED:", task+":", exceptionstr)
     
 
 
