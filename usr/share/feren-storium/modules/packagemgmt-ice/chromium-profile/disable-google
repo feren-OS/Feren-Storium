@@ -1,0 +1,10 @@
+{
+    "vivaldi": {
+        "privacy": {
+            "google_component_extensions": {
+                "crypto_token": false,
+                "hangout_services": false
+            }
+        }
+    }
+}

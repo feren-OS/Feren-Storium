@@ -247,6 +247,23 @@ class main():
         #Now to make the JSON file
         with open("/usr/share/feren-storium/modules/packagemgmt-ice/chromium-profile/Preferences", 'r') as fp:
             profiletomake = json.loads(fp.read())
+            
+        with open("/usr/share/feren-storium/modules/packagemgmt-ice/chromium-profile/and-plasmaintegration", 'r') as fp:
+            profiletomakeextra = json.loads(fp.read())
+        profiletomake = self.storebrain.dict_recurupdate(profiletomake, profiletomakeextra)
+        
+        #TODO: Make this an option in metadata once pkgdata is converted
+        with open("/usr/share/feren-storium/modules/packagemgmt-ice/chromium-profile/disable-google", 'r') as fp:
+            profiletomakeextra = json.loads(fp.read())
+        profiletomake = self.storebrain.dict_recurupdate(profiletomake, profiletomakeextra)
+        #TODO: This as well
+        try:
+            with open(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/.storium-nohistory" % packagename, 'w') as fp:
+                pass
+        except Exception as exceptionstr:
+            self.task_remove_package(packagename, subsource, True) #Remove profile's files/folders on failure
+            raise ICEModuleException(_("Failed to install {0}: {1} was encountered when setting up automatic history deletion").format(packagename, exceptionstr))
+        
         
         if "nekocap" in bonuses:
             with open("/usr/share/feren-storium/modules/packagemgmt-ice/chromium-profile/and-nekocap", 'r') as fp:

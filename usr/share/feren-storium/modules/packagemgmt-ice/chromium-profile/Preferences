@@ -13,6 +13,7 @@
     },
     "browser": { "custom_chrome_frame": true, "has_seen_welcome_page": true },
     "download": { "default_directory": "", "directory_upgrade": true },
+    "enable_do_not_track": true,
     "extensions": {
         "settings": {
             "pdcjjgefkpoemmlcjfcfkeminneboaob": {
@@ -64,7 +65,8 @@
     "sync": { "requested": false },
     "unified_consent": { "migration_state": 10 },
     "vivaldi": {
-        "address_bar": { "search": { "display": 2 } },
+        "address_bar": { "search": { "display": 2 }, "show_profile": false },
+        "autofill": { "server_assist": false },
         "panels": {
             "list": [
                 { "available": false, "forMailOnly": false, "format": 7, "id": "format", "resizable": false, "width": -1 },
@@ -80,14 +82,16 @@
                 { "available": false, "forMailOnly": false, "id": "chat", "resizable": false, "width": 290 }
             ],
             "state": { "barVisible": false, "panelVisible": false },
-            "web": { "items": [], "modified": ["ckmam0bsw00002y5xoafpww5i", "ckn7fhhqx0000hc2roo8jshm4"], "removed_items": [{ "id": "ckmam0bsw00002y5xoafpww5i" }, { "id": "ckn7fhhqx0000hc2roo8jshm4" }], "version": "99999.0.0001.01" },
+            "version": "9999.0.0001.01",
+            "web": { "items": [], "modified": ["ckmam0bsw00002y5xoafpww5i", "ckn7fhhqx0000hc2roo8jshm4"], "removed_items": [{ "id": "ckmam0bsw00002y5xoafpww5i" }, { "id": "ckn7fhhqx0000hc2roo8jshm4" }], "version": "9999.0.0001.01" },
             "window": { "single_click_opens": true }
         },
-        "downloads": { "start_automatically": true },
+        "downloads": { "start_automatically": true, "notify_on_complete": false, "use_popout": true },
         "homepage": "https://feren-os.github.io/start-page",
         "menu": { "icon_type": 1 },
+        "privacy": { "google_component_extensions": { "web_store": false } },
         "startpage": { "navigation": 2, "speed_dial": { "add_button_visible": false, "allow_dnd": false, "controls_visible": false, "delete_visible": false, "favicon_visible": false, "titles_visible": 1 } },
-        "startup": { "check_is_default": false, "has_seen_feature": 1, "last_seen_version": "99999.0.0001.01" },
+        "startup": { "check_is_default": false, "has_seen_feature": 1, "last_seen_version": "9999.0.0001.01" },
         "status_bar": { "display": 2, "minimized": 1 },
         "system": { "show_exit_confirmation_dialog": false },
         "tabs": { "at_edge": true, "dim_hibernated": true, "focus_webview": true, "never_close_last": false, "page_load_info": 3 },

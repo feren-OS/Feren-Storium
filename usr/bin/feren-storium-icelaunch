@@ -2,6 +2,8 @@
 import os
 import sys
 import subprocess
+import time
+import shutil
 
 #######################################################################################
 # ICE Shortcut Launcher - Feren Storium                                               #
@@ -48,6 +50,18 @@ if not os.path.isdir(sys.argv[1]):
         #exit(1)
     #if not os.path.isdir(sys.argv[1] + '/org.gnome.Epiphany.WebApp-FerenStoreIce'):
         #mkprofile(sys.argv[1] + '/org.gnome.Epiphany.WebApp-FerenStoreIce')
+    
+
+if os.path.isfile(sys.argv[1] + "/.storium-nohistory"):
+    if os.path.isfile(sys.argv[1] + "/Default/History"):
+        os.remove(sys.argv[1] + "/Default/History")
+    if os.path.isfile(sys.argv[1] + "/Default/History-journal"):
+        os.remove(sys.argv[1] + "/Default/History-journal")
+    if os.path.isdir(sys.argv[1] + "/Default/Sessions"):
+        shutil.rmtree(sys.argv[1] + "/Default/Sessions")
+    
+
+
     
 #TODO: If browser doesn't exist, launch Store command to make it change browser
 if sys.argv[2] == "chrome":
@@ -96,3 +110,15 @@ if os.path.isfile(sys.argv[1] + "/.storium-active-pid"):
 if not os.path.isfile(sys.argv[1] + "/.storium-active-pid"):
     with open(sys.argv[1] + "/.storium-active-pid", 'w') as pidfile:
         pidfile.write(str(ssbproc.pid))
+        
+
+
+if os.path.isfile(sys.argv[1] + "/.storium-nohistory"):
+    #FIXME: We need a better way of doing this.
+    time.sleep(16)
+    if os.path.isfile(sys.argv[1] + "/Default/History"):
+        os.remove(sys.argv[1] + "/Default/History")
+    if os.path.isfile(sys.argv[1] + "/Default/History-journal"):
+        os.remove(sys.argv[1] + "/Default/History-journal")
+    if os.path.isdir(sys.argv[1] + "/Default/Sessions"):
+        shutil.rmtree(sys.argv[1] + "/Default/Sessions")
