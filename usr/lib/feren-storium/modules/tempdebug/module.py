@@ -39,29 +39,11 @@ class DebugWindow(object):
     def gotopkgpagebtn_pressed(self, gtk_widget):
         self.storebrain.gui_module.mainpage._goto_packageview(self.textboxpkgpage.get_text())
         
-    def testiceinstall_pressed(self, gtk_widget):
-        bonuses = []
-        if self.checkboxnekocap.get_active() == True:
-            bonuses.append("nekocap")
-        if self.checkboxdarkread.get_active() == True:
-            bonuses.append("darkreader")
-        if self.checkboxublock.get_active() == True:
-            bonuses.append("ublock")
-        
-        self.storebrain.package_module("peppermint-ice").pkgstorage_add(self.textboxicepkgname.get_text())
-        
-        self.storebrain.package_module("peppermint-ice").install_package(self.textboxicepkgname.get_text(), self.textboxicesource.get_text(), bonuses)
-        
-    def testiceremove_pressed(self, gtk_widget):
-        self.storebrain.package_module("peppermint-ice").pkgstorage_add(self.textboxicepkgname.get_text())
-        
-        self.storebrain.package_module("peppermint-ice").remove_package(self.textboxicepkgname.get_text(), self.textboxicesource.get_text())
-        
     def testiceinfo_pressed(self, gtk_widget):
-        print(self.storebrain.get_item_info(self.textboxicepkgname.get_text(), "peppermint-ice"))
+        print(self.storebrain.get_sources(self.textboxpkgpage.get_text()))
         
     def testiteminfo_pressed(self, gtk_widget):
-        print(self.storebrain.get_item_info(self.textboxpkgpage.get_text()))
+        print(self.storebrain.get_item_info_default(self.textboxpkgpage.get_text()))
         
     def addmessage_pressed(self, gtk_widget):
         self.storebrain.gui_module.mainpage.add_message("info", self.addmessagetbox.get_text(), self.testbutton_pressed, "button test")
@@ -91,31 +73,13 @@ class DebugWindow(object):
         
         self.gotopkgpagebtn.connect("clicked", self.gotopkgpagebtn_pressed)
         
-        self.textboxicepkgname = Gtk.Entry()
-        self.textboxicepkgname.set_placeholder_text("ice package to manage")
-        self.textboxicesource = Gtk.Entry()
-        self.textboxicesource.set_placeholder_text("browser to aim for")
-        self.checkboxublock = Gtk.CheckButton(label="add ublock")
-        self.checkboxnekocap = Gtk.CheckButton(label="add nekocap")
-        self.checkboxdarkread = Gtk.CheckButton(label="add darkreader")
-        self.iceinstall = Gtk.Button(label="ice install")
-        self.iceremove = Gtk.Button(label="ice remove")
-        self.icegetinfo = Gtk.Button(label="ice get info")
+        self.icegetinfo = Gtk.Button(label="get sources")
         
-        yeet.pack_start(self.textboxicepkgname, True, False, 4)
-        yeet.pack_start(self.textboxicesource, True, False, 4)
-        yeet.pack_start(self.checkboxublock, True, False, 4)
-        yeet.pack_start(self.checkboxnekocap, True, False, 4)
-        yeet.pack_start(self.checkboxdarkread, True, False, 4)
-        yeet.pack_start(self.iceinstall, True, False, 4)
-        yeet.pack_start(self.iceremove, True, False, 4)
         yeet.pack_start(self.icegetinfo, True, False, 4)
         
-        self.iceinstall.connect("clicked", self.testiceinstall_pressed)
-        self.iceremove.connect("clicked", self.testiceremove_pressed)
         self.icegetinfo.connect("clicked", self.testiceinfo_pressed)
         
-        self.itemgetinfo = Gtk.Button(label="add message")
+        self.itemgetinfo = Gtk.Button(label="get item info")
         
         yeet.pack_start(self.itemgetinfo, True, False, 4)
         

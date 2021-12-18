@@ -10,6 +10,7 @@ from gi.repository import GLib
 import gettext
 import getpass
 import collections.abc
+import copy
 
 import requests #Grabbing files from internet
 
@@ -18,6 +19,14 @@ class StoreBrainException(Exception): # Name this according to the module to all
 
 #TODO: Change sources usage for package information to package module usage
 #TODO: Change up package storage to merely store package information, rather than be the overcomplicated thing it is right now.
+# ICE: dewit
+# APT: dewit (maybe later?)
+# Snap: dewit
+# Flatpak: dewit
+# Brain: dewit
+# GUI: dewit
+
+
 
 #This class here is the main brains that connect the pieces of code together per each module
 class StoreModuleContainer():
@@ -85,45 +94,45 @@ class StoreTasks():
         
     def add_task_item_ifnotexists(self, module): #Adds Tasks section if it's not a section yet
         if module not in self.currenttasks:
-            self.currenttasks[module] = {}
+            self.currenttasks[module.modulename] = {}
         if module not in self.currenttask:
-            self.currenttask[module] = ""
+            self.currenttask[module.modulename] = ""
         if module not in self.lockedtasklist: #To make things easier to not break
-            self.lockedtasklist[module] = {}
+            self.lockedtasklist[module.modulename] = {}
     
         
-    def add_task(self, module, packagename, operation, realname, source, subsource, bonuses=[]): #Add package management task
+    def add_task(self, packagename, packagetype, module, operation, packageinfo, source, subsource, bonuses=[]): #Add package management task
         self.add_task_item_ifnotexists(module)
         
-        newtask = module + ":" + packagename + ":" + str(operation)
-        if not newtask in self.currenttasks[module]:
-            self.currenttasks[module][newtask] = {"type": "item", "module": module, "packagename": packagename, "operation": operation, "progress": 0, "directto": packagename, "realname": realname, "source": source, "subsource": subsource, "bonuses": bonuses}
+        newtask = packagetype + ":" + packagename + ":" + str(operation)
+        if not newtask in self.currenttasks[module.modulename]:
+            self.currenttasks[module.modulename][newtask] = {"type": "item", "module": module, "pkgtype": packagetype, "packagename": packagename, "operation": operation, "progress": 0, "directto": packagename, "pkginfo": packageinfo, "source": source, "subsource": subsource, "bonuses": bonuses}
             self.overalltasksorder.append(newtask)
             
         self.begin_tasks() #Trigger Tasks action if it isn't already in action
         
-    def add_task_package(self, module, packagename, operation, realname, source, subsource): #Add package management task for a package file
+    def add_task_package(self, packagename, packagetype, module, operation, packageinfo, source, subsource): #Add package management task for a package file
         self.add_task_item_ifnotexists(module)
         
         newtask = module + ":" + packagename + ":" + str(operation)
         if not newtask in self.currenttasks[module]:
-            self.currenttasks[module][newtask] = {"type": "packageitem", "module": module, "packagename": packagename, "operation": operation, "progress": 0, "directto": packagename, "realname": realname, "source": source, "subsource": subsource, "bonuses": []}
+            self.currenttasks[module][newtask] = {"type": "packagefile", "module": module, "pkgtype": packagetype, "packagename": packagename, "operation": operation, "progress": 0, "directto": packagename, "pkginfo": packageinfo, "source": source, "subsource": subsource, "bonuses": []}
             self.overalltasksorder.append(newtask)
             
         self.begin_tasks()
         
-    def add_task_source(self, module, packagename, operation, realname, source, subsource): #Add source management task
+    def add_task_source(self, packagename, module, operation, packageinfo, source, subsource): #Add source management task
         self.add_task_item_ifnotexists(module)
         
         newtask = module + ":" + packagename + ":" + str(operation)
         if not newtask in self.currenttasks[module]:
-            self.currenttasks[module][newtask] = {"type": "source", "module": module, "packagename": packagename, "operation": operation, "progress": 0, "directto": "", "realname": realname, "source": source, "subsource": subsource, "bonuses": []}
+            self.currenttasks[module][newtask] = {"type": "source", "module": module, "packagename": packagename, "operation": operation, "progress": 0, "directto": "", "pkginfo": packageinfo, "source": source, "subsource": subsource, "bonuses": []}
             self.overalltasksorder.append(newtask)
             
         self.begin_tasks()
     
         
-    def cancel_task(self, module, packagename): #Cancel task
+    def cancel_task(self, module, packagetype, packagename): #Cancel task
         for item in self.currenttasks[module]:
             if item.startswith(module+":"+packagename+":"):
                 targettask = item
@@ -190,18 +199,17 @@ class StoreTasks():
         #FIXME: Currently breaks when outside of the package view and a task finishes (also needs GUI connections, and progressbar)
         
         print("TASKS DEBUG: Working on", task)
-        moduletype = taskdata["type"]
         try:
-            if moduletype == "item":
+            if taskdata["type"] == "item":
                 if taskdata["operation"] == 0:
-                    self.storebrain.pkgmgmt_modules[taskdata["module"]].task_install_package(taskdata["packagename"], taskdata["source"], taskdata["subsource"], taskdata["bonuses"])
+                    taskdata["module"].task_install_package(taskdata)
                 elif taskdata["operation"] == 1:
-                    self.storebrain.pkgmgmt_modules[taskdata["module"]].task_update_package(taskdata["packagename"], taskdata["source"], taskdata["subsource"])
+                    taskdata["module"].task_update_package(taskdata)
                 elif taskdata["operation"] == 2:
-                    self.storebrain.pkgmgmt_modules[taskdata["module"]].task_remove_package(taskdata["packagename"], taskdata["source"], taskdata["subsource"])
-            elif moduletype == "packageitem":
+                    taskdata["module"].task_remove_package(taskdata)
+            elif taskdata["type"] == "packagefile":
                 pass
-            elif moduletype == "source":
+            elif taskdata["type"] == "source":
                 pass
             #TODO
             
@@ -314,8 +322,43 @@ class StoreBrain():
         
         self.load_modules()
         
+        self.refresh_modules()
+        
         # For search and whatnot
         self.refresh_overall_package_data()
+                
+                
+    def refresh_modules(self):
+        for module in self.localpkgmgmt_modules:
+            try:
+                self.localpkgmgmt_modules[module].refresh_memory()
+            except Exception as e:
+                print(e)
+        for module in self.pkgmgmt_modules:
+            try:
+                self.pkgmgmt_modules[module].refresh_memory()
+            except Exception as e:
+                print(e)
+        for module in self.pkginfo_modules:
+            try:
+                self.pkginfo_modules[module].refresh_memory()
+            except Exception as e:
+                print(e)
+        for module in self.search_modules:
+            try:
+                self.search_modules[module].refresh_memory()
+            except Exception as e:
+                print(e)
+        for module in self.sourceinfo_modules:
+            try:
+                self.sourceinfo_modules[module].refresh_memory()
+            except Exception as e:
+                print(e)
+        for module in self.settings_modules:
+            try:
+                self.settings_modules[module].refresh_memory()
+            except Exception as e:
+                print(e)
                 
                 
     def refresh_overall_package_data(self):
@@ -324,7 +367,6 @@ class StoreBrain():
         #Build each module's ID lists
         for module in self.pkginfo_modules:
             self.pkginfo_modules[module].build_ids_list()
-        #TODO: Implement these into the modules and then edit the existing modules to make use of these new-added variables
         
             
         
@@ -336,6 +378,23 @@ class StoreBrain():
             temp_var = dict(temp_var) #For some reason, not doing this pops it inside the module(s) too on the next line
             temp_var.pop('status', None)
             overall_results = self.dict_recurupdate(overall_results, temp_var)
+            
+        #FIXME: Is there not a more efficient way to remove duplicate results? (proritise is over begins with, contains and ends with, begins with over contains and ends with, and contains over ends with)
+        for result in overall_results["exactmatch"]:
+            if result in overall_results["begins"]:
+                overall_results["begins"].pop(result, None)
+            elif result in overall_results["contains"]:
+                overall_results["contains"].pop(result, None)
+            elif result in overall_results["ends"]:
+                overall_results["ends"].pop(result, None)
+        for result in overall_results["begins"]:
+            if result in overall_results["contains"]:
+                overall_results["contains"].pop(result, None)
+            elif result in overall_results["ends"]:
+                overall_results["contains"].pop(result, None)
+        for result in overall_results["contains"]:
+            if result in overall_results["ends"]:
+                overall_results["ends"].pop(result, None)
             
         return overall_results
     
@@ -355,6 +414,18 @@ class StoreBrain():
         return d
     
     
+    def module_type_query(self, moduleslist, packagetype, addgeneric=True): # Get modules out of modules dict that can handle package type queried
+        results = []
+        
+        for item in moduleslist:
+            if moduleslist[item].modulename == self.generic_module and addgeneric != True:
+                continue
+            if packagetype in moduleslist[item].types_supported or "all" in moduleslist[item].types_supported:
+                results.append(moduleslist[item])
+        
+        return results
+    
+    
     def add_to_packageinfo(self, packageid):
         # Add package name to all packagestorages of modules that can house this package
         for module in self.pkgmgmt_modules:
@@ -365,64 +436,190 @@ class StoreBrain():
     
     
     def get_sources(self, packagename):
-        sourcesdict = {}
-        #"modulename:internalname": "dropdown human readable name"
-        for module in self.pkgmgmt_modules:
-            sources = []
-            try:
-                if packagename in self.pkgmgmt_modules[module].packagestorage:
-                    sources = self.pkgmgmt_modules[module].get_sources(packagename)
-                    for source in sources:
-                        sourcesdict[module + ":" + source] = self.sourceinfo_modules[self.generic_module].getSourceSelectName(module, source)
-            except:
-                pass
-        return sourcesdict
-    
-    def get_subsources(self, sourceid, sourcetype):
-        subsourcesdict = {}
-        #"internalname": "dropdown human readable name"
+        #Get sources of modules
+        
+        #Package information works like this:
+        # - all: All sources information
+        # - sourcenamehere: Information specific to the source
+        
+        #packagename: package name
+        #pkgtype: package type (e.g.: apt, snap...)
+        #sourcename: Internal name of source
+        #  (subsources don't get specific information)
+        
+        genericiteminfo = {}
+        allsources = {}
+        sourceslist = []
+        nameslist = [] #Translated names
         
         try:
-            sources = self.sourceinfo_modules[self.generic_module].getSubSources(sourceid, sourcetype)
-            for source in sources:
-                subsourcesdict[source] = self.sourceinfo_modules[self.generic_module].getSourceSelectName(sourceid, sourcetype, source)
+            genericiteminfo = self.pkginfo_modules[self.generic_module].getInfo(packagename, "all") #No source specified so that we can get all the extra information pieces
         except:
-            subsourcesdict = {}
-        return subsourcesdict
+            return [], []
+        
+        #First collect all possible sources into a dict
+        for pkgtype in genericiteminfo["type-importance"]:
+            modules = self.module_type_query(self.pkginfo_modules, pkgtype, False)
+            
+            allsources[pkgtype] = {}
+            
+            if modules == []:
+                continue #Skip to next pkgtype if no modules available
+            
+            for module in modules:
+                allsources[pkgtype][module.modulename] = module.getSourceList(packagename, pkgtype)
+                
+        #Now get an accurate list using the module to check        
+        for pkgtype in allsources:
+            mgmtmodules = self.module_type_query(self.pkgmgmt_modules, pkgtype, False)
+            
+            for module in allsources[pkgtype]:
+                for mgmtmodule in mgmtmodules:
+                    try:
+                        for actualsource in mgmtmodule.sourceQuery(packagename, pkgtype, allsources[pkgtype][module]):
+                            nameslist.append(actualsource + " (" + mgmtmodule.modulename + ", " + pkgtype + ")") #Temporary, TODO: Translate name via module
+                            sourceslist.append(mgmtmodule.modulename + ":" + pkgtype + ":" + actualsource)
+                    except Exception as e:
+                        print("GET SOURCES DEBUG: {0} couldn't check sourcelist {1} from package type {2}: {3}".format(mgmtmodule.humanreadabletitle, str(allsources[pkgtype][module]), pkgtype, e))
+                        #Make sure nothing gets in there that shouldn't
+                        if len(nameslist) > len(sourceslist):
+                            nameslist.pop(-1)
+                        elif len(nameslist) < len(sourceslist):
+                            sourceslist.pop(-1)
+                    
+                
+        return sourceslist, nameslist
+    
+    def get_subsources(self, sourceid, packagename):
+        subsourceslist = []
+        nameslist = [] #Translated names
+        
+        modulename, pkgtype, source = sourceid.split(":")
+        
+        try:
+            for subsource in self.pkgmgmt_modules[modulename].get_subsources(packagename, pkgtype, source):
+                nameslist.append(subsource) #Temporary, TODO: Translate name via module
+                subsourceslist.append(subsource)
+        except Exception as e:
+            print("GET SUBSOURCES DEBUG: {0} couldn't get a subsources list for {1} on sourceid {2}: {3}".format(modulename, packagename, sourceid, e))
+            return [], []
+            
+        return subsourceslist, nameslist
     
     
     def get_package_moduleorder(self, packagename):
         try:
-            return self.pkginfo_modules[self.generic_module].getPackageJSON()[packagename]["order-of-module-importance"]
+            return self.pkginfo_modules[self.generic_module].getPackageJSON()[packagename]["type-importance"]
         except:
             pass
-            
-    
-    def get_item_info(self, packagename, packagetype, mergewithgeneric=True): #TODO: Figure out what TF to do with this - it currently has packagetype be the module name instead of a source name or whatever
-        if mergewithgeneric == True:
-            extrainfo = self.get_generic_item_info(packagename)
-        else:
-            extrainfo = {}
         
-        for module in self.pkginfo_modules:
-            if module != self.pkginfo_modules[self.generic_module]: #If the generic module, skip
-                if packagetype in self.pkginfo_modules[module].types_provided or "all" in self.pkginfo_modules[module].types_provided: #Add data from each pkginfo module that has the source
-                    extrainfo = self.dict_recurupdate(extrainfo, self.pkginfo_modules[module].getInfo(packagename, packagetype))
-        if extrainfo != {}:
-            return extrainfo
-        else:
-            raise StoreBrainException(_("No information was found for %s") % packagename)
-    
-    def get_generic_item_info(self, packagename):
+        
+    def get_generic_item_info(self, packagename, pkgtype): #Get generic package information
+        #Note: Generic only uses the 'all' source
         try:
-            return self.pkginfo_modules[self.generic_module].getInfo(packagename, "all") #We use 'all' as a placebo since it's not important in a generic module
+            genericinfo = self.pkginfo_modules[self.generic_module].getInfo(packagename, pkgtype, "all") #We use 'all' as a placebo since it's not important in a generic module
+            return genericinfo
         except:
             raise StoreBrainException(_("No information was found for %s") % packagename)
+        
     
-    def package_module(self, packagetype, name=False):
+    def get_item_info_specific(self, packagename, pkgtype, sourcename, generictoo=False): #Get package information for specific source (no generic)
+        #Package information works like this:
+        # - all: All sources information
+        # - sourcenamehere: Information specific to the source
+        
+        #packagename: package name
+        #pkgtype: package type (e.g.: apt, snap...)
+        #sourcename: Internal name of source
+        #  (subsources don't get specific information)
+        
+        modules = self.module_type_query(self.pkginfo_modules, pkgtype, False)
+        iteminfo = {}
+        
+        if generictoo == True:
+            iteminfo = self.get_generic_item_info(packagename, pkgtype)
+        
+        for module in modules:
+            try:
+                iteminfo = self.dict_recurupdate(iteminfo, module.getInfo(packagename, pkgtype, sourcename))
+            except Exception as e:
+                print("GET ITEM INFO DEBUG: {0} couldn't get item information for {1} from package type {2} of source name {3}: {4}".format(module.humanreadabletitle, packagename, pkgtype, sourcename, e))
+                pass
+            
+        if iteminfo == {}:
+            raise StoreBrainException(_("No information was provided for {0} of type {1} in source {2}".format(packagename, pkgtype, sourcename)))
+        
+        return iteminfo
+        
+    
+    def get_item_info_default(self, packagename): #Get default package information
+        #Package information works like this:
+        # - all: All sources information
+        # - sourcenamehere: Information specific to the source
+        
+        #packagename: package name
+        #pkgtype: package type (e.g.: apt, snap...)
+        #sourcename: Internal name of source
+        #  (subsources don't get specific information)
+        
+        #TODO: Make modules provide fallback information
+        iteminfo = {}
+        genericiteminfo = {}
+        
+        try:
+            genericiteminfo = self.pkginfo_modules[self.generic_module].getInfo(packagename, "all") #No source specified so that we can get all the extra information pieces
+            iteminfo = copy.deepcopy(genericiteminfo) #Python3's normal behaviour is to link them together, thus meaning updating one updates the other, which we DON'T want
+        except Exception as e:
+            print(e)
+            pass
+        
+        for pkgtype in iteminfo["type-importance"]:
+            modules = self.module_type_query(self.pkginfo_modules, pkgtype, False)
+            
+            if modules == []:
+                continue #Skip to next module if no modules available
+            
+            for module in modules:
+                skipahead = False
+                resultinfo = {}
+                
+                try:
+                    if "all" not in iteminfo:
+                        iteminfo["all"] = {}
+                    iteminfo["all"] = self.dict_recurupdate(iteminfo["all"], module.getInfo(packagename, pkgtype, "all"))
+                except:
+                    pass
+                if "all" in iteminfo:
+                    resultinfo = iteminfo["all"]
+                
+                tempsources = module.getSourceList(packagename, pkgtype)
+                
+                for sourcename in tempsources:
+                    if skipahead == True:
+                        break
+                    
+                    if sourcename not in iteminfo:
+                        iteminfo[sourcename] = {}
+                    try:
+                        iteminfo[sourcename] = self.dict_recurupdate(iteminfo[sourcename], module.getInfo(packagename, pkgtype, sourcename))
+                        resultinfo = self.dict_recurupdate(resultinfo, iteminfo[sourcename])
+                        skipahead = True #We only want the first possible source's information, that's it
+                    except Exception as e:
+                        print("GET ITEM INFO DEBUG: {0} couldn't get item information for {1} from package type {2}: {3}".format(module.humanreadabletitle, packagename, pkgtype, e))
+                        pass
+                
+            if iteminfo != genericiteminfo:                
+                return resultinfo #We're done here.
+        
+        
+        raise StoreBrainException(_("No information was found for %s") % packagename)
+        
+        
+    
+    def package_module(self, packagetype, name=False): #TODO: Remove
         #Return the first one we find's name
         for module in self.pkgmgmt_modules:
-            if packagetype in self.pkgmgmt_modules[module].types_managed:
+            if packagetype in self.pkgmgmt_modules[module].types_supported:
                 if name:
                     return module
                 else:
@@ -432,7 +629,7 @@ class StoreBrain():
     def local_package_module(self, packagetype, name=False):
         #Return the first one we find's name
         for module in self.localpkgmgmt_modules:
-            if packagetype in self.localpkgmgmt_modules[module].types_managed:
+            if packagetype in self.localpkgmgmt_modules[module].types_supported:
                 if name:
                     return module
                 else:

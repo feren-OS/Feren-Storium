@@ -1,30 +1,53 @@
 {
   "feren-extra-backgrounds": {
-    "apt-name": "feren-extra-backgrounds",
-    "apt-source": "standard",
-    "author": "Feren OS Team",
-    "bugreporturl": "",
-    "tosurl": "",
-    "privpolurl": "",
-    "canusethemes": 1,
-    "canusetouchscreen": 1,
-    "canuseaccessibility": true,
-    "canusedpiscaling": true,
-    "canuseonphone": true,
-    "isofficial": true
+    "sources-available": ["standard"],
+    "standard": {
+        "apt-name": "feren-extra-backgrounds",
+        "apt-source": "standard",
+        "author": "Feren OS Team",
+        "bugreporturl": "",
+        "tosurl": "",
+        "privpolurl": "",
+        "canusethemes": 1,
+        "canusetouchscreen": 1,
+        "canuseaccessibility": true,
+        "canusedpiscaling": true,
+        "canuseonphone": true,
+        "isofficial": true
+    }
   },
   "feren-store": {
-    "apt-name": "feren-store",
-    "apt-source": "standard",
-    "author": "Feren OS Team",
-    "bugreporturl": "https://github.com/feren-OS/Bug-Reporting-Center/issues/",
-    "tosurl": "",
-    "privpolurl": "",
-    "canusethemes": 1,
-    "canusetouchscreen": 1,
-    "canuseaccessibility": true,
-    "canusedpiscaling": true,
-    "canuseonphone": true,
-    "isofficial": true
+    "sources-available": ["standard"],
+    "standard": {
+        "apt-name": "feren-store",
+        "apt-source": "standard",
+        "author": "Feren OS Team",
+        "bugreporturl": "https://github.com/feren-OS/Bug-Reporting-Center/issues/",
+        "tosurl": "",
+        "privpolurl": "",
+        "canusethemes": 1,
+        "canusetouchscreen": 1,
+        "canuseaccessibility": true,
+        "canusedpiscaling": true,
+        "canuseonphone": true,
+        "isofficial": true
+    }
+  },
+  "obs-obs-studio": {
+    "sources-available": ["obsstudio"],
+    "obsstudio": {
+        "apt-name": "obs-studio",
+        "apt-source": "obsstudio",
+        "author": "OBS Project",
+        "bugreporturl": "https://github.com/obsproject/obs-studio/issues",
+        "tosurl": "",
+        "privpolurl": "https://obsproject.com/privacy-policy",
+        "canusethemes": 1,
+        "canusetouchscreen": 1,
+        "canuseaccessibility": true,
+        "canusedpiscaling": true,
+        "canuseonphone": false,
+        "isofficial": true
+    }
   }
 }

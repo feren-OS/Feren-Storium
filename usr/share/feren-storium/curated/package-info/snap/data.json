@@ -1,30 +1,55 @@
 {
   "google-chromium": {
-    "snap-name": "chromium",
-    "snap-source": "snapstore",
-    "author": "Canonical",
-    "bugreporturl": "",
-    "tosurl": "",
-    "privpolurl": "",
-    "canusethemes": 2,
-    "canusetouchscreen": 1,
-    "canuseaccessibility": true,
-    "canusedpiscaling": true,
-    "canuseonphone": true,
-    "isofficial": true
+    "sources-available": ["snapstore"],
+    "snapstore": {
+        "snap-name": "chromium",
+        "snap-source": "snapstore",
+        "author": "Canonical",
+        "bugreporturl": "",
+        "tosurl": "",
+        "privpolurl": "",
+        "canusethemes": 2,
+        "canusetouchscreen": 1,
+        "canuseaccessibility": true,
+        "canusedpiscaling": true,
+        "canuseonphone": true,
+        "isofficial": true
+    }
   },
   "mozilla-firefox": {
-    "snap-name": "firefox",
-    "snap-source": "snapstore",
-    "author": "Mozilla",
-    "bugreporturl": "",
-    "tosurl": "",
-    "privpolurl": "",
-    "canusethemes": 4,
-    "canusetouchscreen": 0,
-    "canuseaccessibility": true,
-    "canusedpiscaling": true,
-    "canuseonphone": true,
-    "isofficial": true
+    "sources-available": ["snapstore"],
+    "snapstore": {
+        "snap-name": "firefox",
+        "snap-source": "snapstore",
+        "author": "Mozilla",
+        "bugreporturl": "",
+        "tosurl": "",
+        "privpolurl": "",
+        "canusethemes": 4,
+        "canusetouchscreen": 0,
+        "canuseaccessibility": true,
+        "canusedpiscaling": true,
+        "canuseonphone": true,
+        "isofficial": true
+    }
+  },
+  "obs-obs-studio": {
+    "sources-available": ["snapstore"],
+    "snapstore": {
+        "snap-name": "obs-studio",
+        "snap-source": "snapstore",
+        "author": "Snapcrafters",
+        "bugreporturl": "https://github.com/snapcrafters/obs-studio/issues",
+        "tosurl": "",
+        "privpolurl": "https://obsproject.com/privacy-policy",
+        "canusethemes": 1,
+        "canusetouchscreen": 1,
+        "canuseaccessibility": true,
+        "canusedpiscaling": true,
+        "canuseonphone": false,
+        "isofficial": true,
+        "warnings": ["warn:While not official, it is recommended to use this source to install OBS Studio as it pre-bundles the features people usually add to OBS Studio"],
+        "warningsactions": []
+    }
   }
 }

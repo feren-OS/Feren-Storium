@@ -21,7 +21,7 @@ class APTInfoModuleException(Exception): # Name this according to the module to 
 
 class main():
 
-    def __init__(self, storegui):
+    def __init__(self, storebrain):
 
         gettext.install("feren-storium", "/usr/share/locale", names="ngettext")
 
@@ -30,11 +30,14 @@ class main():
         #Name to be shown in the GUI
         self.humanreadabletitle = _("APT Application Information")
         
+        #Store Brain
+        self.storebrain = storebrain
+        
         #Configs (obtained by get_configs)
         self.moduleconfigs={}
         
         #What package types does this provide info for?
-        self.types_provided = ["apt"]
+        self.types_supported = ["apt"]
         
         #Information Storage to keep it in - modify list as appropriate for files
         self.json_storage = {}
@@ -105,33 +108,36 @@ class main():
             raise APTInfoModuleException(packagename, _("is not associated with any Store internal name. If you are getting an exception throw, it means you have not used a Try to respond to the package not being in the Store."))
       
     
-    def getInfo(self, packagename, packagetype):
+    def getInfo(self, packagename, packagetype, sourcename=""):
         #Get information on a package using the JSON data        
-        if packagetype not in self.types_provided:
+        if packagetype not in self.types_supported:
             raise APTInfoModuleException(packagetype, _("is not supported by this information module. If you are getting an exception throw, it means you have not used a Try to respond to the module not supporting this type of package."))
             return
         
-        #General stuff
-        author = self.getAuthor(packagename, packagetype)
-        bugreporturl = self.getBugsURL(packagename, packagetype)
-        tosurl = self.getTOSURL(packagename, packagetype)
-        privpolurl = self.getPrivPolURL(packagename, packagetype)
-        
-        #Application compatibility
-        canusethemes = self.getCanTheme(packagename, packagetype)
-        canusetouchscreen = self.getCanTouchScreen(packagename, packagetype)
-        canuseaccessibility = self.getCanUseAccessibility(packagename, packagetype)
-        canusedpiscaling = self.getCanUseDPI(packagename, packagetype)
-        canuseonphone = self.getCanUseOnPhone(packagename, packagetype)
-        isofficial = self.getIsOfficial(packagename, packagetype)
-        
-        #APT-only stuff
-        aptname = self.getAPTName(packagename, packagetype)
-        aptsource = self.getAPTSource(packagename, packagetype)
+        if sourcename == "":
+            return self.json_storage["package-info/" + packagetype][packagename]
+        else:
+            overallinfo = {}
+            try:
+                overallinfo = self.json_storage["package-info/" + packagetype][packagename]["all"]
+            except:
+                pass
+            try:
+                overallinfo = self.storebrain.dict_recurupdate(overallinfo, self.json_storage["package-info/" + packagetype][packagename][sourcename])
+            except:
+                pass
+            return overallinfo
         
         
-        #Return values
-        return {"author": author, "bugreporturl": bugreporturl, "tosurl": tosurl, "privpolurl": privpolurl, "canusethemes": canusethemes, "canusetouchscreen": canusetouchscreen, "canuseaccessibility": canuseaccessibility, "canusedpiscaling": canusedpiscaling, "canuseonphone": canuseonphone, "isofficial": isofficial, "aptname": aptname, "aptsource": aptsource}
+    def getSourceList(self, packagename, packagetype):
+        #Get list of source order
+        
+        #Not needed since 'all'
+        #if packagetype not in self.types_supported:
+            #raise GenericInfoModuleException(packagetype, _("is not supported by this information module. If you are getting an exception throw, it means you have not used a Try to respond to the module not supporting this type of package."))
+            #return
+            
+        return self.json_storage["package-info/" + packagetype][packagename]["sources-available"]
         
     
     def getAuthor(self, packagename, packagetype):

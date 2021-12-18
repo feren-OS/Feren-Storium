@@ -20,31 +20,6 @@ class SnapModuleException(Exception): # Name this according to the module to all
     pass
 
 
-class PackageStore():
-    def __init__(self, realname, iconuri, shortdesc, description, author, category, images, website, donateurl, bugreporturl, tosurl, privpolurl, canusethemes, canusetouchscreen, canuseaccessibility, canusedpiscaling, canuseonphone, isofficial, snapname, snapsource):
-        self.realname = realname
-        self.iconuri = iconuri
-        self.shortdesc = shortdesc
-        self.description = description
-        self.author = author
-        self.category = category
-        self.images = images
-        self.website = website
-        self.donateurl = donateurl
-        self.bugreporturl = bugreporturl
-        self.tosurl = tosurl
-        self.privpolurl = privpolurl
-        self.keywords = ""
-        self.isofficial = isofficial
-        self.canusethemes = canusethemes
-        self.canusetouchscreen = canusetouchscreen
-        self.canuseaccessibility = canuseaccessibility
-        self.canusedpiscaling = canusedpiscaling
-        self.canuseonphone = canuseonphone
-        self.snapname = snapname
-        self.snapsource = snapsource
-
-
 
 class main():
 
@@ -64,7 +39,7 @@ class main():
         self.storebrain = storebrain
         
         #What package types does this manage?
-        self.types_managed = ["snap"]
+        self.types_supported = ["snap"]
         
         #Configs (obtained by get_configs)
         self.moduleconfigs={}
@@ -96,44 +71,43 @@ class main():
         self.memory_refreshing = False
         
                 
-    def get_sources(self, packagename):
-        return ['snapstore'] #Snap only has one source - the Snap Store
-        #if packagename in self.packagestorage:
-            #return [self.packagestorage[packagename].aptsource]
-        #else:
-            #raise SnapModuleException(_("%s is not in the Package Storage (packagestorage) yet - make sure it's in the packagestorage variable before obtaining its sources.") % packagename)
+    def sourceQuery(self, packagename, packagetype, sourcelist):
+        if sourcelist == ['snapstore']:
+            return ['snapstore'] #Snap only has one source - the Snap Store
+        else:
+            raise SnapModuleException(_("Unsupported sources were provided."))
     
-    def get_subsources(self, packagename, source):
+    def get_subsources(self, packagename, packagetype, source):
         #Leave empty as snap has no subsources
         return []
     
         
     def pkgstorage_add(self, packagename):
-        if packagename not in self.packagestorage:
-            packageinfo = {}
-            
-            #Get the values
-            for packagetype in self.types_managed:
-                try:
-                    packageinfo = self.storebrain.get_item_info(packagename, packagetype, True)
-                    if packageinfo != self.storebrain.get_generic_item_info(packagename): #Check we have full information, not just generic information
-                        continue
-                except:
-                    pass
-            
-            if packageinfo == {}:
-                return
-            
-            self.packagestorage[packagename] = PackageStore(packageinfo["realname"], packageinfo["iconuri"], packageinfo["shortdescription"], packageinfo["description"], packageinfo["author"], packageinfo["category"], packageinfo["images"], packageinfo["website"], packageinfo["donateurl"], packageinfo["bugreporturl"], packageinfo["tosurl"], packageinfo["privpolurl"], packageinfo["canusethemes"], packageinfo["canusetouchscreen"], packageinfo["canuseaccessibility"], packageinfo["canusedpiscaling"], packageinfo["canuseonphone"], packageinfo["isofficial"], packageinfo["snapname"], packageinfo["snapsource"])
+        #Not needed as we just consult the package information modules for information anyway
+        pass
 
-    def get_information(self, packagename):
-        # Return description for package
-        if packagename in self.packagestorage:
-            return self.packagestorage[packagename].realname, self.packagestorage[packagename].iconuri, self.packagestorage[packagename].shortdesc, self.packagestorage[packagename].description, self.packagestorage[packagename].author, self.packagestorage[packagename].category, self.packagestorage[packagename].images, self.packagestorage[packagename].website, self.packagestorage[packagename].donateurl, self.packagestorage[packagename].bugreporturl, self.packagestorage[packagename].tosurl, self.packagestorage[packagename].privpolurl, self.packagestorage[packagename].keywords
-        else:
-            raise SnapModuleException(_("%s is not in the Package Storage (packagestorage) yet - make sure it's in the packagestorage variable before obtaining package information.") % packagename)
+    def get_generic_information(self, packagename, packagetype):
+        if packagetype not in self.types_supported:
+            raise SnapModuleException(_("Items of type %s are not supported by this module.") % packagename)
+        
+        # Return generic package information via Brain API
+        try:
+            return self.storebrain.get_generic_item_info(packagename, packagetype)
+        except:
+            raise SnapModuleException(e)
 
-    def get_status(self, packagename):
+    def get_information(self, packagename, packagetype, source):
+        if packagetype not in self.types_supported:
+            raise SnapModuleException(_("Items of type %s are not supported by this module.") % packagename)
+        
+        # Return package information via Brain API
+        try:
+            return self.storebrain.get_item_info_specific(packagename, packagetype, source)
+        except Exception as e:
+            raise SnapModuleException(e)
+        
+
+    def get_status(self, packagename, pkgtype, source):
         # Return package installation status
         # 0 - Uninstalled
         # 1 - Installed
@@ -143,7 +117,7 @@ class main():
         if not os.path.isfile("/usr/bin/snap"):
             return 3
         try:
-            snapinfo = self.snapclient.get_snap_sync(self.packagestorage[packagename].snapname)
+            snapinfo = self.snapclient.get_snap_sync(self.storebrain.get_item_info_specific(packagename, pkgtype, source)["snap-name"])
         except:
             return(0)
         else:
@@ -168,29 +142,29 @@ class main():
         
     
     #Add to Tasks
-    def install_package(self, packagename, source, subsource):
+    def install_package(self, packagename, pkgtype, source, subsource):
         bonuses = [] #TODO: Add confirmation prompt showing changes, and also allowing bonus selection
         
-        self.storebrain.tasks.add_task(self.modulename, packagename, 0, self.packagestorage[packagename].realname, source, subsource, bonuses)
+        self.storebrain.tasks.add_task(packagename, pkgtype, self, 0, self.storebrain.get_item_info_specific(packagename, pkgtype, source, True), source, subsource, bonuses)
     
-    def update_package(self, packagename, source, subsource):
-        #TODO: Add confirmation prompt showing changes, and also allowing bonus selection
+    def update_package(self, packagename, pkgtype, source, subsource):
+        #TODO: Add confirmation prompt showing changes
         
-        self.storebrain.tasks.add_task(self.modulename, packagename, 1, self.packagestorage[packagename].realname, source, subsource)
+        self.storebrain.tasks.add_task(packagename, pkgtype, self, 1, self.storebrain.get_item_info_specific(packagename, pkgtype, source, True), source, subsource)
     
-    def remove_package(self, packagename, source, subsource):
-        #TODO: Add confirmation prompt showing changes, and also allowing bonus selection
+    def remove_package(self, packagename, pkgtype, source, subsource):
+        #TODO: Add confirmation prompt showing changes
         
-        self.storebrain.tasks.add_task(self.modulename, packagename, 2, self.packagestorage[packagename].realname, source, subsource)
+        self.storebrain.tasks.add_task(packagename, pkgtype, self, 2, self.storebrain.get_item_info_specific(packagename, pkgtype, source, True), source, subsource)
         
     
     #Actual management TODO: Progress callback
-    def task_install_package(self, packagename, source, subsource, bonuses=[]):
+    def task_install_package(self, taskdata):
         #Install package and return exit code
         self.packagemgmtbusy = True
         
-        snapname = self.packagestorage[packagename].snapname
-        self.currentpackagename = packagename
+        self.currentpackagename = taskdata["packagename"]
+        snapname = taskdata["pkginfo"]["snap-name"]
         
         try:
             outcome = self.snapclient.install2_sync(Snapd.InstallFlags.NONE, snapname, None, None, self.progress_snap_cb, (None,), None)
@@ -201,12 +175,12 @@ class main():
         self.finishing_cleanup(packagename)
         return outcome
     
-    def task_remove_package(self, packagename, source, subsource):
+    def task_remove_package(self, taskdata):
         #Remove package and return exit code
         self.packagemgmtbusy = True
         
-        snapname = self.packagestorage[packagename].snapname
-        self.currentpackagename = packagename
+        self.currentpackagename = taskdata["packagename"]
+        snapname = taskdata["pkginfo"]["snap-name"]
         
         try:
             outcome = self.snapclient.remove2_sync(Snapd.InstallFlags.NONE, snapname, self.progress_snap_cb, (None,), None)
@@ -217,9 +191,9 @@ class main():
         self.finishing_cleanup(packagename)
         return outcome
     
-    def task_update_package(self, packagename, source, subsource):
+    def task_update_package(self, taskdata):
         #You SHOULD NOT be able to hit Update for Snaps anyway, so raise an error
-        self.finishing_cleanup(packagename)
+        self.finishing_cleanup(taskdata["packagename"])
         raise SnapModuleException(_("Snaps update themselves."))
     
     def get_package_changes(self, pkgsinstalled, pkgsupdated, pkgsremoved):

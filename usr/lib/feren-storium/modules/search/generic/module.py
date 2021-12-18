@@ -68,12 +68,6 @@ class main():
             return False
         else:
             return True
-        
-    def getData(self, item): #Get package data for our search results
-        value = self.storebrain.get_generic_item_info(item)
-        value = self.storebrain.dict_recurupdate(value, self.storebrain.get_item_info(item, value["packagetype"], False))
-            
-        return value
     
     def getResults(self, searchterm):
         #If it has already been searched before
@@ -97,13 +91,13 @@ class main():
             
             if searchterm.lower() == self.storebrain.pkginfo_modules[self.storebrain.generic_module].getRealName(item, "").lower():
                 if self.checkIfInResults(item, searchterm) == False:
-                    self.search_results[searchterm]['exactmatch'][item] = self.getData(item)
+                    self.search_results[searchterm]['exactmatch'][item] = self.storebrain.get_item_info_default(item)
         if searchterm.lower() in package_ids:
             if searchterm not in self.search_results:
                 return {'exactmatch': {}, 'begins': {}, 'contains': {}, 'ends': {}}
             
             if self.checkIfInResults(searchterm, searchterm) == False:
-                self.search_results[searchterm]['exactmatch'][searchterm] = self.getData(searchterm)
+                self.search_results[searchterm]['exactmatch'][searchterm] = self.storebrain.get_item_info_default(searchterm)
         
         #Second check: Do any names start with the search term?
         for item in package_ids:
@@ -112,7 +106,7 @@ class main():
             
             if item.startswith(searchterm.lower()) or self.storebrain.pkginfo_modules[self.storebrain.generic_module].getRealName(item, "").lower().startswith(searchterm.lower()):
                 if self.checkIfInResults(item, searchterm) == False:
-                    self.search_results[searchterm]['begins'][item] = self.getData(item)
+                    self.search_results[searchterm]['begins'][item] = self.storebrain.get_item_info_default(item)
         
         #Third check: Do any names contain the search term?
         for item in package_ids:
@@ -121,7 +115,7 @@ class main():
             
             if searchterm.lower() in item or searchterm.lower() in self.storebrain.pkginfo_modules[self.storebrain.generic_module].getRealName(item, "").lower():
                 if self.checkIfInResults(item, searchterm) == False:
-                    self.search_results[searchterm]['contains'][item] = self.getData(item)
+                    self.search_results[searchterm]['contains'][item] = self.storebrain.get_item_info_default(item)
         
         #Fourth check: Do any names end with the search term?
         for item in package_ids:
@@ -130,7 +124,7 @@ class main():
             
             if item.endswith(searchterm.lower()) or self.storebrain.pkginfo_modules[self.storebrain.generic_module].getRealName(item, "").lower().endswith(searchterm.lower()):
                 if self.checkIfInResults(item, searchterm) == False:
-                    self.search_results[searchterm]['ends'][item] = self.getData(item)
+                    self.search_results[searchterm]['ends'][item] = self.storebrain.get_item_info_default(item)
         
         self.search_results[searchterm]['status'] = 0 #Mark as completed search
         return self.search_results[searchterm]

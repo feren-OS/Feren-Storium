@@ -21,31 +21,6 @@ class APTModuleException(Exception): # Name this according to the module to allo
     pass
 
 
-class PackageStore():
-    def __init__(self, realname, iconuri, shortdesc, description, author, category, images, website, donateurl, bugreporturl, tosurl, privpolurl, canusethemes, canusetouchscreen, canuseaccessibility, canusedpiscaling, canuseonphone, isofficial, aptname, aptsource):
-        self.realname = realname
-        self.iconuri = iconuri
-        self.shortdesc = shortdesc
-        self.description = description
-        self.author = author
-        self.category = category
-        self.images = images
-        self.website = website
-        self.donateurl = donateurl
-        self.bugreporturl = bugreporturl
-        self.tosurl = tosurl
-        self.privpolurl = privpolurl
-        self.keywords = ""
-        self.isofficial = isofficial
-        self.canusethemes = canusethemes
-        self.canusetouchscreen = canusetouchscreen
-        self.canuseaccessibility = canuseaccessibility
-        self.canusedpiscaling = canusedpiscaling
-        self.canuseonphone = canuseonphone
-        self.aptname = aptname
-        self.aptsource = aptsource
-
-
 
 class main():
 
@@ -65,7 +40,7 @@ class main():
         self.storebrain = storebrain
         
         #What package types does this manage?
-        self.types_managed = ["apt"]
+        self.types_supported = ["apt"]
         
         #Configs (obtained by get_configs)
         self.moduleconfigs={}
@@ -98,43 +73,51 @@ class main():
         self.memory_refreshing = False
         
                 
-    def get_sources(self, packagename):
-        if packagename in self.packagestorage:
-            return [self.packagestorage[packagename].aptsource]
-        else:
-            raise APTModuleException(_("%s is not in the Package Storage (packagestorage) yet - make sure it's in the packagestorage variable before obtaining its sources.") % packagename)
+    def sourceQuery(self, packagename, pkgtype, sourcelist):
+        #TODO: Remove sources whenever they're enabled and the package isn't available
+        
+        return sourcelist #TEMPORARY
     
-    def get_subsources(self, packagename, source):
+    
+    def get_subsources(self, packagename, pkgtype, source):
         #Leave empty as apt has no subsources
         return []
     
         
-    def pkgstorage_add(self, packagename):
-        if packagename not in self.packagestorage:
-            packageinfo = {}
-            
-            #Get the values
-            for packagetype in self.types_managed:
-                try:
-                    packageinfo = self.storebrain.get_item_info(packagename, packagetype, True)
-                    if packageinfo != self.storebrain.get_generic_item_info(packagename): #Check we have full information, not just generic information
-                        continue
-                except:
-                    pass
-            
-            if packageinfo == {}:
-                return
-            
-            self.packagestorage[packagename] = PackageStore(packageinfo["realname"], packageinfo["iconuri"], packageinfo["shortdescription"], packageinfo["description"], packageinfo["author"], packageinfo["category"], packageinfo["images"], packageinfo["website"], packageinfo["donateurl"], packageinfo["bugreporturl"], packageinfo["tosurl"], packageinfo["privpolurl"], packageinfo["canusethemes"], packageinfo["canusetouchscreen"], packageinfo["canuseaccessibility"], packageinfo["canusedpiscaling"], packageinfo["canuseonphone"], packageinfo["isofficial"], packageinfo["aptname"], packageinfo["aptsource"])
+    def pkgstorage_add(self, packagename, pkgtype):
+        #Not needed as we just consult the package information modules for information anyway
+        
+        #If it was, this'd be the intended structure:
+        # [pkgtype][all] for ALL sources information
+        # [pkgtype][x] where x is a source, for each source, with their specific information
+        #we need pkgtype to determine the right section to store it in
+        
+        #Additionally, if this was needed, it would be triggered via the get_generic_information and get_information calls below.
+        
+        pass
 
-    def get_information(self, packagename):
-        # Return description for package
-        if packagename in self.packagestorage:
-            return self.packagestorage[packagename].realname, self.packagestorage[packagename].iconuri, self.packagestorage[packagename].shortdesc, self.packagestorage[packagename].description, self.packagestorage[packagename].author, self.packagestorage[packagename].category, self.packagestorage[packagename].images, self.packagestorage[packagename].website, self.packagestorage[packagename].donateurl, self.packagestorage[packagename].bugreporturl, self.packagestorage[packagename].tosurl, self.packagestorage[packagename].privpolurl, self.packagestorage[packagename].keywords
-        else:
-            raise APTModuleException(_("%s is not in the Package Storage (packagestorage) yet - make sure it's in the packagestorage variable before obtaining package information.") % packagename)
+    def get_generic_information(self, packagename, pkgtype):
+        if pkgtype not in self.types_supported:
+            raise APTModuleException(_("Items of type %s are not supported by this module.") % packagename)
+        
+        # Return generic package information via Brain API
+        try:
+            return self.storebrain.get_generic_item_info(packagename, pkgtype)
+        except:
+            raise APTModuleException(e)
 
-    def get_status(self, packagename):
+    def get_information(self, packagename, pkgtype, source):
+        if pkgtype not in self.types_supported:
+            raise APTModuleException(_("Items of type %s are not supported by this module.") % packagename)
+        
+        # Return package information via Brain API
+        try:
+            return self.storebrain.get_item_info_specific(packagename, pkgtype, source)
+        except Exception as e:
+            raise APTModuleException(e)
+        
+
+    def get_status(self, packagename, pkgtype, source):
         # Return package installation status
         # 0 - Uninstalled
         # 1 - Installed
@@ -150,31 +133,29 @@ class main():
         self.packagemgmtbusy = False
         
     #Add to Tasks
-    def install_package(self, packagename, source, subsource):
+    def install_package(self, packagename, pkgtype, source, subsource):
         bonuses = [] #TODO: Add confirmation prompt showing changes, and also allowing bonus selection
         
-        self.storebrain.tasks.add_task(self.modulename, packagename, 0, self.packagestorage[packagename].realname, source, subsource, bonuses)
+        self.storebrain.tasks.add_task(packagename, pkgtype, self, 0, self.storebrain.get_item_info_specific(packagename, pkgtype, source, True), source, subsource, bonuses)
     
-    def update_package(self, packagename, source, subsource):
-        #TODO: Add confirmation prompt showing changes, and also allowing bonus selection
+    def update_package(self, packagename, pkgtype, source, subsource):
+        #TODO: Add confirmation prompt showing changes
         
-        self.storebrain.tasks.add_task(self.modulename, packagename, 1, self.packagestorage[packagename].realname, source, subsource)
+        self.storebrain.tasks.add_task(packagename, pkgtype, self, 1, self.storebrain.get_item_info_specific(packagename, pkgtype, source, True), source, subsource)
     
-    def remove_package(self, packagename, source, subsource):
-        #TODO: Add confirmation prompt showing changes, and also allowing bonus selection
+    def remove_package(self, packagename, pkgtype, source, subsource):
+        #TODO: Add confirmation prompt showing changes
         
-        self.storebrain.tasks.add_task(self.modulename, packagename, 2, self.packagestorage[packagename].realname, source, subsource)
+        self.storebrain.tasks.add_task(packagename, pkgtype, self, 2, self.storebrain.get_item_info_specific(packagename, pkgtype, source, True), source, subsource)
         
     
     #Actual management TODO: Progress callback
-    def task_install_package(self, packagename, source, subsource, bonuses=[]):
+    def task_install_package(self, taskdata):
         #Install package and return exit code
         self.packagemgmtbusy = True
         
-        packagename = self.packagestorage[packagename].name
-        
         #Remove package and return exit code
-        self.currentpackagename = packagename
+        self.currentpackagename = taskdata["packagename"]
         try:
             res=pk_client.resolve(PackageKitGlib.FilterEnum.NONE, [packagename], None, lambda p, t, d: True, None)
             package_ids=res.get_package_array()
@@ -189,11 +170,11 @@ class main():
         self.finishing_cleanup(packagename)
         return outcome.get_exit_code() == PackageKitGlib.ExitEnum.SUCCESS
     
-    def task_remove_package(self, packagename, source, subsource):
+    def task_remove_package(self, taskdata):
         self.packagemgmtbusy = True
         
         #Remove package and return exit code
-        self.currentpackagename = packagename
+        self.currentpackagename = taskdata["packagename"]
         try:
             res=pk_client.resolve(PackageKitGlib.FilterEnum.NONE, [packagename], None, lambda p, t, d: True, None)
             package_ids=res.get_package_array()
@@ -208,11 +189,11 @@ class main():
         self.finishing_cleanup(packagename)
         return outcome.get_exit_code() == PackageKitGlib.ExitEnum.SUCCESS
     
-    def task_update_package(self, packagename, source, subsource):
+    def task_update_package(self, taskdata):
         self.packagemgmtbusy = True
         
         #Update package and return exit code
-        self.currentpackagename = packagename
+        self.currentpackagename = taskdata["packagename"]
         try:
             res=pk_client.resolve(PackageKitGlib.FilterEnum.NONE, [packagename], None, lambda p, t, d: True, None)
             package_ids=res.get_package_array()

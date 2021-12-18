@@ -30,11 +30,14 @@ class main():
         #Name to be shown in the GUI
         self.humanreadabletitle = _("Ice Website Information")
         
+        #Store Brain
+        self.storebrain = storebrain
+        
         #Configs (obtained by get_configs)
         self.moduleconfigs={}
         
         #What package types does this provide info for?
-        self.types_provided = ["peppermint-ice"]
+        self.types_supported = ["peppermint-ice"]
         
         #Information Storage to keep it in - modify list as appropriate for files
         self.json_storage = {}
@@ -91,32 +94,37 @@ class main():
         return packagejson
       
     
-    def getInfo(self, packagename, packagetype):
+    def getInfo(self, packagename, packagetype, sourcename=""):
         #Get information on a package using the JSON data
         
-        if packagetype not in self.types_provided:
+        if packagetype not in self.types_supported:
             raise IceInfoModuleException(packagetype, _("is not supported by this information module. If you are getting an exception throw, it means you have not used a Try to respond to the module not supporting this type of package."))
             return
         
-        #General in-Store stuff
-        shortdescription = self.getShortDescription(packagename)
-        author = self.getAuthor(packagename)
-        bugsurl = self.getBugsURL(packagename)
-        tosurl = self.getTOSURL(packagename)
-        privpolurl = self.getPrivPolURL(packagename)
-        
-        #Ice-specific stuff
-        keywords = self.getKeywords(packagename)
-        
-        extrasids = self.getExtrasIDs(packagename)
-        realnameextras = self.getExtraRealNames(packagename)
-        iconuriextras = self.getIconURIExtras(packagename)
-        websiteextras = self.getWebsiteExtras(packagename)
-        keywordsextras = self.getKeywordsExtras(packagename)
+        if sourcename == "":
+            return self.json_storage["package-info/" + packagetype][packagename]
+        else:
+            overallinfo = {}
+            try:
+                overallinfo = self.json_storage["package-info/" + packagetype][packagename]["all"]
+            except:
+                pass
+            try:
+                overallinfo = self.storebrain.dict_recurupdate(overallinfo, self.json_storage["package-info/" + packagetype][packagename][sourcename])
+            except:
+                pass
+            return overallinfo
         
         
-        #Return values
-        return {"author": author, "bugreporturl": bugsurl, "tosurl": tosurl, "privpolurl": privpolurl, "keywords": keywords, "shortdescription": shortdescription, "extrasids": extrasids, "realnameextras": realnameextras, "iconuriextras": iconuriextras, "websiteextras": websiteextras, "keywordsextras": keywordsextras}
+    def getSourceList(self, packagename, packagetype):
+        #Get list of source order
+        
+        #Not needed since 'all'
+        #if packagetype not in self.types_supported:
+            #raise GenericInfoModuleException(packagetype, _("is not supported by this information module. If you are getting an exception throw, it means you have not used a Try to respond to the module not supporting this type of package."))
+            #return
+            
+        return self.json_storage["package-info/" + packagetype][packagename]["sources-available"]
         
 
     def getShortDescription(self, packagename):

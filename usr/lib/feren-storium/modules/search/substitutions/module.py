@@ -104,7 +104,7 @@ class main():
             if searchterm.lower() == item.lower():
                 subitem = self.json_storage[item]
                 if self.checkIfInResults(subitem, searchterm) == False:
-                    self.search_results[searchterm]['exactmatch'][subitem] = self.storebrain.search_modules[self.storebrain.generic_module].getData(subitem) #Make use of generic's data function, to effectively add a generic search instead
+                    self.search_results[searchterm]['exactmatch'][subitem] = self.storebrain.get_item_info_default(subitem) #Make use of generic's data function, to effectively add a generic search instead
         
         #Second check: Do any names start with the search term?
         for item in package_ids:
@@ -114,7 +114,7 @@ class main():
             if item.lower().startswith(searchterm.lower()):
                 subitem = self.json_storage[item]
                 if self.checkIfInResults(subitem, searchterm) == False:
-                    self.search_results[searchterm]['begins'][subitem] = self.storebrain.search_modules[self.storebrain.generic_module].getData(subitem)
+                    self.search_results[searchterm]['begins'][subitem] = self.storebrain.get_item_info_default(subitem)
         
         #Third check: Do any names contain the search term?
         for item in package_ids:
@@ -124,7 +124,7 @@ class main():
             if searchterm.lower() in item.lower():
                 subitem = self.json_storage[item]
                 if self.checkIfInResults(subitem, searchterm) == False:
-                    self.search_results[searchterm]['contains'][subitem] = self.storebrain.search_modules[self.storebrain.generic_module].getData(subitem)
+                    self.search_results[searchterm]['contains'][subitem] = self.storebrain.get_item_info_default(subitem)
         
         #Fourth check: Do any names end with the search term?
         for item in package_ids:
@@ -134,7 +134,7 @@ class main():
             if item.lower().endswith(searchterm.lower()):
                 subitem = self.json_storage[item]
                 if self.checkIfInResults(subitem, searchterm) == False:
-                    self.search_results[searchterm]['ends'][subitem] = self.storebrain.search_modules[self.storebrain.generic_module].getData(subitem)
+                    self.search_results[searchterm]['ends'][subitem] = self.storebrain.get_item_info_default(subitem)
         
         self.search_results[searchterm]['status'] = 0 #Mark as completed search
         return self.search_results[searchterm]

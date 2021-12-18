@@ -1,127 +1,164 @@
 {
   "storium-ice-google-youtube": {
-    "realname": "YouTube",
-    "iconuri": "https://www.gstatic.com/youtube/img/branding/favicon/favicon_192x192.png",
-    "shortdescription": "",
-    "description": "See what the world is watching -- from the hottest music videos to what’s trending in gaming, entertainment, news, and more. Subscribe to channels you love, share with friends, and watch on any device.",
-    "website": "https://youtube.com/",
-    "donateurl": "",
-    "category": "ice-multimedia",
-    "images": [""],
-    "order-of-module-importance": ["peppermint-ice"]
+    "type-importance": ["peppermint-ice"],
+    "all": {
+        "realname": "YouTube",
+        "iconuri": "https://www.gstatic.com/youtube/img/branding/favicon/favicon_192x192.png",
+        "shortdescription": "",
+        "description": "See what the world is watching -- from the hottest music videos to what’s trending in gaming, entertainment, news, and more. Subscribe to channels you love, share with friends, and watch on any device.",
+        "website": "https://www.youtube.com/?feature=ytca",
+        "donateurl": "",
+        "category": "ice-multimedia",
+        "images": [""]
+    }
   },
   "storium-ice-microsoft-office-online": {
-    "realname": "Microsoft Office Online",
-    "iconuri": "https://blobs.officehome.msocdn.com/versionless/webmanifestimages/OfficeDesktop_256.png",
-    "shortdescription": "",
-    "description": "Microsoft Office Online allows you to use Word, Excel, PowerPoint, OneNote and more of the Office suite on the go through Microsoft's cloud services. It gives you access to all the essential Office features you should need on a daily basis.",
-    "website": "https://www.office.com/?auth=1",
-    "donateurl": "",
-    "category": "ice-office",
-    "images": [""],
-    "order-of-module-importance": ["peppermint-ice"]
+    "type-importance": ["peppermint-ice"],
+    "all": {
+        "realname": "Microsoft Office Online",
+        "iconuri": "https://blobs.officehome.msocdn.com/versionless/webmanifestimages/OfficeDesktop_256.png",
+        "shortdescription": "",
+        "description": "Microsoft Office Online allows you to use Word, Excel, PowerPoint, OneNote and more of the Office suite on the go through Microsoft's cloud services. It gives you access to all the essential Office features you should need on a daily basis.",
+        "website": "https://www.office.com/?auth=1&from=Homescreen",
+        "donateurl": "",
+        "category": "ice-office",
+        "images": [""]
+    }
   },
   "storium-ice-microsoft-outlook": {
-    "realname": "Outlook",
-    "iconuri": "https://res-1.cdn.office.net/assets/mail/pwa/v1/pngs/Outlook.512x512.png",
-    "shortdescription": "",
-    "description": "TODO",
-    "website": "https://outlook.com/",
-    "donateurl": "",
-    "category": "ice-internet",
-    "images": [""],
-    "order-of-module-importance": ["peppermint-ice"]
+    "type-importance": ["peppermint-ice"],
+    "all": {
+        "realname": "Outlook",
+        "iconuri": "https://res-1.cdn.office.net/assets/mail/pwa/v1/pngs/Outlook.512x512.png",
+        "shortdescription": "",
+        "description": "TODO",
+        "website": "https://outlook.com/mail",
+        "donateurl": "",
+        "category": "ice-internet",
+        "images": [""]
+    }
   },
   "storium-ice-facebook-facebook": {
-    "realname": "Facebook",
-    "iconuri": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/05/Facebook_Logo_%282019%29.png/480px-Facebook_Logo_%282019%29.png",
-    "shortdescription": "",
-    "description": "Keeping up with friends is faster and easier than ever. Share updates and photos, engage with friends and Pages, and stay connected to communities important to you.",
-    "website": "https://facebook.com/",
-    "donateurl": "",
-    "category": "ice-internet",
-    "images": [""],
-    "order-of-module-importance": ["peppermint-ice"]
+    "type-importance": ["peppermint-ice"],
+    "all": {
+        "realname": "Facebook",
+        "iconuri": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/05/Facebook_Logo_%282019%29.png/480px-Facebook_Logo_%282019%29.png",
+        "shortdescription": "",
+        "description": "Keeping up with friends is faster and easier than ever. Share updates and photos, engage with friends and Pages, and stay connected to communities important to you.",
+        "website": "https://facebook.com/",
+        "donateurl": "",
+        "category": "ice-internet",
+        "images": [""]
+    }
   },
   "storium-ice-twitter-twitter": {
-    "realname": "Twitter",
-    "iconuri": "https://abs.twimg.com/responsive-web/client-web/icon-default-large.8e027b65.png",
-    "shortdescription": "",
-    "description": "Join the conversation! Twitter is your go-to social media app and the source for what's happening in the world. From world news to local news updates, entertainment to sports and gaming, politics to fun stories that go viral, when it happens in the world, it happens on Twitter first. Find friends, gain followers or follow influential people - every voice can impact the world! Join over 2 BILLION users worldwide!",
-    "website": "https://twitter.com/",
-    "donateurl": "",
-    "category": "ice-internet",
-    "images": [""],
-    "order-of-module-importance": ["peppermint-ice"]
+    "type-importance": ["peppermint-ice"],
+    "all": {
+        "realname": "Twitter",
+        "iconuri": "https://abs.twimg.com/responsive-web/client-web/icon-default-large.8e027b65.png",
+        "shortdescription": "",
+        "description": "Join the conversation! Twitter is your go-to social media app and the source for what's happening in the world. From world news to local news updates, entertainment to sports and gaming, politics to fun stories that go viral, when it happens in the world, it happens on Twitter first. Find friends, gain followers or follow influential people - every voice can impact the world! Join over 2 BILLION users worldwide!",
+        "website": "https://twitter.com/?utm_source=homescreen&utm_medium=shortcut",
+        "donateurl": "",
+        "category": "ice-internet",
+        "images": [""]
+    }
   },
   "storium-ice-reddit-reddit": {
-    "realname": "Reddit",
-    "iconuri": "https://www.redditstatic.com/desktop2x/img/favicon/android-icon-192x192.png",
-    "shortdescription": "",
-    "description": "With over 100K active communities, on Reddit you can laugh, think, discuss and dig deep into topics that matter to you.\nReddit is free and open for everyone to post, share, vote and discuss.\nReddit is powered by people. Your communities upvote and downvote posts to highlight the most interesting and relevant content. On Reddit, your privacy and opinions matter.\nYou can share your passion for your favorite books, movies, video games, sports, TV shows, music and technology with millions of people who share your interests.",
-    "website": "https://reddit.com/",
-    "donateurl": "",
-    "category": "ice-internet",
-    "images": [""],
-    "order-of-module-importance": ["peppermint-ice"]
+    "type-importance": ["peppermint-ice"],
+    "all": {
+        "realname": "Reddit",
+        "iconuri": "https://www.redditstatic.com/desktop2x/img/favicon/android-icon-192x192.png",
+        "shortdescription": "",
+        "description": "With over 100K active communities, on Reddit you can laugh, think, discuss and dig deep into topics that matter to you.\nReddit is free and open for everyone to post, share, vote and discuss.\nReddit is powered by people. Your communities upvote and downvote posts to highlight the most interesting and relevant content. On Reddit, your privacy and opinions matter.\nYou can share your passion for your favorite books, movies, video games, sports, TV shows, music and technology with millions of people who share your interests.",
+        "website": "https://reddit.com/",
+        "donateurl": "",
+        "category": "ice-internet",
+        "images": [""]
+    }
   },
   "storium-ice-pixiv-pixiv": {
-    "realname": "Pixiv",
-    "iconuri": "https://source.pixiv.net/common/images/android-chrome-192x192.png?20200601",
-    "shortdescription": "",
-    "description": "TODO",
-    "website": "https://pixiv.net/",
-    "donateurl": "",
-    "category": "ice-internet",
-    "images": [""],
-    "order-of-module-importance": ["peppermint-ice"]
+    "type-importance": ["peppermint-ice"],
+    "sources-available": [],
+    "all": {
+        "realname": "Pixiv",
+        "iconuri": "https://source.pixiv.net/common/images/android-chrome-192x192.png?20200601",
+        "shortdescription": "",
+        "description": "TODO",
+        "website": "https://pixiv.net/",
+        "donateurl": "",
+        "category": "ice-internet",
+        "images": [""]
+    }
   },
   "feren-extra-backgrounds": {
-    "realname": "Feren OS Extra Backgrounds",
-    "iconuri": "file:///usr/share/icons/Inspire/256/apps/preferences-wallpaper.png",
-    "shortdescription": "Extra Feren OS backgrounds",
-    "description": "If you didn't think there were enough beautiful backgrounds for feren OS, here's EVEN MORE to accompany your feren OS Desktop!",
-    "website": "http://ferenos.weebly.com/",
-    "donateurl": "",
-    "category": "backgrounds",
-    "images": [""],
-    "appstream-name": "",
-    "order-of-module-importance": ["apt"]
+    "type-importance": ["apt"],
+    "all": {
+        "realname": "Feren OS Extra Backgrounds",
+        "iconuri": "file:///usr/share/icons/Inspire/256/apps/preferences-wallpaper.png",
+        "shortdescription": "Extra Feren OS backgrounds",
+        "description": "If you didn't think there were enough beautiful backgrounds for feren OS, here's EVEN MORE to accompany your feren OS Desktop!",
+        "website": "http://ferenos.weebly.com/",
+        "donateurl": "",
+        "category": "backgrounds",
+        "images": [""],
+        "appstream-name": ""
+    }
   },
   "feren-store": {
-    "realname": "Feren Store",
-    "iconuri": "file:///usr/share/icons/Inspire/256/apps/feren-store.png",
-    "shortdescription": "The original Feren OS Store",
-    "description": "The old Feren OS Store",
-    "website": "https://ferenos.weebly.com/",
-    "donateurl": "",
-    "category": "system",
-    "images": [""],
-    "appstream-name": "feren-store.desktop",
-    "order-of-module-importance": ["apt"]
+    "type-importance": ["apt"],
+    "all": {
+        "realname": "Feren Store",
+        "iconuri": "file:///usr/share/icons/Inspire/256/apps/feren-store.png",
+        "shortdescription": "The original Feren OS Store",
+        "description": "The old Feren OS Store",
+        "website": "https://ferenos.weebly.com/",
+        "donateurl": "",
+        "category": "system",
+        "images": [""],
+        "appstream-name": "feren-store.desktop"
+    }
   },
   "google-chromium": {
-    "realname": "Chromium",
-    "iconuri": "https://upload.wikimedia.org/wikipedia/commons/2/26/Chromium_logo.png",
-    "shortdescription": "TODO",
-    "description": "TODO",
-    "website": "",
-    "donateurl": "",
-    "category": "browsers",
-    "images": ["https://www.gstatic.com/chrome/appstream/chrome-2.png"],
-    "appstream-name": "chromium.desktop",
-    "order-of-module-importance": ["snap"]
+    "type-importance": ["snap"],
+    "all": {
+        "realname": "Chromium",
+        "iconuri": "https://upload.wikimedia.org/wikipedia/commons/2/26/Chromium_logo.png",
+        "shortdescription": "TODO",
+        "description": "TODO",
+        "website": "",
+        "donateurl": "",
+        "category": "browsers",
+        "images": ["https://www.gstatic.com/chrome/appstream/chrome-2.png"],
+        "appstream-name": "chromium.desktop"
+    }
   },
   "mozilla-firefox": {
-    "realname": "Firefox",
-    "iconuri": "https://lh3.googleusercontent.com/zqsuwFUBwKRcGOSBinKQCL3JgfvOW49vJphq0ZF32aDgfqmuDyl-fEpx4Lxm4pRr7A=s0",
-    "shortdescription": "TODO",
-    "description": "TODO",
-    "website": "",
-    "donateurl": "",
-    "category": "browsers",
-    "images": ["https://www.gstatic.com/chrome/appstream/chrome-2.png"],
-    "appstream-name": "firefox.desktop",
-    "order-of-module-importance": ["flatpak", "snap"]
+    "type-importance": ["flatpak", "snap"],
+    "all": {
+        "realname": "Firefox",
+        "iconuri": "https://lh3.googleusercontent.com/zqsuwFUBwKRcGOSBinKQCL3JgfvOW49vJphq0ZF32aDgfqmuDyl-fEpx4Lxm4pRr7A=s0",
+        "shortdescription": "TODO",
+        "description": "TODO",
+        "website": "",
+        "donateurl": "",
+        "category": "browsers",
+        "images": ["https://www.gstatic.com/chrome/appstream/chrome-2.png"],
+        "appstream-name": "firefox.desktop"
+    }
+  },
+  "obs-obs-studio": {
+    "type-importance": ["snap", "apt", "flatpak"],
+    "all": {
+        "realname": "OBS Studio",
+        "iconuri": "https://avatars.githubusercontent.com/u/7725691?s=256&v=4",
+        "shortdescription": "TODO",
+        "description": "TODO",
+        "website": "",
+        "donateurl": "",
+        "category": "streaming",
+        "images": [],
+        "appstream-name": "obs-studio.desktop"
+    }
   }
 }
