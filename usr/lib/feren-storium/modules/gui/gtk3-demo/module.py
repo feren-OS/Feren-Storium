@@ -11,6 +11,7 @@ import gettext #Translations go brrr
 import getpass #Used for finding username
 
 import os
+import time
 
 from gi.repository import Gtk, Gio, Gdk, GLib, Pango, GObject, GdkPixbuf
 from threading import Thread
@@ -137,6 +138,9 @@ class TaskItemButton(Gtk.Button):
         Gtk.Button.__init__(self)
         self.storebrain = storebrain
         
+        self.taskinfo = taskinfo
+        self.taskid = taskid
+        
         #Get task information split up
         modulename, packagetype, packagename = taskid.split(":")[0:3] #Refer to comment on _refresh_tasks
         
@@ -157,7 +161,7 @@ class TaskItemButton(Gtk.Button):
         
         label_name = Gtk.Label(label=packageinfo["realname"])
         
-        label_summary = Gtk.Label(label=packageinfo["shortdescription"])
+        self.label_summary = Gtk.Label(label=packageinfo["shortdescription"])
         
         vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
 
@@ -165,29 +169,70 @@ class TaskItemButton(Gtk.Button):
         app_title_box = Gtk.Box()
         app_desc_box = Gtk.Box()
         app_title_box.pack_start(label_name, False, False, 0)
-        app_desc_box.pack_start(label_summary, False, False, 0)
+        app_desc_box.pack_start(self.label_summary, False, False, 0)
         
 
         #Make the column for application name and short description
         vbox.pack_start(app_title_box, False, False, 0)
         vbox.pack_end(app_desc_box, False, False, 0)
-
+        
         hbox = Gtk.Box()
         hbox.pack_start(app_icon, False, False, 4)
         hbox.pack_start(vbox, False, False, 8)
+        
+
+        if self.taskinfo != {}: #TODO: Add Update button too so this can be used as an updater
+            #Status area on right
+            self.status_stack = Gtk.Stack()
+            
+            self.task_queued = Gtk.Label(label=("Queued"))
+            self.task_progress = Gtk.ProgressBar()
+            
+            self.status_stack.add_named(self.task_queued, "queued")
+            self.status_stack.add_named(self.task_progress, "progress")
+            hbox.pack_start(Gtk.Box(), True, False, 8)
+            hbox.pack_start(self.status_stack, False, False, 4)
+            
+            self.label_summary.set_label(_(""))
 
         self.add(hbox)
         
-        self.child_items = [app_icon, label_name, label_summary, vbox, app_title_box, app_desc_box, hbox]
-        
         self.show_all()
+        
+    
+    def change_status(self, status):
+        if status == 901:
+            self.status_stack.set_visible_child(self.task_progress)
+            if self.taskinfo["operation"] == 0:
+                self.label_summary.set_label(_("Installing"))
+            elif self.taskinfo["operation"] == 1:
+                self.label_summary.set_label(_("Updating"))
+            elif self.taskinfo["operation"] == 2:
+                self.label_summary.set_label(_("Uninstalling"))
+        elif status == 900:
+            self.status_stack.set_visible_child(self.task_queued)
+            if self.taskinfo["operation"] == 0:
+                self.label_summary.set_label(_("Waiting to install"))
+            elif self.taskinfo["operation"] == 1:
+                self.label_summary.set_label(_("Waiting to update"))
+            elif self.taskinfo["operation"] == 2:
+                self.label_summary.set_label(_("Waiting to uninstall"))
+    
+    
+    def change_progress(self, progress):
+        self.task_progress.set_fraction(progress / 100)
+    
+    
+    #def on_cancelaction(self, gtk_widget):
+        #self.storebrain.tasks.cancel_task(self.taskinfo["module"].modulename, self.taskinfo["pkgtype"], self.taskinfo["packagename"])
+    
                 
     def add_warnings(self, packageinfo):
         #TODO
         pass
     
     def destroy_everything(self):
-        for item in self.child_items:
+        for item in self.get_children():
             for child in item.get_children():
                 child.destroy()
             item.destroy()
@@ -409,16 +454,7 @@ class AppDetailsHeader(Gtk.VBox):
         else:
             GLib.idle_add(self.cancelapp_btn.set_sensitive, False)
         #901 - Working on item
-        
-    
-    def tasks_refresh_pkgpage(self):
-        thread = Thread(target=self._tasks_refresh_pkgpage,
-                            args=())
-        thread.start()
-        
-    def _tasks_refresh_pkgpage(self):
-        self.mv.change_source(self.mv.current_item_viewed, self.source_ids[self.app_source_dropdown.get_active()])
-        #TODO
+        #902 - Disabled Buttons
         
 
 
@@ -670,6 +706,10 @@ class AppMainView(Gtk.Stack):
         
         self.add_named(self.sw4, "packagepage")
         
+        
+        #Task list variables
+        self.refreshing_tasklist_queue = 0
+        
     
     def add_message(self, messagetype, messagecontents, button_callback=None, button_text=""):
         thread = Thread(target=self._add_message,
@@ -785,18 +825,20 @@ class AppMainView(Gtk.Stack):
         self.add_source_information(packageinfo, currentpackage)
         self.AppDetailsHeader.populate(packageinfo, currentpackage)
         
+        GLib.idle_add(self.AppDetailsHeader.app_mgmt_progress.set_fraction, 0.0)
+        
         currentstatus = None
-        if currentstatus == None and currentmodule in self.storebrain.tasks.currenttasks and self.storebrain.tasks.currenttasks[currentmodule] != {}: #Check 1 for Status: If package is current item in queue
-            if self.storebrain.tasks.currenttask[currentmodule] != {} and self.storebrain.tasks.currenttask[currentmodule]["packagename"] == currentpackage:
-                currentstatus = 901
-        if currentstatus == None and currentmodule in self.storebrain.tasks.currenttasks: #Check 2 for Status: If package is in queue
+        if currentstatus == None and currentmodule in self.storebrain.tasks.currenttasks: #Check if package is in queue
             for item in self.storebrain.tasks.currenttasks[currentmodule]:
                 if item.split(":")[2] == currentpackage:
-                    currentstatus = 900
+                    currentstatus = 902
         if currentstatus == None:
             currentstatus = self.storebrain.pkgmgmt_modules[currentmodule].get_status(currentpackage, currenttype, currentsource)
         
         self.AppDetailsHeader.update_buttons(currentstatus)
+        
+        if currentstatus == 902:
+            self.refresh_tasksstatus() #Rely on Tasks Status refreshing to do the buttons
         
         self.AppDetailsHeader.populate_subsources(currentpackage, source)
     
@@ -871,12 +913,20 @@ class AppMainView(Gtk.Stack):
         GLib.idle_add(self.searchresultscontainer.show_all,)
     
             
-    def refresh_tasks(self):
-        thread = Thread(target=self._refresh_tasks,
+    def refresh_taskslist(self):
+        thread = Thread(target=self._refresh_taskslist,
                             args=())
         thread.start()
         
-    def _refresh_tasks(self):
+    def _refresh_taskslist(self):        
+        if self.refreshing_tasklist_queue >= 2:
+            return #Max of 2 refresh_taskslist at once
+        
+        while self.refreshing_tasklist_queue > 0:
+            pass
+        
+        self.refreshing_tasklist_queue += 1
+        
         print("DEBUG: GUI Refreshing Tasks")
         #Destroy the children first (no actual children were harmed in the making of this program) (according to doc, destroying containers destroys children recursively)
         if self.tasksitems != None:
@@ -890,9 +940,11 @@ class AppMainView(Gtk.Stack):
         
         itemsdone = 0
         if len(self.storebrain.tasks.overalltasksorder) == 0:
+            self.refreshing_tasklist_queue -= 1
             return #Don't continue if empty
         while itemsdone < len(self.storebrain.tasks.overalltasksorder): #We can't use python3's normal iteration as the dict size changes causing a SizeChanged exception
             if len(self.storebrain.tasks.overalltasksorder) == 0:
+                self.refreshing_tasklist_queue -= 1
                 self._refresh_tasks() #Run again, as tasks have finished during this
                 return
             
@@ -904,11 +956,59 @@ class AppMainView(Gtk.Stack):
             btn.connect("clicked", self._btn_goto_packageview, itemname) #TODO: Teleportation to specific module
             GLib.idle_add(self.tasksitems.insert, btn, -1)
             
-            itemsdone += 1
+            self._refresh_taskstatus(btn)
             
+            itemsdone += 1
+        
+        time.sleep(0.2)
+        
+        self.refreshing_tasklist_queue -= 1 #Reduce the queue number now we're done
         GLib.idle_add(self.tasksitemscontainer.show_all,)
         
-        GLib.idle_add(self.AppDetailsHeader.tasks_refresh_pkgpage,)
+        
+    def refresh_tasksstatus(self):
+        thread = Thread(target=self._refresh_tasksstatus,
+                            args=())
+        thread.start()
+        
+    def _refresh_tasksstatus(self):
+        if self.refreshing_tasklist_queue > 0:
+            return #Don't run while tasks are refreshing, as the tasks refreshing does this as well
+        
+        print("DEBUG: Refreshing tasks status")
+        
+        if len(self.storebrain.tasks.overalltasksorder) == 0 or self.tasksitems == None:
+            return #Don't continue if empty
+        for flowbox in self.tasksitems.get_children():
+            for item in flowbox.get_children():
+                self._refresh_taskstatus(item)
+        
+    
+    def _refresh_taskstatus(self, item):
+        if item.taskid == list(self.storebrain.tasks.currenttask[item.taskinfo["module"].modulename].keys())[0]:
+            status = 901
+        else:
+            status = 900
+        
+        GLib.idle_add(item.change_status, status)
+        
+        GLib.idle_add(item.change_progress, item.taskinfo["progress"])
+        
+        #Change status of package page too if appropriate
+        if item.taskinfo["packagename"] == self.current_item_viewed and item.taskinfo["module"].modulename == self.current_module_viewed and item.taskinfo["pkgtype"] == self.current_type_viewed and item.taskinfo["source"] == self.current_source_viewed:
+            self.AppDetailsHeader.update_buttons(status)
+            GLib.idle_add(self.AppDetailsHeader.app_mgmt_progress.set_fraction, (item.taskinfo["progress"] / 100))
+        else:
+            GLib.idle_add(self.AppDetailsHeader.app_mgmt_progress.set_fraction, 0.0)
+        
+    
+    def refresh(self):
+        thread = Thread(target=self._refresh,
+                            args=())
+        thread.start()
+        
+    def _refresh(self):
+        self.change_source(self.current_item_viewed, self.AppDetailsHeader.source_ids[self.AppDetailsHeader.app_source_dropdown.get_active()])
     
         
     def goto_page(self, page):
@@ -968,7 +1068,7 @@ class main(object):
         mv.AppDetailsHeader.mv = mv
         self.w.show_all()
 
-    def _build_app(self):        
+    def _build_app(self):
         # build window
         self.w = Gtk.Window()
         self.w.set_position(Gtk.WindowPosition.CENTER)
@@ -1097,8 +1197,16 @@ class main(object):
         self._build_app()
         Gtk.main()
         
-    def refresh_tasks(self):
-        self.mainpage.refresh_tasks()
+        
+    def refresh_taskslist(self):
+        self.mainpage.refresh_taskslist()
+        
+    def refresh_tasksstatus(self):
+        self.mainpage.refresh_tasksstatus()
+        
+    def refresh(self):
+        self.mainpage.refresh()
+        
 
     def _gohome_pressed(self, gtk_widget):
         self.mainpage.goto_page(self.mainpage.sw)

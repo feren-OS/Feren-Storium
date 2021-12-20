@@ -299,7 +299,6 @@ ForegroundVisited=127,140,141"""
     
     #Actual management
     def task_install_package(self, taskdata, progress_callback):
-        
         #Install package and return exit code
         self.packagemgmtbusy = True
         self.currentpackagename = taskdata["packagename"]
@@ -819,7 +818,7 @@ ForegroundVisited=127,140,141"""
                 if item in profiletoupdate["extensions"]["settings"]:
                     profiletoupdateextra["extensions"]["settings"][item].pop("path", None)
                     profiletoupdateextra["extensions"]["settings"][item]["manifest"].pop("name", None)
-                    profiletoupdateextra["extensions"]["settings"][item]["manifest"].pop("version", None) #Prevent the extension version from reverting
+                    profiletoupdateextra["extensions"]["settings"][item]["manifest"].pop("version", None) #Prevent the extension version and name from reverting
         profiletoupdate = self.storebrain.dict_recurupdate(profiletoupdate, profiletoupdateextra)
         if "nekocap" in currenticebonuses:
             with open("/usr/share/feren-storium/modules/packagemgmt-ice/chromium-profile/and-nekocap", 'r') as fp:

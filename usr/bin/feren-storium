@@ -84,7 +84,12 @@ class StoreTasks():
     def __init__(self):
         self.currenttasks = {} #Tasks lists (per module)
         self.currenttask = {} #ID of current task (per module)
+        
         self.dontcontinue = False #Used for when a logoff is initiated, or Store is pending a restart during updates, as the goal is to stop after the current task
+        self.tasksrunning = {} #True/False for Tasks running on each module
+        
+        self.updatesapplying = False #Used for when updates are being installed, to prevent major hiccups
+        self.currenttasksupdates = {} #Used for only storing updates tasks
         
         self.overalltasksorder = {} #For GUI organising of tasks
         
@@ -92,10 +97,14 @@ class StoreTasks():
         self.currentpkgtaskmodules = [] #Same as the above, but for package file tasks
         
     def add_task_item_ifnotexists(self, module): #Adds Tasks section if it's not a section yet
-        if module not in self.currenttasks:
+        if module.modulename not in self.currenttasks:
             self.currenttasks[module.modulename] = {}
-        if module not in self.currenttask:
+        if module.modulename not in self.currenttask:
             self.currenttask[module.modulename] = {}
+        if module.modulename not in self.tasksrunning:
+            self.tasksrunning[module.modulename] = {}
+        if module.modulename not in self.currenttasksupdates:
+            self.currenttasksupdates[module.modulename] = {}
     
         
     def add_task(self, packagename, packagetype, module, operation, packageinfo, source, subsource, bonuses=[]): #Add package management task
@@ -142,11 +151,11 @@ class StoreTasks():
         self.overalltasksorder.pop(item)
         print("TASKS DEBUG ("+modulename+"): Cancelled a task")
         
-        self.storebrain.gui_module.refresh_tasks()
+        self.storebrain.gui_module.refresh_taskslist()
             
         
     def begin_tasks(self):
-        self.storebrain.gui_module.refresh_tasks() #Refresh Tasks view and such in GUI TODO: Add cooldown to refresh_tasks
+        self.storebrain.gui_module.refresh_taskslist()
         
         for module in self.currenttasks: #Initiate tasks working for all modules
             thread = Thread(target=self._begin_tasks,
@@ -155,65 +164,71 @@ class StoreTasks():
             thread.start()
         
     def _begin_tasks(self, module):
-        if self.currenttask[module] != {}:
+        if self.tasksrunning[module] == True:
             return #It's already running, don't bother running it again
         
+        self.tasksrunning[module] = True
         while self.currenttasks[module] != {}:
             
-            print("TASKS DEBUG ("+module+"): currenttasks is", self.currenttasks[module])
-            print("TASKS DEBUG: overalltasksorder is", self.overalltasksorder)
             if self.dontcontinue == True:
                 #Abort loop if we're out of locked tasks list items
                 break
             
-            #Get the placement of our item in self.overalltasksorder
+            #Get the task's name
             targettaskname = list(self.currenttasks[module].keys())[0]
             
             self.do_task(targettaskname, self.currenttasks[module][targettaskname], module, partial(self.set_progress, self.currenttasks[module][targettaskname]), self.completion_status_callback)
-            self.currenttasks[module].pop(targettaskname)
-            self.overalltasksorder.pop(targettaskname)
-            self.storebrain.gui_module.refresh_tasks() #FIXME: This gets called way too often
+            
+            self.storebrain.gui_module.refresh_taskslist() #FIXME: This gets called way too often
             
             
-        self.currenttask[module] = {} #Free up the function for a future calling since we're gonna return on this so it'll need recalling
+        self.tasksrunning[module] = False
         print("TASKS DEBUG ("+module+"): currenttasks is all done, returning.")
         
         
     def do_task(self, taskname, task, module, progress_callback, completion_status_callback):
-        self.currenttask[module] = task
+        self.currenttask[module][taskname] = task
         
-        self.storebrain.gui_module.refresh_tasks() #TODO: Move to Brain API
+        self.storebrain.gui_module.refresh_tasksstatus() #TODO: Move to Brain API
         
-        #FIXME: Needs GUI connections, and progressbar
+        #FIXME: Needs GUI connections
         
-        print("TASKS DEBUG: Working on", task)
-        #try:
-        if task["type"] == "item":
-            if task["operation"] == 0:
-                task["module"].task_install_package(task, progress_callback)
-            elif task["operation"] == 1:
-                task["module"].task_update_package(task, progress_callback)
-            elif task["operation"] == 2:
-                task["module"].task_remove_package(task, progress_callback)
-        elif task["type"] == "packagefile":
-            pass
-        elif task["type"] == "source":
-            pass
-            #TODO
+        print("TASKS DEBUG: Working on", taskname)
+        try:
+            if task["type"] == "item":
+                if task["operation"] == 0:
+                    task["module"].task_install_package(task, progress_callback)
+                elif task["operation"] == 1:
+                    task["module"].task_update_package(task, progress_callback)
+                elif task["operation"] == 2:
+                    task["module"].task_remove_package(task, progress_callback)
+            elif task["type"] == "packagefile":
+                pass
+            elif task["type"] == "source":
+                pass
+                #TODO
             
-            ##do_task is ran via a Thread, so we do the code in a non-threaded way.
-            #print("TASKS DEBUG: Finished", taskname)
-            #thread = Thread(target=completion_status_callback,
-                            #args=(task, True))
-        #except Exception as exceptionstr:
-            #print("TASKS DEBUG: TASK FAILED:", taskname+":", exceptionstr)
-            #thread = Thread(target=completion_status_callback,
-                            #args=(task, False, exceptionstr))
+            #do_task is ran via a Thread, so we do the code in a non-threaded way.
+            print("TASKS DEBUG: Finished", taskname)
+            thread = Thread(target=completion_status_callback,
+                            args=(task, True))
+        except Exception as exceptionstr:
+            print("TASKS DEBUG: TASK FAILED:", taskname+":", exceptionstr)
+            thread = Thread(target=completion_status_callback,
+                            args=(task, False, exceptionstr))
         
-        #thread.daemon = True
-        #thread.start()
+        thread.daemon = True
+        thread.start()
         
         task["module"].task_cleanup(task)
+        
+        self.currenttasks[module].pop(taskname)
+        self.overalltasksorder.pop(taskname)
+        self.currenttasksupdates.pop(taskname, None)
+        self.currenttask[module] = {}
+        
+        #TODO: Move to Brain API too
+        self.storebrain.gui_module.refresh()
     
     
     def completion_status_callback(self, task, completed, output=""):
@@ -227,6 +242,7 @@ class StoreTasks():
         
     def set_progress(self, task, progress):
         task["progress"] = progress
+        self.storebrain.gui_module.refresh_tasksstatus()
         print("TASKS DEBUG ("+task["packagename"]+"): progress is now", progress)
 
 
