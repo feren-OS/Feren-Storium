@@ -2,6 +2,20 @@
     "extensions": {
         "settings": {
             "cjpalhdlnbpafiamejdnhcphjbkeiagm": {
+                "active_permissions": {
+                    "api": [ "contextMenus", "privacy", "storage", "tabs", "unlimitedStorage", "webNavigation", "webRequest", "webRequestBlocking" ],
+                    "explicit_host": [ "<all_urls>", "chrome://favicon/*" ],
+                    "manifest_permissions": [],
+                    "scriptable_host": [ "http://*/*", "https://*.fanboy.co.nz/*", "https://*.github.io/*", "https://*/*", "https://easylist.to/*", "https://filterlists.com/*", "https://forums.lanik.us/*", "https://github.com/*" ]
+                },
+                "from_webstore": true,
+                "granted_permissions": {
+                    "api": [ "contextMenus", "privacy", "storage", "tabs", "unlimitedStorage", "webNavigation", "webRequest", "webRequestBlocking" ],
+                    "explicit_host": [ "<all_urls>", "chrome://favicon/*" ],
+                    "manifest_permissions": [],
+                    "scriptable_host": [ "http://*/*", "https://*.fanboy.co.nz/*", "https://*.github.io/*", "https://*/*", "https://easylist.to/*", "https://filterlists.com/*", "https://forums.lanik.us/*", "https://github.com/*" ]
+                },
+                "incognito": true,
                 "location": 1,
                 "manifest": {
                     "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAmJNzUNVjS6Q1qe0NRqpmfX/oSJdgauSZNdfeb5RV1Hji21vX0TivpP5gq0fadwmvmVCtUpOaNUopgejiUFm/iKHPs0o3x7hyKk/eX0t2QT3OZGdXkPiYpTEC0f0p86SQaLoA2eHaOG4uCGi7sxLJmAXc6IsxGKVklh7cCoLUgWEMnj8ZNG2Y8UKG3gBdrpES5hk7QyFDMraO79NmSlWRNgoJHX6XRoY66oYThFQad8KL8q3pf3Oe8uBLKywohU0ZrDPViWHIszXoE9HEvPTFAbHZ1umINni4W/YVs+fhqHtzRJcaKJtsTaYy+cholu5mAYeTZqtHf6bcwJ8t9i2afwIDAQAB",

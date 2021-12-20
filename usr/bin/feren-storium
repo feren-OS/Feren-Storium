@@ -187,31 +187,31 @@ class StoreTasks():
         #FIXME: Needs GUI connections, and progressbar
         
         print("TASKS DEBUG: Working on", task)
-        try:
-            if task["type"] == "item":
-                if task["operation"] == 0:
-                    task["module"].task_install_package(task, progress_callback)
-                elif task["operation"] == 1:
-                    task["module"].task_update_package(task, progress_callback)
-                elif task["operation"] == 2:
-                    task["module"].task_remove_package(task, progress_callback)
-            elif task["type"] == "packagefile":
-                pass
-            elif task["type"] == "source":
-                pass
-                #TODO
+        #try:
+        if task["type"] == "item":
+            if task["operation"] == 0:
+                task["module"].task_install_package(task, progress_callback)
+            elif task["operation"] == 1:
+                task["module"].task_update_package(task, progress_callback)
+            elif task["operation"] == 2:
+                task["module"].task_remove_package(task, progress_callback)
+        elif task["type"] == "packagefile":
+            pass
+        elif task["type"] == "source":
+            pass
+            #TODO
             
-            #do_task is ran via a Thread, so we do the code in a non-threaded way.
-            print("TASKS DEBUG: Finished", taskname)
-            thread = Thread(target=completion_status_callback,
-                            args=(task, True))
-        except Exception as exceptionstr:
-            print("TASKS DEBUG: TASK FAILED:", taskname+":", exceptionstr)
-            thread = Thread(target=completion_status_callback,
-                            args=(task, False, exceptionstr))
+            ##do_task is ran via a Thread, so we do the code in a non-threaded way.
+            #print("TASKS DEBUG: Finished", taskname)
+            #thread = Thread(target=completion_status_callback,
+                            #args=(task, True))
+        #except Exception as exceptionstr:
+            #print("TASKS DEBUG: TASK FAILED:", taskname+":", exceptionstr)
+            #thread = Thread(target=completion_status_callback,
+                            #args=(task, False, exceptionstr))
         
-        thread.daemon = True
-        thread.start()
+        #thread.daemon = True
+        #thread.start()
         
         task["module"].task_cleanup(task)
     

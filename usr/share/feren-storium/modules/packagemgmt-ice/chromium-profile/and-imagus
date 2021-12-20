@@ -2,6 +2,20 @@
     "extensions": {
         "settings": {
             "immpkjjlgappgfkkfieppnmlhakdmaab": {
+                "active_permissions": {
+                    "api": [ "downloads", "downloadsInternal", "history", "storage" ],
+                    "explicit_host": [ "*://*/*" ],
+                    "manifest_permissions": [],
+                    "scriptable_host": [ "<all_urls>", "https://*/search*", "https://duckduckgo.com/*" ]
+                },
+                "from_webstore": true,
+                "granted_permissions": {
+                    "api": [ "downloads", "downloadsInternal", "history", "storage" ],
+                    "explicit_host": [ "*://*/*" ],
+                    "manifest_permissions": [],
+                    "scriptable_host": [ "<all_urls>", "https://*/search*", "https://duckduckgo.com/*" ]
+                },
+                "incognito": true,
                 "location": 1,
                 "manifest": {
                     "key": "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCQBiLbwQQLVNva17iHgCEjYoc3QTAubJaXUJDCe/VlOajqPPbmBiAyRc4wvK6XmppvbUf8yjQo1mYuccItHrqCiVFDwX/spgI6hslQSGwGLAuHf6ImtxgsNKulWAldROW2RLy0wT1vZbZSYql76Sq7IGKIGTkgveJYQPH4MEBc/QIDAQAB",

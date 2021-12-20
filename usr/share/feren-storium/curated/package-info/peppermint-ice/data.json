@@ -13,9 +13,11 @@
         "iconuriextras": ["https://www.gstatic.com/youtube/media/ytm/images/applauncher/music_icon_512x512.png"],
         "websiteextras": ["https://music.youtube.com"],
         "keywordsextras": ["Google;You;Music;Subscription;"],
-        "icelastupdated": "20211210",
+        "icenohistory": true,
+        "icegoogleinteg": true,
         "icecolor": "#212121",
-        "icecolorhighlight": "#FF0000"
+        "icecolorhighlight": "#FF0000",
+        "icelastupdated": "20211210"
     }
   },
   "storium-ice-microsoft-office-online": {
@@ -32,9 +34,9 @@
         "iconuriextras": ["https://upload.wikimedia.org/wikipedia/commons/f/fd/Microsoft_Office_Word_%282019%E2%80%93present%29.svg", "https://upload.wikimedia.org/wikipedia/commons/3/34/Microsoft_Office_Excel_%282019%E2%80%93present%29.svg", "https://upload.wikimedia.org/wikipedia/commons/0/0d/Microsoft_Office_PowerPoint_%282019%E2%80%93present%29.svg", "https://upload.wikimedia.org/wikipedia/commons/1/10/Microsoft_Office_OneNote_%282019%E2%80%93present%29.svg", "https://upload.wikimedia.org/wikipedia/commons/c/c9/Microsoft_Office_Teams_%282018%E2%80%93present%29.svg", "https://res-1.cdn.office.net/assets/mail/pwa/v1/pngs/Outlook.512x512.png", "https://res-1.cdn.office.net/todo/415318_2.55.1/icons/todo-512.png"],
         "websiteextras": ["https://www.office.com/launch/word", "https://www.office.com/launch/excel", "https://www.office.com/launch/powerpoint", "https://www.onenote.com/notebooks", "https://teams.microsoft.com", "https://outlook.live.com", "https://to-do.live.com"],
         "keywordsextras": ["Microsoft;Office;Word;", "Microsoft;Office;Excel;", "Microsoft;Office;PowerPoint;", "Microsoft;Office;OneNote;", "Microsoft;Office;Teams;", "Microsoft;Office;Outlook;", "Microsoft;Office;ToDo;"],
-        "icelastupdated": "20211210",
         "icecolor": "#D53A00",
-        "icecolorhighlight": "#D53A00"
+        "icecolorhighlight": "#D53A00",
+        "icelastupdated": "20211210"
     }
   },
   "storium-ice-microsoft-outlook": {
@@ -50,9 +52,9 @@
         "iconuriextras": ["https://techcommunity.microsoft.com/t5/image/serverpage/image-id/172269iB16D1070FD2F4AB3/image-size/large?v=v2&px=1024"],
         "websiteextras": ["https://outlook.com/calendar"],
         "keywordsextras": ["Microsoft;Office;Outlook;Live;Calendar;"],
-        "icelastupdated": "20211210",
         "icecolor": "#FFFFFF",
-        "icecolorhighlight": "#0078D4"
+        "icecolorhighlight": "#0078D4",
+        "icelastupdated": "20211210"
     }
   },
   "storium-ice-facebook-facebook": {
@@ -69,9 +71,9 @@
         "iconuriextras": ["https://upload.wikimedia.org/wikipedia/commons/thumb/b/be/Facebook_Messenger_logo_2020.svg/800px-Facebook_Messenger_logo_2020.svg.png"],
         "websiteextras": ["https://messenger.com"],
         "keywordsextras": ["Messenger;Zucc;Friends;Social;Chat;Facebook;"],
-        "icelastupdated": "20211210",
         "icecolor": "#1B74E4",
-        "icecolorhighlight": "#1B74E4"
+        "icecolorhighlight": "#1B74E4",
+        "icelastupdated": "20211210"
     }
   },
   "storium-ice-twitter-twitter": {
@@ -82,9 +84,10 @@
         "bugreporturl": "",
         "tosurl": "",
         "privpolurl": "",
-        "icelastupdated": "20211210",
         "icecolor": "#FFFFFF",
-        "icecolorhighlight": "#1DA1F2"
+        "icegoogleinteg": true,
+        "icecolorhighlight": "#1DA1F2",
+        "icelastupdated": "20211210"
     }
   },
   "storium-ice-reddit-reddit": {
@@ -95,9 +98,10 @@
         "bugreporturl": "",
         "tosurl": "",
         "privpolurl": "",
-        "icelastupdated": "20211210",
+        "icegoogleinteg": true,
         "icecolor": "#FFFFFF",
-        "icecolorhighlight": "#FF4500"
+        "icecolorhighlight": "#FF4500",
+        "icelastupdated": "20211210"
     }
   },
   "storium-ice-pixiv-pixiv": {
@@ -108,9 +112,10 @@
         "bugreporturl": "",
         "tosurl": "",
         "privpolurl": "",
-        "icelastupdated": "20211210",
+        "icenohistory": true,
         "icecolor": "#FFFFFF",
-        "icecolorhighlight": "#0096FA"
+        "icecolorhighlight": "#0096FA",
+        "icelastupdated": "20211210"
     }
   }
 }

@@ -153,7 +153,7 @@ class TaskItemButton(Gtk.Button):
         #TODO: Get default module's item info
         
         app_icon = AppItemIcon(self.storebrain.get_icon)
-        app_icon.set_icon(packageinfo["iconuri"], taskid)
+        app_icon.set_icon(packageinfo["iconuri"], packagename)
         
         label_name = Gtk.Label(label=packageinfo["realname"])
         

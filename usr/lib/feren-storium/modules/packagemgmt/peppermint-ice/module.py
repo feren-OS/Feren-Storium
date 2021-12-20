@@ -72,7 +72,7 @@ class main():
         self.currentpackagename = ""
         
         #Global Ice last updated date (so that all shortcuts can be updated if a major change occurs)
-        self.icelastupdated = "20211218"
+        self.icelastupdated = "20211221"
         
         #Sources storage
         self.sources_storage = {}
@@ -387,17 +387,24 @@ ForegroundVisited=127,140,141"""
             profiletomakeextra = json.loads(fp.read())
         profiletomake = self.storebrain.dict_recurupdate(profiletomake, profiletomakeextra)
         
-        #TODO: Make this an option in metadata once pkgdata is converted
-        with open("/usr/share/feren-storium/modules/packagemgmt-ice/chromium-profile/disable-google", 'r') as fp:
-            profiletomakeextra = json.loads(fp.read())
-        profiletomake = self.storebrain.dict_recurupdate(profiletomake, profiletomakeextra)
-        #TODO: This as well
-        try:
-            with open(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/.storium-nohistory" % taskdata["packagename"], 'w') as fp:
-                pass
-        except Exception as exceptionstr:
-            self.task_remove_package(taskdata, None, True) #Remove profile's files/folders on failure
-            raise ICEModuleException(_("Failed to install {0}: {1} was encountered when setting up automatic history deletion").format(taskdata["packagename"], exceptionstr))
+        if "icegoogleinteg" in icepackageinfo and icepackageinfo["icegoogleinteg"] == True:
+            pass
+        else:
+            with open("/usr/share/feren-storium/modules/packagemgmt-ice/chromium-profile/disable-google", 'r') as fp:
+                profiletomakeextra = json.loads(fp.read())
+            profiletomake = self.storebrain.dict_recurupdate(profiletomake, profiletomakeextra)
+        if "icegooglehangouts" in icepackageinfo and icepackageinfo["icegooglehangouts"] == True:
+            profiletomake["vivaldi"]["privacy"]["google_component_extensions"]["hangout_services"] = True
+        else:
+            profiletomake["vivaldi"]["privacy"]["google_component_extensions"]["hangout_services"] = False
+        
+        if "icenohistory" in icepackageinfo and icepackageinfo["icenohistory"] == True:
+            try:
+                with open(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/.storium-nohistory" % taskdata["packagename"], 'w') as fp:
+                    pass
+            except Exception as exceptionstr:
+                self.task_remove_package(taskdata, None, True) #Remove profile's files/folders on failure
+                raise ICEModuleException(_("Failed to install {0}: {1} was encountered when setting up automatic history deletion").format(taskdata["packagename"], exceptionstr))
         
         
         if "nekocap" in icebonuses:
@@ -420,6 +427,15 @@ ForegroundVisited=127,140,141"""
             with open("/usr/share/feren-storium/modules/packagemgmt-ice/chromium-profile/and-googleytdislikes", 'r') as fp:
                 profiletomakeextra = json.loads(fp.read())
             profiletomake = self.storebrain.dict_recurupdate(profiletomake, profiletomakeextra)
+            
+            
+        #Write Bonuses to be used as a backup
+        try:
+            with open(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/.storium-bonuses" % taskdata["packagename"], 'w') as fp:
+                fp.write(str(icebonuses)) # This means that Storium can manage bonuses later on in time
+        except Exception as exceptionstr:
+            self.task_remove_package(taskdata, None, True) #Remove profile's files/folders on failure
+            raise ICEModuleException(_("Failed to install {0}: {1} was encountered when making a note of the SSB's bonus additions").format(taskdata["packagename"], exceptionstr))
         
         
         #Extra site-specific tweaks
@@ -427,6 +443,36 @@ ForegroundVisited=127,140,141"""
         profiletomake["session"]["startup_urls"] = [icepackageinfo["website"]]
         profiletomake["vivaldi"]["homepage"] = icepackageinfo["website"]
         profiletomake["download"]["default_directory"] = GLib.get_user_special_dir(GLib.UserDirectory.DIRECTORY_DOWNLOAD) + "/" + _("{0} Downloads").format(icepackageinfo["realname"]) #TODO: Allow configuration of downloads location, whether or not to save to individual folders
+        profiletomake["profile"]["name"] = _("Ice - {0}").format(icepackageinfo["realname"])
+        
+        #Notifications ONLY for SSB's websites
+        try:
+            shortenedurl = icepackageinfo["website"].split("://")[1:]
+            shortenedurl = ''.join(shortenedurl)
+        except:
+            shortenedurl = icepackageinfo["website"]
+        try:
+            shortenedurl = shortenedurl.split("/")[0]
+        except:
+            pass
+        profiletomake["profile"]["content_settings"]["exceptions"]["notifications"]["[*.]"+shortenedurl+",*"] = {"expiration": "0", "model": 0, "setting": 1}
+        profiletomake["profile"]["content_settings"]["exceptions"]["notifications"][shortenedurl+",*"] = {"expiration": "0", "model": 0, "setting": 1}
+        #Repeat for extra shortcuts' URLs
+        extrascount = 0
+        for extraid in iceextrasids:
+            try:
+                shortenedurl = icepackageinfo["websiteextras"][extrascount].split("://")[1:]
+                shortenedurl = ''.join(shortenedurl)
+            except:
+                shortenedurl = icepackageinfo["websiteextras"][extrascount]
+            try:
+                shortenedurl = shortenedurl.split("/")[0]
+            except:
+                pass
+            profiletomake["profile"]["content_settings"]["exceptions"]["notifications"]["[*.]"+shortenedurl+",*"] = {"expiration": "0", "model": 0, "setting": 1}
+            profiletomake["profile"]["content_settings"]["exceptions"]["notifications"][shortenedurl+",*"] = {"expiration": "0", "model": 0, "setting": 1}
+            extrascount += 1
+        
         
         #TODO: Figure out doing themes for Chrome to colour the windows by their website colours
         
@@ -514,7 +560,7 @@ ForegroundVisited=127,140,141"""
         #Write Extra IDs to be used as a backup
         try:
             with open(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/.storium-extra-ids" % taskdata["packagename"], 'w') as fp:
-                fp.write(str(iceextrasids)) # This means that Storium can manage bonuses later on in time
+                fp.write(str(iceextrasids)) # This means that Storium can manage extras later on in time
         except Exception as exceptionstr:
             self.task_remove_package(taskdata, None, True) #Remove profile's files/folders on failure
             raise ICEModuleException(_("Failed to install {0}: {1} was encountered when making a note of the SSB's extra shortcuts").format(taskdata["packagename"], exceptionstr))
@@ -658,6 +704,10 @@ ForegroundVisited=127,140,141"""
         self.currentpackagename = taskdata["packagename"]
         
         icepackageinfo = taskdata["pkginfo"]
+        if "extrasids" in icepackageinfo:
+            iceextrasids = icepackageinfo["extrasids"]
+        else:
+            iceextrasids = []
         
         if os.path.isfile(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/.storium-active-pid" % taskdata["packagename"]):
             with open(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/.storium-active-pid" % taskdata["packagename"], 'r') as pidfile:
@@ -706,6 +756,13 @@ ForegroundVisited=127,140,141"""
                 currenticeextraids = ast.literal_eval(fp.readline())
         else:
             currenticeextraids = [] #Fallback
+        if os.path.isfile(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/.storium-bonuses" % taskdata["packagename"]):
+            with open(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/.storium-bonuses" % taskdata["packagename"], 'r') as fp:
+                currenticebonuses = ast.literal_eval(fp.readline())
+        else:
+            currenticebonuses = [] #Fallback
+        if "bonuses" in taskdata:
+            currenticebonuses.extend(taskdata["bonuses"])
             
             
         progress_callback(24)
@@ -755,13 +812,115 @@ ForegroundVisited=127,140,141"""
         profiletoupdate = self.storebrain.dict_recurupdate(profiletoupdate, profiledefaults)
         
         
+        #Update extensions permissions too
+        with open("/usr/share/feren-storium/modules/packagemgmt-ice/chromium-profile/and-plasmaintegration", 'r') as fp:
+            profiletoupdateextra = json.loads(fp.read())
+            for item in profiletoupdateextra["extensions"]["settings"]:
+                if item in profiletoupdate["extensions"]["settings"]:
+                    profiletoupdateextra["extensions"]["settings"][item].pop("path", None)
+                    profiletoupdateextra["extensions"]["settings"][item]["manifest"].pop("name", None)
+                    profiletoupdateextra["extensions"]["settings"][item]["manifest"].pop("version", None) #Prevent the extension version from reverting
+        profiletoupdate = self.storebrain.dict_recurupdate(profiletoupdate, profiletoupdateextra)
+        if "nekocap" in currenticebonuses:
+            with open("/usr/share/feren-storium/modules/packagemgmt-ice/chromium-profile/and-nekocap", 'r') as fp:
+                profiletoupdateextra = json.loads(fp.read()) #This is how you make json.load work with file paths, I guess
+                for item in profiletoupdateextra["extensions"]["settings"]:
+                    if item in profiletoupdate["extensions"]["settings"]:
+                        profiletoupdateextra["extensions"]["settings"][item].pop("path", None)
+                        profiletoupdateextra["extensions"]["settings"][item]["manifest"].pop("name", None)
+                        profiletoupdateextra["extensions"]["settings"][item]["manifest"].pop("version", None)
+            profiletoupdate = self.storebrain.dict_recurupdate(profiletoupdate, profiletoupdateextra)
+        if "ublock" in currenticebonuses:
+            with open("/usr/share/feren-storium/modules/packagemgmt-ice/chromium-profile/and-ublock", 'r') as fp:
+                profiletoupdateextra = json.loads(fp.read())
+                for item in profiletoupdateextra["extensions"]["settings"]:
+                    if item in profiletoupdate["extensions"]["settings"]:
+                        profiletoupdateextra["extensions"]["settings"][item].pop("path", None)
+                        profiletoupdateextra["extensions"]["settings"][item]["manifest"].pop("name", None)
+                        profiletoupdateextra["extensions"]["settings"][item]["manifest"].pop("version", None)
+            profiletoupdate = self.storebrain.dict_recurupdate(profiletoupdate, profiletoupdateextra)
+        if "darkreader" in currenticebonuses:
+            with open("/usr/share/feren-storium/modules/packagemgmt-ice/chromium-profile/and-darkreader", 'r') as fp:
+                profiletoupdateextra = json.loads(fp.read())
+                for item in profiletoupdateextra["extensions"]["settings"]:
+                    if item in profiletoupdate["extensions"]["settings"]:
+                        profiletoupdateextra["extensions"]["settings"][item].pop("path", None)
+                        profiletoupdateextra["extensions"]["settings"][item]["manifest"].pop("name", None)
+                        profiletoupdateextra["extensions"]["settings"][item]["manifest"].pop("version", None)
+            profiletoupdate = self.storebrain.dict_recurupdate(profiletoupdate, profiletoupdateextra)
+        if "imagus" in currenticebonuses:
+            with open("/usr/share/feren-storium/modules/packagemgmt-ice/chromium-profile/and-imagus", 'r') as fp:
+                profiletoupdateextra = json.loads(fp.read())
+                for item in profiletoupdateextra["extensions"]["settings"]:
+                    if item in profiletoupdate["extensions"]["settings"]:
+                        profiletoupdateextra["extensions"]["settings"][item].pop("path", None)
+                        profiletoupdateextra["extensions"]["settings"][item]["manifest"].pop("name", None)
+                        profiletoupdateextra["extensions"]["settings"][item]["manifest"].pop("version", None)
+            profiletoupdate = self.storebrain.dict_recurupdate(profiletoupdate, profiletoupdateextra)
+        if "googleytdislikes" in currenticebonuses:
+            with open("/usr/share/feren-storium/modules/packagemgmt-ice/chromium-profile/and-googleytdislikes", 'r') as fp:
+                profiletoupdateextra = json.loads(fp.read())
+                for item in profiletoupdateextra["extensions"]["settings"]:
+                    if item in profiletoupdate["extensions"]["settings"]:
+                        profiletoupdateextra["extensions"]["settings"][item].pop("path", None)
+                        profiletoupdateextra["extensions"]["settings"][item]["manifest"].pop("name", None)
+                        profiletoupdateextra["extensions"]["settings"][item]["manifest"].pop("version", None)
+            profiletoupdate = self.storebrain.dict_recurupdate(profiletoupdate, profiletoupdateextra)
+        
+        
         #Extra site-specific tweaks
         profiletoupdate["homepage"] = icepackageinfo["website"]
         profiletoupdate["session"]["startup_urls"] = [icepackageinfo["website"]]
         profiletoupdate["vivaldi"]["homepage"] = icepackageinfo["website"]
         profiletoupdate["download"]["default_directory"] = GLib.get_user_special_dir(GLib.UserDirectory.DIRECTORY_DOWNLOAD) + "/" + _("{0} Downloads").format(icepackageinfo["realname"])
+        profiletoupdate["profile"]["name"] = _("Ice - {0}").format(icepackageinfo["realname"])
         
-        #TODO: Figure out doing themes for Chrome to colour the windows by their website colours
+        #Update these as well
+        if "icegoogleinteg" in icepackageinfo and icepackageinfo["icegoogleinteg"] == True:
+            pass
+        else:
+            with open("/usr/share/feren-storium/modules/packagemgmt-ice/chromium-profile/disable-google", 'r') as fp:
+                profiletoupdateextra = json.loads(fp.read())
+            profiletoupdate = self.storebrain.dict_recurupdate(profiletoupdate, profiletoupdateextra)
+        if "icegooglehangouts" in icepackageinfo and icepackageinfo["icegooglehangouts"] == True:
+            profiletoupdate["vivaldi"]["privacy"]["google_component_extensions"]["hangout_services"] = True
+        else:
+            profiletoupdate["vivaldi"]["privacy"]["google_component_extensions"]["hangout_services"] = False
+        
+        if "icenohistory" in icepackageinfo and icepackageinfo["icenohistory"] == True:
+            try:
+                with open(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/.storium-nohistory" % taskdata["packagename"], 'w') as fp:
+                    pass
+            except Exception as exceptionstr:
+                raise ICEModuleException(_("Failed to install {0}: {1} was encountered when setting up automatic history deletion").format(taskdata["packagename"], exceptionstr))
+            
+        #Notifications ONLY for SSB's websites
+        try:
+            shortenedurl = icepackageinfo["website"].split("://")[1:]
+            shortenedurl = ''.join(shortenedurl)
+        except:
+            shortenedurl = icepackageinfo["website"]
+        try:
+            shortenedurl = shortenedurl.split("/")[0]
+        except:
+            pass
+        profiletoupdate["profile"]["content_settings"]["exceptions"]["notifications"]["[*.]"+shortenedurl+",*"] = {"expiration": "0", "model": 0, "setting": 1}
+        profiletoupdate["profile"]["content_settings"]["exceptions"]["notifications"][shortenedurl+",*"] = {"expiration": "0", "model": 0, "setting": 1}
+        #Repeat for extra shortcuts' URLs
+        extrascount = 0
+        for extraid in iceextrasids:
+            try:
+                shortenedurl = icepackageinfo["websiteextras"][extrascount].split("://")[1:]
+                shortenedurl = ''.join(shortenedurl)
+            except:
+                shortenedurl = icepackageinfo["websiteextras"][extrascount]
+            try:
+                shortenedurl = shortenedurl.split("/")[0]
+            except:
+                pass
+            profiletoupdate["profile"]["content_settings"]["exceptions"]["notifications"]["[*.]"+shortenedurl+",*"] = {"expiration": "0", "model": 0, "setting": 1}
+            profiletoupdate["profile"]["content_settings"]["exceptions"]["notifications"][shortenedurl+",*"] = {"expiration": "0", "model": 0, "setting": 1}
+            extrascount += 1
         
         
         #Write last updated date to be used in update checks
@@ -856,16 +1015,16 @@ ForegroundVisited=127,140,141"""
         #Write the new Extra IDs to be used as a backup
         try:
             with open(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/.storium-extra-ids" % taskdata["packagename"], 'w') as fp:
-                fp.write(str(currenticeextraids)) # This means that Storium can manage bonuses later on in time
+                fp.write(str(iceextrasids)) # This means that Storium can manage extras later on in time
         except Exception as exceptionstr:
             raise ICEModuleException(_("Failed to update {0}: {1} was encountered when making a note of the SSB's extra shortcuts").format(taskdata["packagename"], exceptionstr))
         
         #Now repeat for extras, if appropriate
         extrascount = 0 #Classic strat for iteration
-        if currenticeextraids != []:
+        if iceextrasids != []:
             import urllib.request #Grabbing files from internet
             import urllib.error
-        for extraid in currenticeextraids:
+        for extraid in iceextrasids:
             try:
                 with open(os.path.expanduser("~") + "/.local/share/applications/{0}-{1}.desktop".format(taskdata["packagename"], extraid), 'w') as fp:
                     # I mean, this needs no explanation, it's a .desktop file
