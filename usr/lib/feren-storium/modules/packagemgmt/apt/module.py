@@ -127,7 +127,7 @@ class main():
         pass
     
     
-    def finishing_cleanup(self, packagename):
+    def task_cleanup(self, packagename):
         #Cleanup after package operations
         self.currentpackagename = ""
         self.packagemgmtbusy = False
@@ -150,7 +150,7 @@ class main():
         
     
     #Actual management TODO: Progress callback
-    def task_install_package(self, taskdata):
+    def task_install_package(self, taskdata, progress_callback):
         #Install package and return exit code
         self.packagemgmtbusy = True
         
@@ -162,15 +162,13 @@ class main():
             if not len(package_ids) > 0:
                 return False
             
-            outcome = self.pk_client.remove_packages(0, [package_ids[0].get_id()], True, True, None, self.progress_callback, None)
+            outcome = self.pk_client.remove_packages(0, [package_ids[0].get_id()], True, True, None, progress_callback, None)
         except:
             return False
         
-        #Clean up after management
-        self.finishing_cleanup(packagename)
         return outcome.get_exit_code() == PackageKitGlib.ExitEnum.SUCCESS
     
-    def task_remove_package(self, taskdata):
+    def task_remove_package(self, taskdata, progress_callback):
         self.packagemgmtbusy = True
         
         #Remove package and return exit code
@@ -181,15 +179,13 @@ class main():
             if not len(package_ids) > 0:
                 return False
             
-            outcome = self.pk_client.remove_packages(0, [package_ids[0].get_id()], True, True, None, self.progress_callback, None)
+            outcome = self.pk_client.remove_packages(0, [package_ids[0].get_id()], True, True, None, progress_callback, None)
         except:
             return False
         
-        #Clean up after management
-        self.finishing_cleanup(packagename)
         return outcome.get_exit_code() == PackageKitGlib.ExitEnum.SUCCESS
     
-    def task_update_package(self, taskdata):
+    def task_update_package(self, taskdata, progress_callback):
         self.packagemgmtbusy = True
         
         #Update package and return exit code
@@ -200,12 +196,10 @@ class main():
             if not len(package_ids) > 0:
                 return False
             
-            outcome = self.pk_client.update_packages(0, [package_ids[0].get_id()], True, True, None, self.progress_callback, None)
+            outcome = self.pk_client.update_packages(0, [package_ids[0].get_id()], True, True, None, progress_callback, None)
         except:
             return False
         
-        #Clean up after management
-        self.finishing_cleanup(packagename)
         return outcome.get_exit_code() == PackageKitGlib.ExitEnum.SUCCESS
     
     def get_package_changes(self, pkgsinstalled, pkgsupdated, pkgsremoved):

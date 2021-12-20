@@ -11,6 +11,7 @@ import gettext
 import getpass
 import collections.abc
 import copy
+from functools import partial
 
 import requests #Grabbing files from internet
 
@@ -83,11 +84,9 @@ class StoreTasks():
     def __init__(self):
         self.currenttasks = {} #Tasks lists (per module)
         self.currenttask = {} #ID of current task (per module)
-        self.dontcontinue = False #Used for when a logoff is initiated, or Store is pending a restart during updates, as the goal is to stop after the current tasks
-        self.lockedtasklist = {} #Use when dontcontinue is on to make sure any added Tasks DO NOT get done (main point is to use this whenever the user requests logout, etc.)
-        #GObject.threads_init()   Leftover from New Store (prior project) - might come in handy, idk.
+        self.dontcontinue = False #Used for when a logoff is initiated, or Store is pending a restart during updates, as the goal is to stop after the current task
         
-        self.overalltasksorder = [] #For GUI organising of tasks
+        self.overalltasksorder = {} #For GUI organising of tasks
         
         self.currenttaskmodules = [] #Current modules in use for managing tasks (for multi-thread tasks management)
         self.currentpkgtaskmodules = [] #Same as the above, but for package file tasks
@@ -96,60 +95,58 @@ class StoreTasks():
         if module not in self.currenttasks:
             self.currenttasks[module.modulename] = {}
         if module not in self.currenttask:
-            self.currenttask[module.modulename] = ""
-        if module not in self.lockedtasklist: #To make things easier to not break
-            self.lockedtasklist[module.modulename] = {}
+            self.currenttask[module.modulename] = {}
     
         
     def add_task(self, packagename, packagetype, module, operation, packageinfo, source, subsource, bonuses=[]): #Add package management task
         self.add_task_item_ifnotexists(module)
         
-        newtask = packagetype + ":" + packagename + ":" + str(operation)
+        newtask = module.modulename + ":" + packagetype + ":" + packagename + ":" + str(operation)
         if not newtask in self.currenttasks[module.modulename]:
             self.currenttasks[module.modulename][newtask] = {"type": "item", "module": module, "pkgtype": packagetype, "packagename": packagename, "operation": operation, "progress": 0, "directto": packagename, "pkginfo": packageinfo, "source": source, "subsource": subsource, "bonuses": bonuses}
-            self.overalltasksorder.append(newtask)
+            self.overalltasksorder[newtask] = self.currenttasks[module.modulename][newtask]
             
         self.begin_tasks() #Trigger Tasks action if it isn't already in action
         
-    def add_task_package(self, packagename, packagetype, module, operation, packageinfo, source, subsource): #Add package management task for a package file
+    def add_task_package(self, packagename, packagetype, module, operation, packageinfo, source, subsource, bonuses=[]): #Add package management task for a package file
         self.add_task_item_ifnotexists(module)
         
-        newtask = module + ":" + packagename + ":" + str(operation)
+        newtask = module.modulename + ":" + packagetype + ":" + packagename + ":" + str(operation)
         if not newtask in self.currenttasks[module]:
-            self.currenttasks[module][newtask] = {"type": "packagefile", "module": module, "pkgtype": packagetype, "packagename": packagename, "operation": operation, "progress": 0, "directto": packagename, "pkginfo": packageinfo, "source": source, "subsource": subsource, "bonuses": []}
-            self.overalltasksorder.append(newtask)
+            self.currenttasks[module.modulename][newtask] = {"type": "packagefile", "module": module, "pkgtype": packagetype, "packagename": packagename, "operation": operation, "progress": 0, "directto": packagename, "pkginfo": packageinfo, "source": source, "subsource": subsource, "bonuses": []}
+            self.overalltasksorder[newtask] = self.currenttasks[module.modulename][newtask]
             
         self.begin_tasks()
         
     def add_task_source(self, packagename, module, operation, packageinfo, source, subsource): #Add source management task
         self.add_task_item_ifnotexists(module)
         
-        newtask = module + ":" + packagename + ":" + str(operation)
+        newtask = module.modulename + ":" + packagetype + ":" + packagename + ":" + str(operation)
         if not newtask in self.currenttasks[module]:
-            self.currenttasks[module][newtask] = {"type": "source", "module": module, "packagename": packagename, "operation": operation, "progress": 0, "directto": "", "pkginfo": packageinfo, "source": source, "subsource": subsource, "bonuses": []}
-            self.overalltasksorder.append(newtask)
+            self.currenttasks[module.modulename][newtask] = {"type": "source", "module": module, "packagename": packagename, "operation": operation, "progress": 0, "directto": "", "pkginfo": packageinfo, "source": source, "subsource": subsource, "bonuses": []}
+            self.overalltasksorder[newtask] = self.currenttasks[module.modulename][newtask]
             
         self.begin_tasks()
     
         
-    def cancel_task(self, module, packagetype, packagename): #Cancel task
-        for item in self.currenttasks[module]:
-            if item.startswith(module+":"+packagename+":"):
-                targettask = item
+    def cancel_task(self, modulename, packagetype, packagename): #Cancel task
+        #TODO: Figure out redoing this so that one can do this for source tasks and package file tasks
+        for item in self.currenttasks[modulename]:
+            if item.split(":")[:-1] == [modulename, packagetype, packagename]:
+                targettask = self.currenttasks[modulename][item]
                 break #Exit the loop
-        if self.currenttask[module] == item:
-            print("TASKS DEBUG ("+module+"): Couldn't cancel task - task is already in progress")
+        if self.currenttask[modulename] == self.currenttasks[modulename][item]:
+            print("TASKS DEBUG ("+module.humanreadabletitle+"): Couldn't cancel task - task is already in progress")
             return
-        self.currenttasks[module].pop(item)
-        self.lockedtasklist[module].pop(item, None)
-        self.overalltasksorder.pop(self.overalltasksorder.index(item))
-        print("TASKS DEBUG ("+module+"): Cancelled a task")
+        self.currenttasks[modulename].pop(item)
+        self.overalltasksorder.pop(item)
+        print("TASKS DEBUG ("+modulename+"): Cancelled a task")
         
         self.storebrain.gui_module.refresh_tasks()
             
         
     def begin_tasks(self):
-        self.storebrain.gui_module.refresh_tasks() #Refresh Tasks view and such in GUI
+        self.storebrain.gui_module.refresh_tasks() #Refresh Tasks view and such in GUI TODO: Add cooldown to refresh_tasks
         
         for module in self.currenttasks: #Initiate tasks working for all modules
             thread = Thread(target=self._begin_tasks,
@@ -158,66 +155,79 @@ class StoreTasks():
             thread.start()
         
     def _begin_tasks(self, module):
-        if self.currenttask[module] != "":
+        if self.currenttask[module] != {}:
             return #It's already running, don't bother running it again
         
-        
-        taskoffset = 0 #Increase if we need to skip items because dontcontinue
         while self.currenttasks[module] != {}:
             
             print("TASKS DEBUG ("+module+"): currenttasks is", self.currenttasks[module])
             print("TASKS DEBUG: overalltasksorder is", self.overalltasksorder)
-            if self.dontcontinue == True and self.lockedtasklist[module] == {}:
+            if self.dontcontinue == True:
                 #Abort loop if we're out of locked tasks list items
                 break
             
-            if len(self.currenttasks[module]) <= taskoffset:
-                taskoffset = 0 #Reset taskoffset if it's higher than the number of tasks
-            
             #Get the placement of our item in self.overalltasksorder
-            targettask = list(self.currenttasks[module].keys())[taskoffset]
-            ttaskoverallindex = self.overalltasksorder.index(targettask)
+            targettaskname = list(self.currenttasks[module].keys())[0]
             
-            if targettask in self.lockedtasklist[module] or self.lockedtasklist[module] == {}:
-                self.do_task(targettask, module, self.storebrain.gui_module.refresh_tasks, self.storebrain.set_progress)
-                self.currenttasks[module].pop(targettask)
-                self.overalltasksorder.pop(ttaskoverallindex)
-                self.storebrain.gui_module.refresh_tasks()
-            else:
-                taskoffset += 1 #Skip the task if dontcontinue is on and task isn't in the locked task list
+            self.do_task(targettaskname, self.currenttasks[module][targettaskname], module, partial(self.set_progress, self.currenttasks[module][targettaskname]), self.completion_status_callback)
+            self.currenttasks[module].pop(targettaskname)
+            self.overalltasksorder.pop(targettaskname)
+            self.storebrain.gui_module.refresh_tasks() #FIXME: This gets called way too often
             
             
-        self.currenttask[module] = "" #Free up the function for a future calling since we're gonna return on this so it'll need recalling
+        self.currenttask[module] = {} #Free up the function for a future calling since we're gonna return on this so it'll need recalling
         print("TASKS DEBUG ("+module+"): currenttasks is all done, returning.")
         
         
-    def do_task(self, task, module, gui_callback, progress_callback):
+    def do_task(self, taskname, task, module, progress_callback, completion_status_callback):
         self.currenttask[module] = task
-        gui_callback() #TODO: Use gui_callback for completion and errors as well
-        taskdata = self.currenttasks[module][task]
         
-        #FIXME: Currently breaks when outside of the package view and a task finishes (also needs GUI connections, and progressbar)
+        self.storebrain.gui_module.refresh_tasks() #TODO: Move to Brain API
+        
+        #FIXME: Needs GUI connections, and progressbar
         
         print("TASKS DEBUG: Working on", task)
         try:
-            if taskdata["type"] == "item":
-                if taskdata["operation"] == 0:
-                    taskdata["module"].task_install_package(taskdata)
-                elif taskdata["operation"] == 1:
-                    taskdata["module"].task_update_package(taskdata)
-                elif taskdata["operation"] == 2:
-                    taskdata["module"].task_remove_package(taskdata)
-            elif taskdata["type"] == "packagefile":
+            if task["type"] == "item":
+                if task["operation"] == 0:
+                    task["module"].task_install_package(task, progress_callback)
+                elif task["operation"] == 1:
+                    task["module"].task_update_package(task, progress_callback)
+                elif task["operation"] == 2:
+                    task["module"].task_remove_package(task, progress_callback)
+            elif task["type"] == "packagefile":
                 pass
-            elif taskdata["type"] == "source":
+            elif task["type"] == "source":
                 pass
-            #TODO
+                #TODO
             
             #do_task is ran via a Thread, so we do the code in a non-threaded way.
-            print("TASKS DEBUG: Finished", task)
+            print("TASKS DEBUG: Finished", taskname)
+            thread = Thread(target=completion_status_callback,
+                            args=(task, True))
         except Exception as exceptionstr:
-            print("TASKS DEBUG: TASK FAILED:", task+":", exceptionstr)
+            print("TASKS DEBUG: TASK FAILED:", taskname+":", exceptionstr)
+            thread = Thread(target=completion_status_callback,
+                            args=(task, False, exceptionstr))
+        
+        thread.daemon = True
+        thread.start()
+        
+        task["module"].task_cleanup(task)
     
+    
+    def completion_status_callback(self, task, completed, output=""):
+        #TODO
+        if completed == False:
+            #self.storebrain.gui_module.on_task_fail(task, output)
+            pass
+        else:
+            #self.storebrain.gui_module.on_task_success(task, output)
+            pass
+        
+    def set_progress(self, task, progress):
+        task["progress"] = progress
+        print("TASKS DEBUG ("+task["packagename"]+"): progress is now", progress)
 
 
 class StoreBrain():    

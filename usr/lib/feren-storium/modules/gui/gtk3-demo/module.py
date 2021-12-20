@@ -137,12 +137,16 @@ class TaskItemButton(Gtk.Button):
         Gtk.Button.__init__(self)
         self.storebrain = storebrain
         
+        #Get task information split up
+        modulename, packagetype, packagename = taskid.split(":")[0:3] #Refer to comment on _refresh_tasks
+        
+        
         self.child_items = []
         
         packageinfo = {}
         
         if taskinfo == {}:
-            packageinfo = self.storebrain.get_item_info_default(taskid)
+            packageinfo = self.storebrain.get_item_info_default(packagename)
         else:
             packageinfo = taskinfo["pkginfo"]
             
@@ -782,13 +786,12 @@ class AppMainView(Gtk.Stack):
         self.AppDetailsHeader.populate(packageinfo, currentpackage)
         
         currentstatus = None
-        
         if currentstatus == None and currentmodule in self.storebrain.tasks.currenttasks and self.storebrain.tasks.currenttasks[currentmodule] != {}: #Check 1 for Status: If package is current item in queue
-            if list(self.storebrain.tasks.currenttasks[currentmodule].keys())[0] != "" and self.storebrain.tasks.currenttask[currentmodule].split(":")[1] == currentpackage:
+            if self.storebrain.tasks.currenttask[currentmodule] != {} and self.storebrain.tasks.currenttask[currentmodule]["packagename"] == currentpackage:
                 currentstatus = 901
         if currentstatus == None and currentmodule in self.storebrain.tasks.currenttasks: #Check 2 for Status: If package is in queue
             for item in self.storebrain.tasks.currenttasks[currentmodule]:
-                if item.split(":")[1] == currentpackage:
+                if item.split(":")[2] == currentpackage:
                     currentstatus = 900
         if currentstatus == None:
             currentstatus = self.storebrain.pkgmgmt_modules[currentmodule].get_status(currentpackage, currenttype, currentsource)
@@ -885,12 +888,23 @@ class AppMainView(Gtk.Stack):
         GLib.idle_add(self.tasksitems.set_homogeneous, True)
         GLib.idle_add(self.tasksitemscontainer.pack_start, self.tasksitems, True, True, 0)
         
-        for item in self.storebrain.tasks.overalltasksorder:
-            module, itemname = item.split(":")[0:2] #I guess python3 just omits the maximum ID, so 2 is used instead of 1 here (2 = operation id)
+        itemsdone = 0
+        if len(self.storebrain.tasks.overalltasksorder) == 0:
+            return #Don't continue if empty
+        while itemsdone < len(self.storebrain.tasks.overalltasksorder): #We can't use python3's normal iteration as the dict size changes causing a SizeChanged exception
+            if len(self.storebrain.tasks.overalltasksorder) == 0:
+                self._refresh_tasks() #Run again, as tasks have finished during this
+                return
             
-            btn = TaskItemButton(itemname, self.storebrain, self.storebrain.tasks.currenttasks[module][item])
+            taskname = list(self.storebrain.tasks.overalltasksorder.keys())[itemsdone]
+            task = self.storebrain.tasks.overalltasksorder[taskname]
+        
+            module, pkgtype, itemname = taskname.split(":")[0:3] #I guess python3 just omits the maximum ID, so 3 is used instead of 1 here (3 = operation id)
+            btn = TaskItemButton(taskname, self.storebrain, task)
             btn.connect("clicked", self._btn_goto_packageview, itemname) #TODO: Teleportation to specific module
             GLib.idle_add(self.tasksitems.insert, btn, -1)
+            
+            itemsdone += 1
             
         GLib.idle_add(self.tasksitemscontainer.show_all,)
         

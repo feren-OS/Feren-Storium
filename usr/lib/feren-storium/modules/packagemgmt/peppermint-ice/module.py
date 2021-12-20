@@ -268,7 +268,7 @@ ForegroundVisited=127,140,141"""
     
     
     
-    def finishing_cleanup(self, packagename):
+    def task_cleanup(self, task):
         #Cleanup after package operations
         self.currentpackagename = ""
         self.packagemgmtbusy = False
@@ -297,8 +297,8 @@ ForegroundVisited=127,140,141"""
         pass
         
     
-    #Actual management TODO: Progress callback
-    def task_install_package(self, taskdata):
+    #Actual management
+    def task_install_package(self, taskdata, progress_callback):
         
         #Install package and return exit code
         self.packagemgmtbusy = True
@@ -315,7 +315,7 @@ ForegroundVisited=127,140,141"""
             icebonuses = []
         
         #First remove the files just in case there's a partial installation
-        self.task_remove_package(taskdata, True)
+        self.task_remove_package(taskdata, None, True)
         
         #Create the .desktop file's home if it doesn't exist
         if not os.path.isdir(os.path.expanduser("~") + "/.local/share/applications"):
@@ -325,12 +325,12 @@ ForegroundVisited=127,140,141"""
                 raise ICEModuleException(_("Failed to install {0}: {1} was encountered when trying to create the shortcut's location").format(taskdata["packagename"], exceptionstr))
             
             
-        self.storebrain.set_progress(taskdata["packagename"], "peppermint-ice", 12)
+        progress_callback(12)
         
         
         #Titlebar branding
-        if "icecolor" in icepackageinfo:
-            self.color_scheme_iding(icepackageinfo["icecolor"], taskdata, icepackageinfo["icecolorhighlight"])
+        #if "icecolor" in icepackageinfo:
+            #self.color_scheme_iding(icepackageinfo["icecolor"], taskdata, icepackageinfo["icecolorhighlight"])
             #os.system("qdbus org.kde.KWin /KWin reconfigure")
             
             
@@ -347,7 +347,7 @@ ForegroundVisited=127,140,141"""
                 raise ICEModuleException(_("Failed to install {0}: {1} was encountered when trying to create the profile's folder").format(taskdata["packagename"], exceptionstr))
             
             
-        self.storebrain.set_progress(taskdata["packagename"], "peppermint-ice", 24)
+        progress_callback(24)
             
             
         #First Run existing skips the initial Welcome to Google Chrome dialog, which is very useful here to have a skip in place for
@@ -355,16 +355,16 @@ ForegroundVisited=127,140,141"""
             with open(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/First Run" % taskdata["packagename"], 'w') as fp:
                 pass
         except Exception as exceptionstr:
-            self.task_remove_package(taskdata, True) #Remove profile's files/folders on failure
+            self.task_remove_package(taskdata, None, True) #Remove profile's files/folders on failure
             raise ICEModuleException(_("Failed to install {0}: {1} was encountered when making the Chromium-based profile").format(taskdata["packagename"], exceptionstr))
         try:
             os.mkdir(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/Default" % taskdata["packagename"])
         except Exception as exceptionstr:
-            self.task_remove_package(taskdata, True) #Remove profile's files/folders on failure
+            self.task_remove_package(taskdata, None, True) #Remove profile's files/folders on failure
             raise ICEModuleException(_("Failed to install {0}: {1} was encountered when making the Chromium-based profile").format(taskdata["packagename"], exceptionstr))
         
         
-        self.storebrain.set_progress(taskdata["packagename"], "peppermint-ice", 36)
+        progress_callback(36)
             
         
         usefallbackicon = False
@@ -375,7 +375,7 @@ ForegroundVisited=127,140,141"""
             usefallbackicon = True
             
             
-        self.storebrain.set_progress(taskdata["packagename"], "peppermint-ice", 48)
+        progress_callback(48)
             
         
         
@@ -396,7 +396,7 @@ ForegroundVisited=127,140,141"""
             with open(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/.storium-nohistory" % taskdata["packagename"], 'w') as fp:
                 pass
         except Exception as exceptionstr:
-            self.task_remove_package(taskdata, True) #Remove profile's files/folders on failure
+            self.task_remove_package(taskdata, None, True) #Remove profile's files/folders on failure
             raise ICEModuleException(_("Failed to install {0}: {1} was encountered when setting up automatic history deletion").format(taskdata["packagename"], exceptionstr))
         
         
@@ -436,7 +436,7 @@ ForegroundVisited=127,140,141"""
             with open(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/.storium-last-updated" % taskdata["packagename"], 'w') as fp:
                 fp.write(datetime.today().strftime('%Y%m%d')) # This means that Storium can update some parts of it whenever appropriate
         except Exception as exceptionstr:
-            self.task_remove_package(taskdata, True) #Remove profile's files/folders on failure
+            self.task_remove_package(taskdata, None, True) #Remove profile's files/folders on failure
             raise ICEModuleException(_("Failed to install {0}: {1} was encountered when writing the last updated date").format(taskdata["packagename"], exceptionstr))
         
         #Write default browser value to be used for the update process
@@ -444,10 +444,10 @@ ForegroundVisited=127,140,141"""
             with open(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/.storium-default-browser" % taskdata["packagename"], 'w') as fp:
                 fp.write(taskdata["source"]) # Used by module during updating to determine your browser
         except Exception as exceptionstr:
-            self.task_remove_package(taskdata, True) #Remove profile's files/folders on failure
+            self.task_remove_package(taskdata, None, True) #Remove profile's files/folders on failure
             raise ICEModuleException(_("Failed to install {0}: {1} was encountered when setting the browser you selected").format(taskdata["packagename"], exceptionstr))
         
-        self.storebrain.set_progress(taskdata["packagename"], "peppermint-ice", 60)
+        progress_callback(60)
         
         
         #Write profile
@@ -455,11 +455,11 @@ ForegroundVisited=127,140,141"""
             with open(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/Default/Preferences" % taskdata["packagename"], 'w') as fp:
                 fp.write(json.dumps(profiletomake, separators=(',', ':'))) # This dumps minified json (how convenient), which is EXACTLY what Chrome uses for Preferences, so it's literally pre-readied
         except Exception as exceptionstr:
-            self.task_remove_package(taskdata, True) #Remove profile's files/folders on failure
+            self.task_remove_package(taskdata, None, True) #Remove profile's files/folders on failure
             raise ICEModuleException(_("Failed to install {0}: {1} was encountered when writing the Chromium-based profile").format(taskdata["packagename"], exceptionstr))
             
             
-        self.storebrain.set_progress(taskdata["packagename"], "peppermint-ice", 72)            
+        progress_callback(72)            
             
             
         try:
@@ -507,7 +507,7 @@ ForegroundVisited=127,140,141"""
                 fp.write("StartupWMClass=%s\n" % taskdata["packagename"])
                 fp.write("StartupNotify=true\n")
         except Exception as exceptionstr:
-            self.task_remove_package(taskdata, True) #Remove profile's files/folders on failure
+            self.task_remove_package(taskdata, None, True) #Remove profile's files/folders on failure
             raise ICEModuleException(_("Failed to install {0}: {1} was encountered when creating a shortcut in the Applications Menu").format(taskdata["packagename"], exceptionstr))
         
         
@@ -516,7 +516,7 @@ ForegroundVisited=127,140,141"""
             with open(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/.storium-extra-ids" % taskdata["packagename"], 'w') as fp:
                 fp.write(str(iceextrasids)) # This means that Storium can manage bonuses later on in time
         except Exception as exceptionstr:
-            self.task_remove_package(taskdata, True) #Remove profile's files/folders on failure
+            self.task_remove_package(taskdata, None, True) #Remove profile's files/folders on failure
             raise ICEModuleException(_("Failed to install {0}: {1} was encountered when making a note of the SSB's extra shortcuts").format(taskdata["packagename"], exceptionstr))
         
         #Now repeat for extras, if appropriate
@@ -569,24 +569,22 @@ ForegroundVisited=127,140,141"""
 
                     fp.write("StartupNotify=true\n")
             except Exception as exceptionstr:
-                self.task_remove_package(taskdata, True) #Remove profile's files/folders on failure
+                self.task_remove_package(taskdata, None, True) #Remove profile's files/folders on failure
                 raise ICEModuleException(_("Failed to install {0}: {1} was encountered when creating extra shortcuts in the Applications Menu").format(taskdata["packagename"], exceptionstr))
             os.system("chmod +x " + os.path.expanduser("~") + "/.local/share/applications/{0}-{1}.desktop".format(taskdata["packagename"], extraid))
             extrascount += 1
             
-        self.storebrain.set_progress(taskdata["packagename"], "peppermint-ice", 99)
+        progress_callback(99)
         
         #Otherwise they'll refuse to launch from the Applications Menu (bug seen in Mint's own Ice code fork)
         os.system("chmod +x " + os.path.expanduser("~") + "/.local/share/applications/%s.desktop" % taskdata["packagename"])
             
-        self.storebrain.set_progress(taskdata["packagename"], "peppermint-ice", 100)
+        progress_callback(100)
         
-        #Clean up after management
-        self.finishing_cleanup(taskdata["packagename"]) #TODO: Make Tasks run this
         return True
     
     
-    def task_remove_package(self, taskdata, forinstall=False):
+    def task_remove_package(self, taskdata, progress_callback, forinstall=False):
         if os.path.isfile(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/.storium-active-pid" % taskdata["packagename"]):
             with open(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/.storium-active-pid" % taskdata["packagename"], 'r') as pidfile:
                 currentpid = pidfile.readline()
@@ -634,28 +632,26 @@ ForegroundVisited=127,140,141"""
                 if os.path.isfile(os.path.expanduser("~") + "/.local/share/applications/{0}-{1}.desktop".format(taskdata["packagename"], extraid)):
                     os.remove(os.path.expanduser("~") + "/.local/share/applications/{0}-{1}.desktop".format(taskdata["packagename"], extraid))
             except Exception as exceptionstr:
-                self.task_remove_package(taskdata, True) #Remove profile's files/folders on failure
+                self.task_remove_package(taskdata, None, True) #Remove profile's files/folders on failure
                 raise ICEModuleException(_("Failed to uninstall {0}: {1} was encountered when removing extra shortcuts from the Applications Menu").format(taskdata["packagename"], exceptionstr))
             extrascount += 1
             
-        self.storebrain.set_progress(taskdata["packagename"], "peppermint-ice", 50)
+        if not forinstall:
+            progress_callback(50)
         
         try:
             shutil.rmtree(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s" % taskdata["packagename"])
         except Exception as exceptionstr:
             if not forinstall:
                 raise ICEModuleException(_("Failed to uninstall {0}: {1} was encountered when deleting the Chromium-based profile").format(taskdata["packagename"], exceptionstr))
-            
-        #FIXME: All the 'source' values need to point to the browser, once Source dropdown's implemented
-        self.storebrain.set_progress(taskdata["packagename"], "peppermint-ice", 100)
         
-        #Clean up after management
         if not forinstall:
-            self.finishing_cleanup(taskdata["packagename"])
+            progress_callback(100)
+        
         return True
     
     
-    def task_update_package(self, taskdata):
+    def task_update_package(self, taskdata, progress_callback):
         
         #Update package and return exit code
         self.packagemgmtbusy = True
@@ -692,12 +688,12 @@ ForegroundVisited=127,140,141"""
         
         
         #Titlebar branding
-        if "icecolor" in icepackageinfo:
-            self.color_scheme_iding(icepackageinfo["icecolor"], taskdata, icepackageinfo["icecolorhighlight"])
+        #if "icecolor" in icepackageinfo:
+            #self.color_scheme_iding(icepackageinfo["icecolor"], taskdata, icepackageinfo["icecolorhighlight"])
             #os.system("qdbus org.kde.KWin /KWin reconfigure")
             
             
-        self.storebrain.set_progress(taskdata["packagename"], "peppermint-ice", 12)
+        progress_callback(12)
             
         #Get some data from the files
         if os.path.isfile(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/.storium-default-browser" % taskdata["packagename"]):
@@ -712,7 +708,7 @@ ForegroundVisited=127,140,141"""
             currenticeextraids = [] #Fallback
             
             
-        self.storebrain.set_progress(taskdata["packagename"], "peppermint-ice", 24)
+        progress_callback(24)
             
         try:
             if not os.path.isfile(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/First Run" % taskdata["packagename"]):
@@ -726,7 +722,7 @@ ForegroundVisited=127,140,141"""
         except Exception as exceptionstr:
             raise ICEModuleException(_("Failed to update {0}: {1} was encountered when updating the Chromium-based profile").format(taskdata["packagename"], exceptionstr))
         
-        self.storebrain.set_progress(taskdata["packagename"], "peppermint-ice", 36)
+        progress_callback(36)
             
         
         usefallbackicon = False
@@ -742,7 +738,7 @@ ForegroundVisited=127,140,141"""
             usefallbackicon = True
             
             
-        self.storebrain.set_progress(taskdata["packagename"], "peppermint-ice", 48)
+        progress_callback(48)
             
         
         
@@ -781,7 +777,7 @@ ForegroundVisited=127,140,141"""
                 with open(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/.storium-default-browser" % taskdata["packagename"], 'w') as fp:
                     fp.write(currenticebrowser) # Used by module during updating to determine your browser
         except Exception as exceptionstr:
-            self.task_remove_package(taskdata, True) #Remove profile's files/folders on failure
+            self.task_remove_package(taskdata, None, True) #Remove profile's files/folders on failure
             raise ICEModuleException(_("Failed to update {0}: {1} was encountered when noting the browser selection value").format(taskdata["packagename"], exceptionstr))
         
         
@@ -793,7 +789,7 @@ ForegroundVisited=127,140,141"""
             raise ICEModuleException(_("Failed to update {0}: {1} was encountered when writing the Chromium-based profile").format(taskdata["packagename"], exceptionstr))
             
             
-        self.storebrain.set_progress(taskdata["packagename"], "peppermint-ice", 72)            
+        progress_callback(72)            
             
             
         try:
@@ -918,15 +914,14 @@ ForegroundVisited=127,140,141"""
             os.system("chmod +x " + os.path.expanduser("~") + "/.local/share/applications/{0}-{1}.desktop".format(taskdata["packagename"], extraid))
             extrascount += 1
             
-        self.storebrain.set_progress(taskdata["packagename"], "peppermint-ice", 99)
+        progress_callback(99)
         
         #Otherwise they'll refuse to launch from the Applications Menu (bug seen in Mint's own Ice code fork)
         os.system("chmod +x " + os.path.expanduser("~") + "/.local/share/applications/%s.desktop" % taskdata["packagename"])
             
-        self.storebrain.set_progress(taskdata["packagename"], "peppermint-ice", 100)
+        progress_callback(100)
         
-        #Clean up after management
-        self.finishing_cleanup(taskdata["packagename"]) #TODO: Make Tasks run this
+        return True
     
     
     def get_package_changes(self, pkgsinstalled, pkgsupdated, pkgsremoved):

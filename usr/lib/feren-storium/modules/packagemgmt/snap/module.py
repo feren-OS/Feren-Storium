@@ -63,6 +63,9 @@ class main():
         #Current name being managed
         self.currentpackagename = ""
         
+        #FIXME: Is there a way to carry progress_callback into progress_snap_cb?
+        self.progress_callback = None
+        
     def refresh_memory(self): # Function to refresh some memory values
         self.memory_refreshing = True
         
@@ -124,10 +127,11 @@ class main():
             return(1)
     
     
-    def finishing_cleanup(self, packagename):
+    def task_cleanup(self, packagename):
         #Cleanup after package operations
         self.currentpackagename = ""
         self.packagemgmtbusy = False
+        self.progress_callback = None
         
     
     def progress_snap_cb(self, client, change, _, user_data):
@@ -138,7 +142,7 @@ class main():
             total += task.get_progress_total()
             done += task.get_progress_done()
         percent = round((done/total)*100)
-        self.storebrain.set_progress(self.currentpackagename, "snap", percent)
+        self.progress_callback(percent)
         
     
     #Add to Tasks
@@ -158,10 +162,13 @@ class main():
         self.storebrain.tasks.add_task(packagename, pkgtype, self, 2, self.storebrain.get_item_info_specific(packagename, pkgtype, source, True), source, subsource)
         
     
-    #Actual management TODO: Progress callback
-    def task_install_package(self, taskdata):
+    #Actual management
+    def task_install_package(self, taskdata, progress_callback):
         #Install package and return exit code
         self.packagemgmtbusy = True
+        
+        #FIXME: Is there a way to carry progress_callback into progress_snap_cb?
+        self.progress_callback = progress_callback
         
         self.currentpackagename = taskdata["packagename"]
         snapname = taskdata["pkginfo"]["snap-name"]
@@ -171,13 +178,13 @@ class main():
         except:
             return False
         
-        #Clean up after management
-        self.finishing_cleanup(packagename)
         return outcome
     
-    def task_remove_package(self, taskdata):
+    def task_remove_package(self, taskdata, progress_callback):
         #Remove package and return exit code
         self.packagemgmtbusy = True
+        
+        self.progress_callback = progress_callback
         
         self.currentpackagename = taskdata["packagename"]
         snapname = taskdata["pkginfo"]["snap-name"]
@@ -187,13 +194,10 @@ class main():
         except:
             return False
         
-        #Clean up after management
-        self.finishing_cleanup(packagename)
         return outcome
     
-    def task_update_package(self, taskdata):
+    def task_update_package(self, taskdata, progress_callback):
         #You SHOULD NOT be able to hit Update for Snaps anyway, so raise an error
-        self.finishing_cleanup(taskdata["packagename"])
         raise SnapModuleException(_("Snaps update themselves."))
     
     def get_package_changes(self, pkgsinstalled, pkgsupdated, pkgsremoved):
