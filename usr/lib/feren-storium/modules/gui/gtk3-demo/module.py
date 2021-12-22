@@ -119,15 +119,8 @@ class AppItemButton(Gtk.Button):
         self.show_all()
                 
     def add_warnings(self, packageinfo):
-        #TODO
+        #TODO: Use this for when warnings have changed, e.g.: An application can no longer be themed
         pass
-    
-    def destroy_everything(self):
-        for item in self.child_items:
-            for child in item.get_children():
-                child.destroy()
-            item.destroy()
-        self.destroy()
         
     
 ####Task Item button
@@ -153,8 +146,6 @@ class TaskItemButton(Gtk.Button):
             packageinfo = self.storebrain.get_item_info_default(packagename)
         else:
             packageinfo = taskinfo["pkginfo"]
-            
-        #TODO: Get default module's item info
         
         app_icon = AppItemIcon(self.storebrain.get_icon)
         app_icon.set_icon(packageinfo["iconuri"], packagename)
@@ -223,20 +214,9 @@ class TaskItemButton(Gtk.Button):
         self.task_progress.set_fraction(progress / 100)
     
     
-    #def on_cancelaction(self, gtk_widget):
+    #def on_cancelaction(self, gtk_widget): #Ununsed as the button hitbox of self overrides hitboxes of buttons inside self
         #self.storebrain.tasks.cancel_task(self.taskinfo["module"].modulename, self.taskinfo["pkgtype"], self.taskinfo["packagename"])
-    
-                
-    def add_warnings(self, packageinfo):
-        #TODO
-        pass
-    
-    def destroy_everything(self):
-        for item in self.get_children():
-            for child in item.get_children():
-                child.destroy()
-            item.destroy()
-        self.destroy()
+
 
 
 ####Application Details Header
@@ -304,18 +284,6 @@ class AppDetailsHeader(Gtk.VBox):
         self.subsource_ids = []
         
         pass
-    
-    
-    def populate(self, packageinfo, currentpackage):
-        thread = Thread(target=self._populate,
-                            args=(packageinfo, currentpackage))
-        thread.start()
-    
-    def _populate(self, packageinfo, currentpackage):
-        GLib.idle_add(self.app_title.set_label, packageinfo["realname"])
-        GLib.idle_add(self.app_icon.set_icon, packageinfo["iconuri"], currentpackage)
-        GLib.idle_add(self.app_shortdesc.set_label, packageinfo["shortdescription"]) #Some sources like ICE have their own descriptions
-        pass #TODO
     
     
     def populate_sources(self, currentpackage):
@@ -789,7 +757,11 @@ class AppMainView(Gtk.Stack):
                             args=(modulename, currentpackage))
         thread.start()
     
-    def _add_source_information(self, packageinfo, currentpackage): #TODO: Move this into using the package store data from the package management module
+    def _add_source_information(self, packageinfo, currentpackage):
+        GLib.idle_add(self.AppDetailsHeader.app_title.set_label, packageinfo["realname"])
+        GLib.idle_add(self.AppDetailsHeader.app_icon.set_icon, packageinfo["iconuri"], currentpackage)
+        GLib.idle_add(self.AppDetailsHeader.app_shortdesc.set_label, packageinfo["shortdescription"]) #Some sources like ICE have their own descriptions
+        
         GLib.idle_add(self.pkgpage_images.set_label, "Images: " + str(packageinfo["images"]))
         GLib.idle_add(self.pkgpage_description.set_label, "Description: " + str(packageinfo["description"]))
         GLib.idle_add(self.pkgpage_category.set_label, "Category: " + str(packageinfo["category"]))
@@ -823,7 +795,6 @@ class AppMainView(Gtk.Stack):
         packageinfo = self.storebrain.dict_recurupdate(packageinfo, self.storebrain.get_item_info_specific(currentpackage, currenttype, currentsource))
         
         self.add_source_information(packageinfo, currentpackage)
-        self.AppDetailsHeader.populate(packageinfo, currentpackage)
         
         GLib.idle_add(self.AppDetailsHeader.app_mgmt_progress.set_fraction, 0.0)
         

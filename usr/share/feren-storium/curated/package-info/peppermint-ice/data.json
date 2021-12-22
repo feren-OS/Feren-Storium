@@ -84,8 +84,8 @@
         "bugreporturl": "",
         "tosurl": "",
         "privpolurl": "",
-        "icecolor": "#FFFFFF",
         "icegoogleinteg": true,
+        "icecolor": "#FFFFFF",
         "icecolorhighlight": "#1DA1F2",
         "icelastupdated": "20211210"
     }

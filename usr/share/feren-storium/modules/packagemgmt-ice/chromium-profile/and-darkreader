@@ -26,7 +26,8 @@
                 },
                 "path": "eimadpbcbfnmbkopoojfekhnkhdbieeh\\0.0",
                 "state": 1,
-                "was_installed_by_default": true
+                "was_installed_by_default": true,
+                "withholding_permissions": false
             }
         }
     }

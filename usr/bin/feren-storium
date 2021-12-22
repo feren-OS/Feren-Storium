@@ -18,8 +18,8 @@ import requests #Grabbing files from internet
 class StoreBrainException(Exception): # Name this according to the module to allow easier debugging
     pass
 
-#TODO: Change sources usage for package information to package module usage
-#TODO: Change up package storage to merely store package information, rather than be the overcomplicated thing it is right now.
+#TODO: Brain API instead of storebrain access for everything, and simplify the GUI and Brain code
+#TODO: Move package information stuff to package manager plugins, oh and make Generic a package manager I guess (no sources, ever)
 # ICE: dewit
 # APT: dewit (maybe later?)
 # Snap: dewit

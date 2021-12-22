@@ -15,6 +15,7 @@ import time
 import gi
 from gi.repository import GLib
 import re
+import colorsys
 
 
 def should_load(): #Should this module be loaded?
@@ -72,7 +73,7 @@ class main():
         self.currentpackagename = ""
         
         #Global Ice last updated date (so that all shortcuts can be updated if a major change occurs)
-        self.icelastupdated = "20211221"
+        self.icelastupdated = "20211223"
         
         #Sources storage
         self.sources_storage = {}
@@ -165,8 +166,8 @@ class main():
             return 0
     
     
-    def color_scheme_iding(self, colourcode, taskdata, colourcodehighlight="#006aff"): #TEMPORARY, TODO: Change to be ID for Feren OS Titlebar Theme, and remove the rest of the colour scheme part
-        import colorsys
+    def color_scheme_iding(self, colourcode, taskdata, colourcodehighlight="#006aff"):
+        #TODO: Add IDs for Feren OS Titlebar Theme, to add titlebar branding colours
         
         redc, greenc, bluec = tuple(int(colourcode[i:i+2], 16) for i in (1, 3, 5)) #Dodge the # character
         
@@ -189,82 +190,83 @@ class main():
         foregroundacc = "255,255,255"
         
         
-        #Mostly from the Feren OS colour scheme, however with site-specific colouring
-        with open(os.path.expanduser("~") + "/.local/share/color-schemes/%s.colors" % taskdata["packagename"], 'w') as f:
-            text = """[General]
-Name=""" + 'Store - ' + taskdata["pkginfo"]["realname"] + """
-
-[WM]
-activeBackground=""" + str(redc) + "," + str(greenc) + "," + str(bluec) + """
-activeBlend=""" + str(redc) + "," + str(greenc) + "," + str(bluec) + """
-activeForeground=""" + foregroundc + """
-inactiveBackground=""" + str(redc) + "," + str(greenc) + "," + str(bluec) + """
-inactiveBlend=""" + str(redc) + "," + str(greenc) + "," + str(bluec) + """
-inactiveForeground=""" + foregroundc + """,178
-
-[Colors:Selection]
-BackgroundNormal=""" + str(redacc) + "," + str(greenacc) + "," + str(blueacc) + """
-DecorationFocus=""" + str(redacc) + "," + str(greenacc) + "," + str(blueacc) + """
-DecorationHover=""" + str(redacc) + "," + str(greenacc) + "," + str(blueacc) + """
-ForegroundActive=""" + foregroundacc + """
-ForegroundNormal=""" + foregroundacc + """
-BackgroundAlternate=29,153,243
-ForegroundInactive=255,255,255
-ForegroundLink=253,188,75
-ForegroundNegative=220,41,59
-ForegroundNeutral=227,107,26
-ForegroundPositive=22,156,57
-ForegroundVisited=189,195,199
-
-
-[KDE]
-contrast=4
-
-[Colors:Tooltip]
-BackgroundAlternate=77,77,77
-BackgroundNormal=251,251,251
-DecorationFocus=0,106,255
-DecorationHover=0,106,255
-ForegroundActive=61,174,233
-ForegroundInactive=73,73,73
-ForegroundLink=41,128,185
-ForegroundNegative=220,41,59
-ForegroundNeutral=227,107,26
-ForegroundNormal=0,0,0
-ForegroundPositive=22,156,57
-ForegroundVisited=127,140,141
-
-[Colors:View]
-BackgroundAlternate=241,240,239
-BackgroundNormal=241,241,241
-DecorationFocus=0,106,255
-DecorationHover=0,106,255
-ForegroundActive=61,174,233
-ForegroundInactive=73,73,73
-ForegroundLink=41,128,185
-ForegroundNegative=220,41,59
-ForegroundNeutral=227,107,26
-ForegroundNormal=0,0,0
-ForegroundPositive=22,156,57
-ForegroundVisited=127,140,141
-
-[Colors:Window]
-BackgroundAlternate=189,195,199
-BackgroundNormal=220,220,220
-DecorationFocus=0,106,255
-DecorationHover=0,106,255
-ForegroundActive=61,174,233
-ForegroundInactive=73,73,73
-ForegroundLink=41,128,185
-ForegroundNegative=220,41,59
-ForegroundNeutral=227,107,26
-ForegroundNormal=0,0,0
-ForegroundPositive=22,156,57
-ForegroundVisited=127,140,141"""
-
-            f.write(text)
         
+    def get_luminant(self, colourcode):
+        #Returns:
+        # True: Light
+        # False: Dark
         
+        redc, greenc, bluec = tuple(int(colourcode[i:i+2], 16) for i in (1, 3, 5)) #Dodge the # character
+        
+        lumi = colorsys.rgb_to_hls(redc, greenc, bluec)[1]
+        
+        if lumi > 127.5:
+            return True
+        else:
+            return False
+    
+    
+    def private_colourfilter(self, colourcode):
+        #Returns:
+        # Darkened colour
+        
+        redc, greenc, bluec = tuple(int(colourcode[i:i+2], 16) for i in (1, 3, 5)) #Dodge the # character
+        
+        hue, lumi, sat = colorsys.rgb_to_hls(redc, greenc, bluec)
+        
+        if lumi <= 34.0:
+            lumi = 0
+        else:
+            lumi -= 34.0
+            
+        redc, greenc, bluec = colorsys.hls_to_rgb(hue, lumi, sat)
+        
+        redc, greenc, bluec = int(redc), int(greenc), int(bluec) #Convert back to integers
+        
+        return '#%02x%02x%02x' % (redc, greenc, bluec)
+    
+    
+    def get_are_colours_different(self, colourcode1, colourcode2):
+        #Returns:
+        # True: Yes
+        # False: No
+        #    Based on if the r, g, and b values of cc2 aren't matching within 10 above to 10 below cc1's values
+        
+        red1, green1, blue1 = tuple(int(colourcode1[i:i+2], 16) for i in (1, 3, 5))
+        red2, green2, blue2 = tuple(int(colourcode2[i:i+2], 16) for i in (1, 3, 5))
+        
+        #Red
+        redmatches = False
+        if red2 > (red1 - 10) and red2 < (red1 + 10):
+            redmatches = True
+        #Green
+        greenmatches = False
+        if green2 > (green1 - 10) and green2 < (green1 + 10):
+            greenmatches = True
+        #Blue
+        bluematches = False
+        if blue2 > (blue1 - 10) and blue2 < (blue1 + 10):
+            bluematches = True
+            
+        if redmatches and greenmatches and bluematches:
+            return False
+        else:
+            return True
+    
+    
+    def get_colour_bg_suitable(self, colourcode):
+        #Returns:
+        # True: Yes
+        # False: No
+        #    Based on if the r, g, and b values of colourcode are matching or very close to each other
+        
+        red1, green1, blue1 = tuple(int(colourcode[i:i+2], 16) for i in (1, 3, 5))
+        
+        #Red
+        if red1 > (green1 - 4) and red1 < (green1 + 4) and red1 > (blue1 - 4) and red1 < (blue1 + 4):
+            return True
+        else:
+            return False
     
     
     
@@ -327,7 +329,7 @@ ForegroundVisited=127,140,141"""
         progress_callback(12)
         
         
-        #Titlebar branding
+        #Titlebar branding (old)
         #if "icecolor" in icepackageinfo:
             #self.color_scheme_iding(icepackageinfo["icecolor"], taskdata, icepackageinfo["icecolorhighlight"])
             #os.system("qdbus org.kde.KWin /KWin reconfigure")
@@ -440,9 +442,14 @@ ForegroundVisited=127,140,141"""
         #Extra site-specific tweaks
         profiletomake["homepage"] = icepackageinfo["website"]
         profiletomake["session"]["startup_urls"] = [icepackageinfo["website"]]
-        profiletomake["vivaldi"]["homepage"] = icepackageinfo["website"]
         profiletomake["download"]["default_directory"] = GLib.get_user_special_dir(GLib.UserDirectory.DIRECTORY_DOWNLOAD) + "/" + _("{0} Downloads").format(icepackageinfo["realname"]) #TODO: Allow configuration of downloads location, whether or not to save to individual folders
         profiletomake["profile"]["name"] = _("Ice - {0}").format(icepackageinfo["realname"])
+        profiletomake["ntp"]["custom_background_dict"]["attribution_line_1"] = _("Feren OS Ice Website Application:")
+        profiletomake["ntp"]["custom_background_dict"]["attribution_line_2"] = icepackageinfo["realname"]
+        profiletomake["vivaldi"]["tabs"]["new_page"]["custom_url"] = "https://feren-os.github.io/start-page/ice?ice-text="+(_("Feren OS Ice Website Application - {0}").format(icepackageinfo["realname"]))
+        profiletomake["vivaldi"]["homepage"] = "https://feren-os.github.io/start-page/ice?ice-text="+(_("Feren OS Ice Website Application - {0}").format(icepackageinfo["realname"]))
+        profiletomake["vivaldi"]["homepage_cache"] = "https://feren-os.github.io/start-page/ice?ice-text="+(_("Feren OS Ice Website Application - {0}").format(icepackageinfo["realname"]))
+        
         
         #Notifications ONLY for SSB's websites
         try:
@@ -474,6 +481,44 @@ ForegroundVisited=127,140,141"""
         
         
         #TODO: Figure out doing themes for Chrome to colour the windows by their website colours
+        #Vivaldi colour changes
+        if "icecolor" in icepackageinfo and "icecolorhighlight" in icepackageinfo:
+            vivaldihighlightcol = icepackageinfo["icecolorhighlight"]
+            if self.get_luminant(icepackageinfo["icecolor"]) == False: #Dark BG
+                vivaldiaccentcol = icepackageinfo["icecolor"]
+                vivaldiwinbgcol = ""
+                vivaldiaccentcolprivate = self.private_colourfilter(icepackageinfo["icecolor"])
+                vivaldiwinbgcolprivate = ""
+                vivaldiaccentinchrome = True
+                
+            else: #Light BG
+                vivaldiaccentcol = icepackageinfo["icecolorhighlight"]
+                vivaldiaccentcolprivate = self.private_colourfilter(icepackageinfo["icecolorhighlight"])
+                
+                if self.get_are_colours_different(icepackageinfo["icecolor"], icepackageinfo["icecolorhighlight"]) and self.get_colour_bg_suitable(icepackageinfo["icecolor"]):
+                    vivaldiwinbgcol = icepackageinfo["icecolor"]
+                    vivaldiwinbgcolprivate = self.private_colourfilter(icepackageinfo["icecolor"])
+                else:
+                    vivaldiwinbgcol = ""
+                    vivaldiwinbgcolprivate = ""
+                
+                vivaldiaccentinchrome = False
+                
+            profiletomake["vivaldi"]["themes"]["system"][0]["accentOnWindow"] = vivaldiaccentinchrome
+            profiletomake["vivaldi"]["themes"]["system"][1]["accentOnWindow"] = vivaldiaccentinchrome
+            profiletomake["vivaldi"]["themes"]["system"][0]["colorAccentBg"] = vivaldiaccentcol
+            profiletomake["vivaldi"]["themes"]["system"][1]["colorAccentBg"] = vivaldiaccentcolprivate
+            profiletomake["vivaldi"]["themes"]["system"][0]["colorHighlightBg"] = vivaldihighlightcol
+            profiletomake["vivaldi"]["themes"]["system"][1]["colorHighlightBg"] = vivaldihighlightcol
+            if vivaldiwinbgcol != "":
+                if self.get_luminant(vivaldiwinbgcol) == False: #Dark BG (in-Preferences default is Light, so no need for Light BG else)
+                    profiletomake["vivaldi"]["themes"]["system"][0]["colorFg"] = "#FFFFFF"
+                if self.get_luminant(vivaldiwinbgcolprivate) == True: #Light BG (in-Preferences default is Dark, so no need for Dark BG else)
+                    profiletomake["vivaldi"]["themes"]["system"][1]["colorFg"] = "#000000"
+                profiletomake["vivaldi"]["themes"]["system"][0]["colorBg"] = vivaldiwinbgcol
+                profiletomake["vivaldi"]["themes"]["system"][1]["colorBg"] = vivaldiwinbgcolprivate
+            
+            
         
         
         #Write last updated date to be used in update checks
@@ -502,6 +547,15 @@ ForegroundVisited=127,140,141"""
         except Exception as exceptionstr:
             self.task_remove_package(taskdata, None, True) #Remove profile's files/folders on failure
             raise ICEModuleException(_("Failed to install {0}: {1} was encountered when writing the Chromium-based profile").format(taskdata["packagename"], exceptionstr))
+        
+        
+        #Write bookmarks
+        try:
+            with open(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/Default/Bookmarks" % taskdata["packagename"], 'w') as fp:
+                pass
+        except Exception as exceptionstr:
+            self.task_remove_package(taskdata, None, True) #Remove profile's files/folders on failure
+            raise ICEModuleException(_("Failed to install {0}: {1} was encountered when writing the Bookmarks file").format(taskdata["packagename"], exceptionstr))
             
             
         progress_callback(72)            
@@ -870,9 +924,14 @@ ForegroundVisited=127,140,141"""
         #Extra site-specific tweaks
         profiletoupdate["homepage"] = icepackageinfo["website"]
         profiletoupdate["session"]["startup_urls"] = [icepackageinfo["website"]]
-        profiletoupdate["vivaldi"]["homepage"] = icepackageinfo["website"]
         profiletoupdate["download"]["default_directory"] = GLib.get_user_special_dir(GLib.UserDirectory.DIRECTORY_DOWNLOAD) + "/" + _("{0} Downloads").format(icepackageinfo["realname"])
         profiletoupdate["profile"]["name"] = _("Ice - {0}").format(icepackageinfo["realname"])
+        profiletoupdate["ntp"]["custom_background_dict"]["attribution_line_1"] = _("Feren OS Ice Website Application:")
+        profiletoupdate["ntp"]["custom_background_dict"]["attribution_line_2"] = icepackageinfo["realname"]
+        profiletoupdate["vivaldi"]["tabs"]["new_page"]["custom_url"] = "https://feren-os.github.io/start-page/ice?ice-text="+(_("Feren OS Ice Website Application - {0}").format(icepackageinfo["realname"]))
+        profiletoupdate["vivaldi"]["homepage"] = "https://feren-os.github.io/start-page/ice?ice-text="+(_("Feren OS Ice Website Application - {0}").format(icepackageinfo["realname"]))
+        profiletoupdate["vivaldi"]["homepage_cache"] = "https://feren-os.github.io/start-page/ice?ice-text="+(_("Feren OS Ice Website Application - {0}").format(icepackageinfo["realname"]))
+        
         
         #Update these as well
         if "icegoogleinteg" in icepackageinfo and icepackageinfo["icegoogleinteg"] == True:
@@ -920,6 +979,46 @@ ForegroundVisited=127,140,141"""
             profiletoupdate["profile"]["content_settings"]["exceptions"]["notifications"]["[*.]"+shortenedurl+",*"] = {"expiration": "0", "model": 0, "setting": 1}
             profiletoupdate["profile"]["content_settings"]["exceptions"]["notifications"][shortenedurl+",*"] = {"expiration": "0", "model": 0, "setting": 1}
             extrascount += 1
+        
+        
+        #Update Vivaldi colour changes
+        #Vivaldi colour changes
+        if "icecolor" in icepackageinfo and "icecolorhighlight" in icepackageinfo:
+            vivaldihighlightcol = icepackageinfo["icecolorhighlight"]
+            if self.get_luminant(icepackageinfo["icecolor"]) == False: #Dark BG
+                vivaldiaccentcol = icepackageinfo["icecolor"]
+                vivaldiwinbgcol = ""
+                vivaldiaccentcolprivate = self.private_colourfilter(icepackageinfo["icecolor"])
+                vivaldiwinbgcolprivate = ""
+                vivaldiaccentinchrome = True
+                
+            else: #Light BG
+                vivaldiaccentcol = icepackageinfo["icecolorhighlight"]
+                vivaldiaccentcolprivate = self.private_colourfilter(icepackageinfo["icecolorhighlight"])
+                
+                if self.get_are_colours_different(icepackageinfo["icecolor"], icepackageinfo["icecolorhighlight"]) and self.get_colour_bg_suitable(icepackageinfo["icecolor"]):
+                    vivaldiwinbgcol = icepackageinfo["icecolor"]
+                    vivaldiwinbgcolprivate = self.private_colourfilter(icepackageinfo["icecolor"])
+                else:
+                    vivaldiwinbgcol = ""
+                    vivaldiwinbgcolprivate = ""
+                
+                vivaldiaccentinchrome = False
+                
+            profiletoupdate["vivaldi"]["themes"]["system"][0]["accentOnWindow"] = vivaldiaccentinchrome
+            profiletoupdate["vivaldi"]["themes"]["system"][1]["accentOnWindow"] = vivaldiaccentinchrome
+            profiletoupdate["vivaldi"]["themes"]["system"][0]["colorAccentBg"] = vivaldiaccentcol
+            profiletoupdate["vivaldi"]["themes"]["system"][1]["colorAccentBg"] = vivaldiaccentcolprivate
+            profiletoupdate["vivaldi"]["themes"]["system"][0]["colorHighlightBg"] = vivaldihighlightcol
+            profiletoupdate["vivaldi"]["themes"]["system"][1]["colorHighlightBg"] = vivaldihighlightcol
+            if vivaldiwinbgcol != "":
+                if self.get_luminant(vivaldiwinbgcol) == False: #Dark BG (in-Preferences default is Light, so no need for Light BG else)
+                    profiletoupdate["vivaldi"]["themes"]["system"][0]["colorFg"] = "#FFFFFF"
+                if self.get_luminant(vivaldiwinbgcolprivate) == True: #Light BG (in-Preferences default is Dark, so no need for Dark BG else)
+                    profiletoupdate["vivaldi"]["themes"]["system"][1]["colorFg"] = "#000000"
+                profiletoupdate["vivaldi"]["themes"]["system"][0]["colorBg"] = vivaldiwinbgcol
+                profiletoupdate["vivaldi"]["themes"]["system"][1]["colorBg"] = vivaldiwinbgcolprivate
+        
         
         
         #Write last updated date to be used in update checks
