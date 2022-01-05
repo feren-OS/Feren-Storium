@@ -1,4 +1,7 @@
 {
+    "brave": {
+        "hangouts_enabled": false
+    },
     "vivaldi": {
         "privacy": {
             "google_component_extensions": {

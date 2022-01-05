@@ -91,13 +91,13 @@
         "images": [""]
     }
   },
-  "feren-extra-backgrounds": {
+  "feren-backgrounds-murdock": {
     "type-importance": ["apt"],
     "all": {
-        "realname": "Feren OS Extra Backgrounds",
+        "realname": "Feren OS 2017.0 Backgrounds",
         "iconuri": "file:///usr/share/icons/Inspire/256/apps/preferences-wallpaper.png",
-        "shortdescription": "Extra Feren OS backgrounds",
-        "description": "If you didn't think there were enough beautiful backgrounds for feren OS, here's EVEN MORE to accompany your feren OS Desktop!",
+        "shortdescription": "Backgrounds from Feren OS 2017.0",
+        "description": "TODO",
         "website": "http://ferenos.weebly.com/",
         "donateurl": "",
         "category": "backgrounds",

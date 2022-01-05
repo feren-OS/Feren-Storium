@@ -124,7 +124,26 @@ class main():
         # 2 - Updatable
         # 3 - Available in a disabled source
         # 403 - Not in repositories
-        pass
+        
+        #package_ids=res.get_package_array() -> .get_id()
+        #['feren-backgrounds-erbium;2021.04.0.0.0;all;installed:feren_os-stable-main']
+        
+        res=self.pk_client.resolve(PackageKitGlib.FilterEnum.NONE, [self.storebrain.get_item_info_specific(packagename, pkgtype, source, True)["apt-name"]], None, lambda p, t, d: True, None)
+        package_ids=res.get_package_array()
+        
+        for item in package_ids:
+            if item.get_data().startswith("installed:"):
+                return 1
+            #TODO: Update check, Available in disabled source check using package_id, etc.
+            else:
+                return 0
+        
+        
+        return 403
+        
+    
+    def progress_cb(self, progress, progresstype, user_data):
+        self.progress_callback(progress.get_percentage())
     
     
     def task_cleanup(self, packagename):
@@ -151,18 +170,21 @@ class main():
     
     #Actual management TODO: Progress callback
     def task_install_package(self, taskdata, progress_callback):
+        import traceback
         #Install package and return exit code
         self.packagemgmtbusy = True
         
+        self.progress_callback = progress_callback
+        
         #Remove package and return exit code
-        self.currentpackagename = taskdata["packagename"]
+        self.currentpackagename = taskdata["pkginfo"]["apt-name"]
         try:
-            res=pk_client.resolve(PackageKitGlib.FilterEnum.NONE, [packagename], None, lambda p, t, d: True, None)
+            res=self.pk_client.resolve(PackageKitGlib.FilterEnum.NONE, [self.currentpackagename], None, lambda p, t, d: True, None)
             package_ids=res.get_package_array()
             if not len(package_ids) > 0:
                 return False
             
-            outcome = self.pk_client.remove_packages(0, [package_ids[0].get_id()], True, True, None, progress_callback, None)
+            outcome = self.pk_client.install_packages(0, [package_ids[0].get_id()], None, self.progress_cb, None)
         except:
             return False
         
@@ -171,15 +193,17 @@ class main():
     def task_remove_package(self, taskdata, progress_callback):
         self.packagemgmtbusy = True
         
+        self.progress_callback = progress_callback
+        
         #Remove package and return exit code
-        self.currentpackagename = taskdata["packagename"]
+        self.currentpackagename = taskdata["pkginfo"]["apt-name"]
         try:
-            res=pk_client.resolve(PackageKitGlib.FilterEnum.NONE, [packagename], None, lambda p, t, d: True, None)
+            res=self.pk_client.resolve(PackageKitGlib.FilterEnum.NONE, [self.currentpackagename], None, lambda p, t, d: True, None)
             package_ids=res.get_package_array()
             if not len(package_ids) > 0:
                 return False
             
-            outcome = self.pk_client.remove_packages(0, [package_ids[0].get_id()], True, True, None, progress_callback, None)
+            outcome = self.pk_client.remove_packages(0, [package_ids[0].get_id()], True, True, None, self.progress_cb, None)
         except:
             return False
         
@@ -188,15 +212,17 @@ class main():
     def task_update_package(self, taskdata, progress_callback):
         self.packagemgmtbusy = True
         
+        self.progress_callback = progress_callback
+        
         #Update package and return exit code
-        self.currentpackagename = taskdata["packagename"]
+        self.currentpackagename = taskdata["pkginfo"]["apt-name"]
         try:
-            res=pk_client.resolve(PackageKitGlib.FilterEnum.NONE, [packagename], None, lambda p, t, d: True, None)
+            res=self.pk_client.resolve(PackageKitGlib.FilterEnum.NONE, [self.currentpackagename], None, lambda p, t, d: True, None)
             package_ids=res.get_package_array()
             if not len(package_ids) > 0:
                 return False
             
-            outcome = self.pk_client.update_packages(0, [package_ids[0].get_id()], True, True, None, progress_callback, None)
+            outcome = self.pk_client.update_packages(0, [package_ids[0].get_id()], True, True, None, self.progress_cb, None)
         except:
             return False
         

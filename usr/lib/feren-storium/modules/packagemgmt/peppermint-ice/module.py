@@ -73,7 +73,7 @@ class main():
         self.currentpackagename = ""
         
         #Global Ice last updated date (so that all shortcuts can be updated if a major change occurs)
-        self.icelastupdated = "20211223"
+        self.icelastupdated = "20220105"
         
         #Sources storage
         self.sources_storage = {}
@@ -451,33 +451,34 @@ class main():
         profiletomake["vivaldi"]["homepage_cache"] = "https://feren-os.github.io/start-page/ice?ice-text="+(_("Feren OS Ice Website Application - {0}").format(icepackageinfo["realname"]))
         
         
-        #Notifications ONLY for SSB's websites
-        try:
-            shortenedurl = icepackageinfo["website"].split("://")[1:]
-            shortenedurl = ''.join(shortenedurl)
-        except:
-            shortenedurl = icepackageinfo["website"]
-        try:
-            shortenedurl = shortenedurl.split("/")[0]
-        except:
-            pass
-        profiletomake["profile"]["content_settings"]["exceptions"]["notifications"]["[*.]"+shortenedurl+",*"] = {"expiration": "0", "model": 0, "setting": 1}
-        profiletomake["profile"]["content_settings"]["exceptions"]["notifications"][shortenedurl+",*"] = {"expiration": "0", "model": 0, "setting": 1}
-        #Repeat for extra shortcuts' URLs
-        extrascount = 0
-        for extraid in iceextrasids:
+        #Background Sync, Clipboard, Notifications and Payment Handler ONLY for SSB's websites
+        for permtype in ["ar", "background_sync", "clipboard", "file_handling", "font_access", "midi_sysex", "notifications", "payment_handler", "sensors", "window_placement", "vr"]:
             try:
-                shortenedurl = icepackageinfo["websiteextras"][extrascount].split("://")[1:]
+                shortenedurl = icepackageinfo["website"].split("://")[1:]
                 shortenedurl = ''.join(shortenedurl)
             except:
-                shortenedurl = icepackageinfo["websiteextras"][extrascount]
+                shortenedurl = icepackageinfo["website"]
             try:
                 shortenedurl = shortenedurl.split("/")[0]
             except:
                 pass
-            profiletomake["profile"]["content_settings"]["exceptions"]["notifications"]["[*.]"+shortenedurl+",*"] = {"expiration": "0", "model": 0, "setting": 1}
-            profiletomake["profile"]["content_settings"]["exceptions"]["notifications"][shortenedurl+",*"] = {"expiration": "0", "model": 0, "setting": 1}
-            extrascount += 1
+            profiletomake["profile"]["content_settings"]["exceptions"][permtype]["[*.]"+shortenedurl+",*"] = {"expiration": "0", "model": 0, "setting": 1}
+            profiletomake["profile"]["content_settings"]["exceptions"][permtype][shortenedurl+",*"] = {"expiration": "0", "model": 0, "setting": 1}
+            #Repeat for extra shortcuts' URLs
+            extrascount = 0
+            for extraid in iceextrasids:
+                try:
+                    shortenedurl = icepackageinfo["websiteextras"][extrascount].split("://")[1:]
+                    shortenedurl = ''.join(shortenedurl)
+                except:
+                    shortenedurl = icepackageinfo["websiteextras"][extrascount]
+                try:
+                    shortenedurl = shortenedurl.split("/")[0]
+                except:
+                    pass
+                profiletomake["profile"]["content_settings"]["exceptions"][permtype]["[*.]"+shortenedurl+",*"] = {"expiration": "0", "model": 0, "setting": 1}
+                profiletomake["profile"]["content_settings"]["exceptions"][permtype][shortenedurl+",*"] = {"expiration": "0", "model": 0, "setting": 1}
+                extrascount += 1
         
         
         #TODO: Figure out doing themes for Chrome to colour the windows by their website colours
@@ -547,6 +548,16 @@ class main():
         except Exception as exceptionstr:
             self.task_remove_package(taskdata, None, True) #Remove profile's files/folders on failure
             raise ICEModuleException(_("Failed to install {0}: {1} was encountered when writing the Chromium-based profile").format(taskdata["packagename"], exceptionstr))
+        
+        #Write Local State
+        try:
+            with open(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/Local State" % taskdata["packagename"], 'w') as fp:
+                with open("/usr/share/feren-storium/modules/packagemgmt-ice/chromium-profile/Local State", 'r') as fp2:
+                    fp.write(json.dumps(json.loads(fp2.read()), separators=(',', ':')))
+        except Exception as exceptionstr:
+            self.task_remove_package(taskdata, None, True) #Remove profile's files/folders on failure
+            raise ICEModuleException(_("Failed to install {0}: {1} was encountered when writing the Chromium-based profile").format(taskdata["packagename"], exceptionstr))
+        
         
         
         #Write bookmarks
@@ -952,33 +963,34 @@ class main():
             except Exception as exceptionstr:
                 raise ICEModuleException(_("Failed to install {0}: {1} was encountered when setting up automatic history deletion").format(taskdata["packagename"], exceptionstr))
             
-        #Notifications ONLY for SSB's websites
-        try:
-            shortenedurl = icepackageinfo["website"].split("://")[1:]
-            shortenedurl = ''.join(shortenedurl)
-        except:
-            shortenedurl = icepackageinfo["website"]
-        try:
-            shortenedurl = shortenedurl.split("/")[0]
-        except:
-            pass
-        profiletoupdate["profile"]["content_settings"]["exceptions"]["notifications"]["[*.]"+shortenedurl+",*"] = {"expiration": "0", "model": 0, "setting": 1}
-        profiletoupdate["profile"]["content_settings"]["exceptions"]["notifications"][shortenedurl+",*"] = {"expiration": "0", "model": 0, "setting": 1}
-        #Repeat for extra shortcuts' URLs
-        extrascount = 0
-        for extraid in iceextrasids:
+        #Background Sync, Clipboard, Notifications and Payment Handler ONLY for SSB's websites
+        for permtype in ["ar", "background_sync", "clipboard", "file_handling", "font_access", "midi_sysex", "notifications", "payment_handler", "sensors", "window_placement", "vr"]:
             try:
-                shortenedurl = icepackageinfo["websiteextras"][extrascount].split("://")[1:]
+                shortenedurl = icepackageinfo["website"].split("://")[1:]
                 shortenedurl = ''.join(shortenedurl)
             except:
-                shortenedurl = icepackageinfo["websiteextras"][extrascount]
+                shortenedurl = icepackageinfo["website"]
             try:
                 shortenedurl = shortenedurl.split("/")[0]
             except:
                 pass
-            profiletoupdate["profile"]["content_settings"]["exceptions"]["notifications"]["[*.]"+shortenedurl+",*"] = {"expiration": "0", "model": 0, "setting": 1}
-            profiletoupdate["profile"]["content_settings"]["exceptions"]["notifications"][shortenedurl+",*"] = {"expiration": "0", "model": 0, "setting": 1}
-            extrascount += 1
+            profiletoupdate["profile"]["content_settings"]["exceptions"][permtype]["[*.]"+shortenedurl+",*"] = {"expiration": "0", "model": 0, "setting": 1}
+            profiletoupdate["profile"]["content_settings"]["exceptions"][permtype][shortenedurl+",*"] = {"expiration": "0", "model": 0, "setting": 1}
+            #Repeat for extra shortcuts' URLs
+            extrascount = 0
+            for extraid in iceextrasids:
+                try:
+                    shortenedurl = icepackageinfo["websiteextras"][extrascount].split("://")[1:]
+                    shortenedurl = ''.join(shortenedurl)
+                except:
+                    shortenedurl = icepackageinfo["websiteextras"][extrascount]
+                try:
+                    shortenedurl = shortenedurl.split("/")[0]
+                except:
+                    pass
+                profiletoupdate["profile"]["content_settings"]["exceptions"][permtype]["[*.]"+shortenedurl+",*"] = {"expiration": "0", "model": 0, "setting": 1}
+                profiletoupdate["profile"]["content_settings"]["exceptions"][permtype][shortenedurl+",*"] = {"expiration": "0", "model": 0, "setting": 1}
+                extrascount += 1
         
         
         #Update Vivaldi colour changes
@@ -1045,6 +1057,21 @@ class main():
         except Exception as exceptionstr:
             raise ICEModuleException(_("Failed to update {0}: {1} was encountered when writing the Chromium-based profile").format(taskdata["packagename"], exceptionstr))
             
+        
+        #Update Local State too
+        with open("/usr/share/feren-storium/modules/packagemgmt-ice/chromium-profile/Local State", 'r') as fp:
+            profiledefaults = json.loads(fp.read())
+        try:
+            with open(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/Local State" % taskdata["packagename"], 'r') as fp:
+                profiletoupdate = json.loads(fp.read())
+        except Exception as exceptionstr:
+            raise ICEModuleException(_("Failed to update {0}: {1} was encountered when reading the browser's local state (is the local state corrupt?)").format(taskdata["packagename"], exceptionstr))
+        try:
+            with open(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/Local State" % taskdata["packagename"], 'w') as fp:
+                fp.write(json.dumps(self.storebrain.dict_recurupdate(profiletoupdate, profiledefaults), separators=(',', ':')))
+        except Exception as exceptionstr:
+            raise ICEModuleException(_("Failed to update {0}: {1} was encountered when writing the Local State").format(taskdata["packagename"], exceptionstr))
+        
             
         progress_callback(72)            
             

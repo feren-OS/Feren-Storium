@@ -1,8 +1,8 @@
 {
-  "feren-extra-backgrounds": {
+  "feren-backgrounds-murdock": {
     "sources-available": ["standard"],
     "standard": {
-        "apt-name": "feren-extra-backgrounds",
+        "apt-name": "feren-backgrounds-murdock",
         "apt-source": "standard",
         "author": "Feren OS Team",
         "bugreporturl": "",

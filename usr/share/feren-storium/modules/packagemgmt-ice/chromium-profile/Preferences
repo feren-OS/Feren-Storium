@@ -1,6 +1,15 @@
 {
+    "alternate_error_pages": {
+        "backup": false
+    },
+    "autofill": {
+        "credit_card_enabled": false,
+        "profile_enabled": false
+    },
     "default_apps_install_state": 3,
     "brave": {
+        "always_show_bookmark_bar_on_ntp": false,
+        "enable_media_router_on_restart": false,
         "new_tab_page": { "hide_all_widgets": true, "show_branded_background_image": false, "show_brave_today": false },
         "shields_settings_version": 2,
         "hide_brave_rewards_button": true,
@@ -9,9 +18,11 @@
             "default_wallet2": 1,
             "show_wallet_icon_on_toolbar": false,
             "wallet_current_chain_id": "0x1"
-        }
+        },
+        "webtorrent_enabled": false
     },
     "browser": { "custom_chrome_frame": true, "has_seen_welcome_page": true },
+    "credentials_enable_autosignin": false,
     "download": { "default_directory": "", "directory_upgrade": true },
     "enable_do_not_track": true,
     "extensions": {
@@ -49,6 +60,7 @@
     },
     "homepage": "https://feren-os.github.io/start-page",
     "homepage_is_newtabpage": false,
+    "https_only_mode_enabled": true,
     "ntp": {
         "background_image_type": "off",
         "custom_background_dict": {
@@ -70,6 +82,8 @@
         "show_image_of_day": false,
         "show_settings": false
     },
+    "payments": { "can_make_payment_enabled": false },
+    "plugins": { "always_open_pdf_externally": true },
     "privacy_sandbox": { "apis_enabled": false, "floc_enabled": false, "manually_controlled": true },
     "profile": {
         "avatar_index": 34,
@@ -81,14 +95,48 @@
                 "notifications": 1
             },
             "exceptions": {
+                "ar": {
+                },
+                "background_sync": {
+                },
+                "clipboard": {
+                },
+                "file_handling": {
+                },
+                "font_access": {
+                },
+                "midi_sysex": {
+                },
                 "notifications": {
+                },
+                "payment_handler": {
+                },
+                "sensors": {
+                },
+                "window_placement": {
+                },
+                "vr": {
                 }
             },
             "pref_version": 1
         },
         "default_content_setting_values": {
-            "notifications": 2
-        }
+            "ar": 2,
+            "background_sync": 2,
+            "clipboard": 2,
+            "file_handling": 2,
+            "font_access": 2,
+            "idle_detection": 2,
+            "midi_sysex": 2,
+            "notifications": 2,
+            "payment_handler": 2,
+            "sensors": 2,
+            "serial_guard": 2,
+            "usb_guard": 2,
+            "vr": 2,
+            "window_placement": 2
+        },
+        "signin.with_credential_provider": false
     },
     "search": { "suggest_enabled": false },
     "session": { "restore_on_startup": 4, "startup_urls": ["https://feren-os.github.io/start-page"] },

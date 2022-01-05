@@ -211,7 +211,10 @@ class TaskItemButton(Gtk.Button):
     
     
     def change_progress(self, progress):
-        self.task_progress.set_fraction(progress / 100)
+        if progress < 0:
+            self.task_progress.set_fraction(0.0)
+        else:
+            self.task_progress.set_fraction(progress / 100)
     
     
     #def on_cancelaction(self, gtk_widget): #Ununsed as the button hitbox of self overrides hitboxes of buttons inside self
@@ -400,6 +403,7 @@ class AppDetailsHeader(Gtk.VBox):
         thread.start()
         
     def _update_buttons(self, status):
+        print("STATUS:", str(status))
         #Update buttons according to status
         if status == 0: #Uninstalled
             GLib.idle_add(self.installapp_btn.set_sensitive, True)
@@ -931,10 +935,10 @@ class AppMainView(Gtk.Stack):
             
             itemsdone += 1
         
+        GLib.idle_add(self.tasksitemscontainer.show_all,)
         time.sleep(0.2)
         
         self.refreshing_tasklist_queue -= 1 #Reduce the queue number now we're done
-        GLib.idle_add(self.tasksitemscontainer.show_all,)
         
         
     def refresh_tasksstatus(self):
@@ -956,7 +960,7 @@ class AppMainView(Gtk.Stack):
         
     
     def _refresh_taskstatus(self, item):
-        if item.taskid == list(self.storebrain.tasks.currenttask[item.taskinfo["module"].modulename].keys())[0]:
+        if len(self.storebrain.tasks.currenttask[item.taskinfo["module"].modulename]) != 0 and item.taskid == list(self.storebrain.tasks.currenttask[item.taskinfo["module"].modulename].keys())[0]:
             status = 901
         else:
             status = 900
@@ -968,7 +972,10 @@ class AppMainView(Gtk.Stack):
         #Change status of package page too if appropriate
         if item.taskinfo["packagename"] == self.current_item_viewed and item.taskinfo["module"].modulename == self.current_module_viewed and item.taskinfo["pkgtype"] == self.current_type_viewed and item.taskinfo["source"] == self.current_source_viewed:
             self.AppDetailsHeader.update_buttons(status)
-            GLib.idle_add(self.AppDetailsHeader.app_mgmt_progress.set_fraction, (item.taskinfo["progress"] / 100))
+            if item.taskinfo["progress"] < 0:
+                GLib.idle_add(self.AppDetailsHeader.app_mgmt_progress.set_fraction, 0.0)
+            else:
+                GLib.idle_add(self.AppDetailsHeader.app_mgmt_progress.set_fraction, (item.taskinfo["progress"] / 100))
         else:
             GLib.idle_add(self.AppDetailsHeader.app_mgmt_progress.set_fraction, 0.0)
         
