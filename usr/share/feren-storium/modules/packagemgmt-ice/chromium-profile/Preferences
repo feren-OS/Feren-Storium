@@ -157,7 +157,9 @@
                 "render_in_dropdown": true
             },
             "search": { "display": 2 },
-            "show_profile": false
+            "show_profile": false,
+            "show_qr_generator": false,
+            "visible": false
         },
         "autofill": { "server_assist": false },
         "bookmarks": { "version": "17" },
@@ -184,21 +186,27 @@
         "homepage": "",
         "homepage_cache": "",
         "menu": { "icon_type": 1 },
+        "popups": { "show_in_tab": true },
         "privacy": { "google_component_extensions": { "web_store": false } },
+        "settings": { "in_tab": true },
         "startpage": { "navigation": 2, "speed_dial": { "add_button_visible": false, "allow_dnd": false, "controls_visible": false, "delete_visible": false, "favicon_visible": false, "titles_visible": 1 } },
         "startup": { "check_is_default": false, "has_seen_feature": 1, "last_seen_version": "99.0.0001.02" },
         "status_bar": { "display": 2, "minimized": 1 },
         "system": { "show_exit_confirmation_dialog": false },
         "tabs": {
+            "active_min_size": 90,
             "at_edge": true,
             "dim_hibernated": true,
             "focus_webview": true,
+            "horizontal_scrolling": true,
             "never_close_last": false,
             "new_page": {
                 "custom_url": "",
                 "link": 4
             },
-            "page_load_info": 3
+            "page_load_info": 3,
+            "show_synced_tabs_button": false,
+            "show_trash_can": true
         },
         "theme": { "schedule": { "enabled": 0 } },
         "themes": {

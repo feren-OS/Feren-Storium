@@ -11,6 +11,7 @@ import gettext
 import getpass
 import collections.abc
 import copy
+import json
 from functools import partial
 
 import requests #Grabbing files from internet
@@ -19,7 +20,8 @@ class StoreBrainException(Exception): # Name this according to the module to all
     pass
 
 #TODO: Brain API instead of storebrain access for everything, and simplify the GUI and Brain code
-#TODO: Move package information stuff to package manager plugins, oh and make Generic a package manager I guess (no sources, ever)
+#TODO: Move package information stuff to package manager plugins, and merge generic into the other plugins
+#TODO: Make Store Brain trigger refresh_memory on modules when loaded, and allow refreshing of modules pool
 # ICE: dewit
 # APT: dewit (maybe later?)
 # Snap: dewit
@@ -27,6 +29,38 @@ class StoreBrainException(Exception): # Name this according to the module to all
 # Brain: dewit
 # GUI: dewit
 
+#Merge notes
+# Removed lastpkgviewed, pkgmgmtbusy, locale (move to Store API), pkg_categoryids, get_generic_information, get_information, get_subsources (now part of getSources)
+# pkg_ids is now dict (stores category in each one)
+# curated data.json value obtaining is now in API
+# task_* now returns Success?, and Output (for failure)
+
+#The API modules use to interface with the Brain (this code)
+class StoreAPI():
+    def __init__(self):
+        self.pastsourceslists = {} # Store the sources lists
+        
+        
+    
+    def refreshMemory(self):
+        #First refresh memory of API
+        self.pastsourceslists = {}
+        
+        #Now do so with the modules
+        self.modules_refresh_memory() #Store Brain gives API this callback
+    
+    
+    def getCuratedJSON(self, path): #Get curated JSON file from the curated folder
+        with open("/usr/share/feren-storium/curated/" + path + "/data.json", 'r') as fp:            
+                return json.loads(fp.read())
+    
+    
+    def sourcesList(self, pkgid): #Get the sources for this package id {sourcename: subsources]}
+        pass
+    
+    
+    
+    
 
 
 #This class here is the main brains that connect the pieces of code together per each module
@@ -67,6 +101,8 @@ class StoreModuleContainer():
         
         
 class StoreTasks():
+    #TODO: Task Items sorta like the old PackageStorage item, with working callbacks (e.g.: .cancel being a callback to Package-Module-Here.cancelTask(this task item), etc.)
+    
     #Each task item will be this:
     # "module:packagename:operation": {"type": "item/packageitem/source", "module": "modulenamehere", "packagename": "packagenamehere", "operation": 0/1/2, "progress": "0-100", "directto": "packagepageidhere", "realname": "Actual Name for notifications", "source": source, "subsource": subsource, "bonuses": [listgobrrr]}
     #
@@ -246,7 +282,10 @@ class StoreTasks():
         print("TASKS DEBUG ("+task["packagename"]+"): progress is now", progress)
 
 
-class StoreBrain():    
+class StoreBrain():
+    #TODO: Store each module with IDs, such as package module 'apt' having an ID of pmapt
+    #Then, have the module storage be something along the lines of {..., 'pmapt': StoreModuleContainer(storeapi, path), ...} so the API knows which module to call for what
+    
     #Load the initial modules
     def load_modules(self):
         MODULES_DIR = "/usr/lib/feren-storium/modules"

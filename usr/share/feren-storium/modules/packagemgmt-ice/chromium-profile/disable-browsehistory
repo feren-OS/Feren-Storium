@@ -1,0 +1,12 @@
+{
+    "vivaldi": {
+        "panels": {
+            "list": [
+                { "available": false, "forMailOnly": false, "id": "history", "resizable": false, "width": -1 }
+            ]
+        },
+        "tabs": {
+            "show_trash_can": false
+        }
+    }
+}

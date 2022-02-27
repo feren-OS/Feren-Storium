@@ -1,0 +1,28 @@
+{
+    "brave": {
+        "ens": {
+            "resolve_method": 1
+        },
+        "p3a": {
+            "enabled": false,
+            "notice_acknowledged": true
+        },
+        "stats": {
+            "reporting_enabled": false
+        },
+        "unstoppable_domains": {
+            "resolve_method": 1
+        },
+        "widevine_opted_in": true
+    },
+    "brave_shields": {
+        "p3a_usage": 0
+    },
+    "hardware_acceleration_mode_previous": true,
+    "tor": {
+        "tor_disabled": true
+    },
+    "user_experience_metrics": {
+        "session_id": 0
+    }
+}

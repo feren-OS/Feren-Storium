@@ -73,7 +73,7 @@ class main():
         self.currentpackagename = ""
         
         #Global Ice last updated date (so that all shortcuts can be updated if a major change occurs)
-        self.icelastupdated = "20220105"
+        self.icelastupdated = "20220228"
         
         #Sources storage
         self.sources_storage = {}
@@ -400,6 +400,10 @@ class main():
             profiletomake["vivaldi"]["privacy"]["google_component_extensions"]["hangout_services"] = False
         
         if "icenohistory" in icepackageinfo and icepackageinfo["icenohistory"] == True:
+            with open("/usr/share/feren-storium/modules/packagemgmt-ice/chromium-profile/disable-browsehistory", 'r') as fp:
+                profiletomakeextra = json.loads(fp.read())
+                profiletomake = self.storebrain.dict_recurupdate(profiletomake, profiletomakeextra)
+            
             try:
                 with open(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/.storium-nohistory" % taskdata["packagename"], 'w') as fp:
                     pass
@@ -957,6 +961,10 @@ class main():
             profiletoupdate["vivaldi"]["privacy"]["google_component_extensions"]["hangout_services"] = False
         
         if "icenohistory" in icepackageinfo and icepackageinfo["icenohistory"] == True:
+            with open("/usr/share/feren-storium/modules/packagemgmt-ice/chromium-profile/disable-browsehistory", 'r') as fp:
+                profiletoupdateextra = json.loads(fp.read())
+                profiletoupdate = self.storebrain.dict_recurupdate(profiletoupdate, profiletoupdateextra)
+            
             try:
                 with open(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/.storium-nohistory" % taskdata["packagename"], 'w') as fp:
                     pass

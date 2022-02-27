@@ -71,7 +71,7 @@ if sys.argv[2] == "chrome":
         pass
 elif sys.argv[2] == "vivaldi":
     if os.path.isfile("/usr/bin/vivaldi"):
-        ssbproc = subprocess.Popen(['/usr/bin/vivaldi', '--app=' + sys.argv[3], '--class=' + sys.argv[4], '--user-data-dir=' + sys.argv[1]], close_fds=True)
+        ssbproc = subprocess.Popen(['/usr/bin/vivaldi', sys.argv[3], '--class=' + sys.argv[4], '--user-data-dir=' + sys.argv[1]], close_fds=True)
     else:
         pass
 elif sys.argv[2] == "brave":

@@ -24,97 +24,95 @@ class APTModuleException(Exception): # Name this according to the module to allo
 
 class main():
 
-    def __init__(self, storebrain):
-
+    def __init__(self, storeapi):
+        #Gettext Translator
         gettext.install("feren-storium", "/usr/share/locale", names="ngettext")
-
-        #Name to be used in Debugging output
-        self.title = _("APT Package Management Module")
-        #Name to be shown in the GUI
-        self.humanreadabletitle = _("Standard Applications Management")
-        
-        #Can manage Application Sources?
-        self.canmanagesources = True
         
         #Store Brain
-        self.storebrain = storebrain
+        self.storeapi = storeapi
+
+        #Name to be used in Debugging output
+        self.title = _("APT Packages Module")
+        #Name to be shown in the GUI
+        self.humanreadabletitle = _("Standard Applications")
+        #Name to be shown in sources
+        self.sourcesmodulename = _("Standard Install")
         
-        #What package types does this manage?
-        self.types_supported = ["apt"]
+        #Package Storage will store the data of opened packages this instance, to make future loads faster
+        self.packagestorage = {}
         
         #Configs (obtained by get_configs)
         self.moduleconfigs={}
         self.get_configs()
         
-        #Package Storage will store the data of opened packages this instance
-        self.packagestorage = {}
-        
-        #Last package viewed
-        self.lastpkgviewed = ""
-        
-        #APT Cache for memory
-        self.apt_cache = apt.Cache()
-        self.pk_client = PackageKitGlib.Client()
-        
         #Lock to keep stuff from happening while memory is refreshing
         self.memory_refreshing = False
         
-        #Is the package management busy?
-        self.packagemgmtbusy = False
+        #What package types does this module work with?
+        self.types_supported = ["apt"]
         
+        #////Package Management:////
+        # Can manage Application Sources?
+        self.canmanagesources = True
+        #APT Cache for memory
+        self.apt_cache = apt.Cache()
+        self.pk_client = PackageKitGlib.Client()
         #Current name being managed
-        self.currentpackagename = ""
+        self.busywithpackage = ""
+        #Do subsources require an information change?
+        self.subsourceschangeinfo = False #False because no subsources
         
+        #Package IDs Dictionary
+        self.pkg_ids = {}
+    
+
     def refresh_memory(self): # Function to refresh some memory values
         self.memory_refreshing = True
         
+        #Refresh APT cache
         self.apt_cache = apt.Cache()
+        #Refresh package listings
+        self.json_storage = {}
+        for i in ["package-info/apt"]:       
+            self.json_storage[i] = storeapi.getCuratedJSON(i)
         
         self.memory_refreshing = False
-        
-                
-    def sourceQuery(self, packagename, pkgtype, sourcelist):
-        #TODO: Remove sources whenever they're enabled and the package isn't available
-        
-        return sourcelist #TEMPORARY
+    
+
+
+    #////Package Management////
+    def getSources(self, pkgid):
+        #Get a list of sources available for use via this module, for each pkgtype {pkgtype: [sources]}
+        # sources = [subsources]
+        sourceslist = {"apt": {}}
+        for source in self.json_storage["package-info/apt"][pkgid]["sources-available"]:
+            result = getAvailable(pkgid, source)
+            if result == 0 or result == 2:
+                #Leave the subsources empty as apt has none
+                sourceslist["apt"][source] = []
+            
+        return sourceslist
     
     
-    def get_subsources(self, packagename, pkgtype, source):
-        #Leave empty as apt has no subsources
-        return []
-    
+    def getAvailable(self, pkgid, sourceid):
+        #Check if package even exists in the first place
+        #Return values:
+        #0: Available
+        #1: Unavailable
+        #2: Repository requires being added first
         
+        return 0 #TODO 'cos I'm too lazy rn to read that damn documentation to figure out how to check package existing
+        
+    
     def pkgstorage_add(self, packagename, pkgtype):
-        #Not needed as we just consult the package information modules for information anyway
+        #Not needed as we just consult the JSON data variable for information anyway
         
-        #If it was, this'd be the intended structure:
-        # [pkgtype][all] for ALL sources information
-        # [pkgtype][x] where x is a source, for each source, with their specific information
+        #If it was, this'd be the intended structure?:
+        # [pkgtype][all][packagename] for the package information on all sources
+        # [pkgtype][x][packagename] for the package information on x source
         #we need pkgtype to determine the right section to store it in
         
-        #Additionally, if this was needed, it would be triggered via the get_generic_information and get_information calls below.
-        
         pass
-
-    def get_generic_information(self, packagename, pkgtype):
-        if pkgtype not in self.types_supported:
-            raise APTModuleException(_("Items of type %s are not supported by this module.") % packagename)
-        
-        # Return generic package information via Brain API
-        try:
-            return self.storebrain.get_generic_item_info(packagename, pkgtype)
-        except:
-            raise APTModuleException(e)
-
-    def get_information(self, packagename, pkgtype, source):
-        if pkgtype not in self.types_supported:
-            raise APTModuleException(_("Items of type %s are not supported by this module.") % packagename)
-        
-        # Return package information via Brain API
-        try:
-            return self.storebrain.get_item_info_specific(packagename, pkgtype, source)
-        except Exception as e:
-            raise APTModuleException(e)
         
 
     def get_status(self, packagename, pkgtype, source):
@@ -150,6 +148,12 @@ class main():
         #Cleanup after package operations
         self.currentpackagename = ""
         self.packagemgmtbusy = False
+        
+    
+    def get_package_changes(self, packagename, operationtype, pkgtype, source, subsource):
+        #Examine the package changes
+        return {"install": [], "update": [], "remove": [], "sourceadd": [], "sourceremove": []} #TODO
+    
         
     #Add to Tasks
     def install_package(self, packagename, pkgtype, source, subsource):
@@ -228,10 +232,6 @@ class main():
         
         return outcome.get_exit_code() == PackageKitGlib.ExitEnum.SUCCESS
     
-    def get_package_changes(self, pkgsinstalled, pkgsupdated, pkgsremoved):
-        #Examine the package changes - pkgsinstalled, pkgsupdated and pkgsremoved are lists
-        pass
-    
     def get_configs(self):
         #Get configs and their current gsettings/file values and return them as a dictionary
         gsettingsschemas={} # e.g.: {org.cinnamon.theme: [name]}
@@ -254,6 +254,169 @@ class main():
     def disable_appsource(self, appsource):
         #Disable an Application Source
         pass
+
+
+
+
+    #////Package Information////
+    def internalToPkgName(self, internalname, packagetype):
+        #Translate internal Store name to the appropriate package name
+        #e.g.: mozilla-firefox + Flatpak = org.mozilla.firefox
+        
+        #internalname: Internal in-Store name
+        #packagetype: apt
+        try:
+            return self.json_storage["package-info/"+packagetype][internalname][packagetype + "-name"]
+        except:
+            raise APTInfoModuleException(packagename, _("could not be found in the Store's package names data. If you are getting an exception throw, it means you have not used a Try to respond to the package not being in the Store."))
+      
+    def pkgNameToInternal(self, packagename, packagetype):
+        #Translate package name to internal Store name
+        #e.g.: org.mozilla.firefox + Flatpak = mozilla-firefox
+        
+        #packagename: Package name
+        #packagetype: apt
+        try:
+            if self.json_storage["package-info/"+packagetype][pkg][packagetype + "-name"] == packagename:
+                return pkg
+            raise APTInfoModuleException(packagename, _("is not associated with any Store internal name. If you are getting an exception throw, it means you have not used a Try to respond to the package not being in the Store."))
+        except:
+            raise APTInfoModuleException(packagename, _("is not associated with any Store internal name. If you are getting an exception throw, it means you have not used a Try to respond to the package not being in the Store."))
+        
+        
+    def build_ids_list(self): #Build list of package IDs
+        self.pkg_ids = {}
+        for i in [self.json_storage["package-info/apt"]]:
+            try:
+                for package in i:
+                    if package not in self.pkg_ids:
+                        self.pkg_ids[package] = self.json_storage["package-info/apt"][package]["category"]
+            except:
+                pass
+        #self.pkg_ids.sort() TODO: Alphabetical sorting of IDs
+    
+    
+    def getInfo(self, packagename, packagetype, sourcename=""):
+        #Get information on a package using the JSON data        
+        if packagetype not in self.types_supported:
+            raise APTInfoModuleException(packagetype, _("is not supported by this information module. If you are getting an exception throw, it means you have not used a Try to respond to the module not supporting this type of package."))
+            return
+        
+        if sourcename == "":
+            return self.json_storage["package-info/" + packagetype][packagename]
+        else:
+            overallinfo = {}
+            try:
+                overallinfo = self.json_storage["package-info/" + packagetype][packagename]["all"]
+            except:
+                pass
+            try:
+                overallinfo = self.storebrain.dict_recurupdate(overallinfo, self.json_storage["package-info/" + packagetype][packagename][sourcename])
+            except:
+                pass
+            return overallinfo        
+    
+    def getAuthor(self, packagename, packagetype):
+        try:
+            author = self.json_storage["package-info/" + packagetype][packagename]["author"]
+        except:
+            author = _("Unknown Author")
+        return author
+      
+    def getBugsURL(self, packagename, packagetype):
+        try:
+            bugreporturl = self.json_storage["package-info/" + packagetype][packagename]["bugreporturl"]
+        except:
+            bugreporturl = ""
+        return bugreporturl
+      
+    def getTOSURL(self, packagename, packagetype):
+        try:
+            tosurl = self.json_storage["package-info/" + packagetype][packagename]["tosurl"]
+        except:
+            tosurl = ""
+        return tosurl
+      
+    def getPrivPolURL(self, packagename, packagetype):
+        try:
+            privpolurl = self.json_storage["package-info/" + packagetype][packagename]["privpolurl"]
+        except:
+            privpolurl = ""
+        return privpolurl
+      
+    def getCanTheme(self, packagename, packagetype):
+        # Return values:
+        # 0: No
+        # 1: Yes
+        # 2: Yes, but manually enabled
+        # 3: Yes, except for Feren OS's style
+        # 4: Has own themes system
+        # 5: No because LibAdwaita
+        # 6: No because LibGranite
+        
+        try:
+            canusethemes = self.json_storage["package-info/" + packagetype][packagename]["canusethemes"]
+        except:
+            canusethemes = 1 # Use fallback of Yes when unknown to hide the message
+        return canusethemes
+      
+    def getCanTouchScreen(self, packagename, packagetype):
+        # Return values:
+        # 0: No
+        # 1: Yes
+        # 2: Partially
+        
+        try:
+            canusetouchscreen = self.json_storage["package-info/" + packagetype][packagename]["canihastouch"]
+        except:
+            canusetouchscreen = 1 # Use fallback of Yes when unknown to hide the message
+        return canusetouchscreen
+      
+    def getCanUseAccessibility(self, packagename, packagetype):
+        try:
+            canuseaccessibility = self.json_storage["package-info/" + packagetype][packagename]["canuseaccessibility"]
+        except:
+            canuseaccessibility = True # Use fallback of True when unknown to hide the message
+        return canuseaccessibility
+      
+    def getCanUseDPI(self, packagename, packagetype):
+        try:
+            canusedpiscaling = self.json_storage["package-info/" + packagetype][packagename]["canusedpiscaling"]
+        except:
+            canusedpiscaling = True # Use fallback of True when unknown to hide the message
+        return canusedpiscaling
+      
+    def getCanUseOnPhone(self, packagename, packagetype):
+        try:
+            canuseonphone = self.json_storage["package-info/" + packagetype][packagename]["canuseonphone"]
+        except:
+            canuseonphone = True # Use fallback of True when unknown to hide the message
+        return canuseonphone
+      
+    def getIsOfficial(self, packagename, packagetype):
+        try:
+            isofficial = self.json_storage["package-info/" + packagetype][packagename]["isofficial"]
+        except:
+            isofficial = True # Use fallback of True when unknown to hide the message
+        return isofficial
+
+    def getAPTName(self, packagename, packagetype):
+        try:
+            aptname = self.json_storage["package-info/" + packagetype][packagename]["apt-name"]
+        except:
+            raise GenericInfoModuleException(packagename, _("has no, or an invalid, apt-name value in the package metadata. APT Packages MUST have an apt-name value when curated."))
+            return
+        return aptname
+      
+    def getAPTSource(self, packagename, packagetype):
+        try:
+            aptsource = self.json_storage["package-info/" + packagetype][packagename]["apt-source"]
+        except:
+            raise GenericInfoModuleException(packagename, _("has no, or an invalid, apt-source value in the package metadata. APT Packages MUST have an apt-source value when curated."))
+            return
+        return aptsource
+        
+    
 
 if __name__ == "__main__":
     module = PackageMgmtModule()

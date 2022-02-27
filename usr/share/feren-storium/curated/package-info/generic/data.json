@@ -91,6 +91,34 @@
         "images": [""]
     }
   },
+  "storium-ice-bbc-news": {
+    "type-importance": ["peppermint-ice"],
+    "sources-available": [],
+    "all": {
+        "realname": "BBC News",
+        "iconuri": "http://m.files.bbci.co.uk/modules/bbc-morph-news-waf-page-meta/5.2.0/apple-touch-icon.png",
+        "shortdescription": "",
+        "description": "TODO",
+        "website": "https://www.bbc.co.uk/news",
+        "donateurl": "",
+        "category": "ice-internet",
+        "images": [""]
+    }
+  },
+  "storium-ice-nhk-world-japan": {
+    "type-importance": ["peppermint-ice"],
+    "sources-available": [],
+    "all": {
+        "realname": "NHK World Japan",
+        "iconuri": "https://www3.nhk.or.jp/nhkworld/common/site_images/nw_webapp_1500x1500.png",
+        "shortdescription": "",
+        "description": "TODO",
+        "website": "https://www3.nhk.or.jp/nhkworld/",
+        "donateurl": "",
+        "category": "ice-internet",
+        "images": [""]
+    }
+  },
   "feren-backgrounds-murdock": {
     "type-importance": ["apt"],
     "all": {
