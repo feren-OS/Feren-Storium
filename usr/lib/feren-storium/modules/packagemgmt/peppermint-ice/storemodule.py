@@ -206,18 +206,31 @@ class main():
             return False
     
     
-    def private_colourfilter(self, colourcode):
+    def colourFilter(self, colourcode, amount, darken, multiply=False): #hexcode, float, bool, bool
         #Returns:
-        # Darkened colour
+        # Darkened/Lightened colour
         
         redc, greenc, bluec = tuple(int(colourcode[i:i+2], 16) for i in (1, 3, 5)) #Dodge the # character
         
         hue, lumi, sat = colorsys.rgb_to_hls(redc, greenc, bluec)
         
-        if lumi <= 34.0:
-            lumi = 0
+        if darken == True:
+            if multiply == True:
+                lumi = lumi * amount
+            else:
+                if (lumi - amount) < 0.0:
+                    lumi = 0.0
+                else:
+                    lumi -= amount
         else:
-            lumi -= 34.0
+            if multiply == True:
+                lightner = 1.0 - amount
+                lumi = lumi * lightner
+            else:
+                if (lumi + amount) > 255.0:
+                    lumi = 255.0
+                else:
+                    lumi += amount
             
         redc, greenc, bluec = colorsys.hls_to_rgb(hue, lumi, sat)
         
@@ -498,42 +511,55 @@ class main():
         
         
         #TODO: Figure out doing themes for Chrome to colour the windows by their website colours
-        #Vivaldi colour changes
-        if "icecolor" in icepackageinfo and "icecolorhighlight" in icepackageinfo:
+        #   Vivaldi colour changes
+        if "icecolor" in icepackageinfo and "icecolorhighlight" in icepackageinfo and "icecolordark" in icepackageinfo:
             vivaldihighlightcol = icepackageinfo["icecolorhighlight"]
+            vivaldihighlightcoldark = self.colourFilter(icepackageinfo["icecolorhighlight"], 0.7, True, True)
             if self.get_luminant(icepackageinfo["icecolor"]) == False: #Dark BG
                 vivaldiaccentcol = icepackageinfo["icecolor"]
                 vivaldiwinbgcol = ""
-                vivaldiaccentcolprivate = self.private_colourfilter(icepackageinfo["icecolor"])
-                vivaldiwinbgcolprivate = ""
+                vivaldiaccentcoldark = icepackageinfo["icecolordark"]
+                vivaldiwinbgcoldark = ""
                 vivaldiaccentinchrome = True
                 
             else: #Light BG
                 vivaldiaccentcol = icepackageinfo["icecolorhighlight"]
-                vivaldiaccentcolprivate = self.private_colourfilter(icepackageinfo["icecolorhighlight"])
+                vivaldiaccentcoldark = icepackageinfo["icecolorhighlight"]
                 
                 if self.get_are_colours_different(icepackageinfo["icecolor"], icepackageinfo["icecolorhighlight"]) and self.get_colour_bg_suitable(icepackageinfo["icecolor"]):
                     vivaldiwinbgcol = icepackageinfo["icecolor"]
-                    vivaldiwinbgcolprivate = self.private_colourfilter(icepackageinfo["icecolor"])
+                    vivaldiwinbgcoldark = icepackageinfo["icecolordark"]
                 else:
                     vivaldiwinbgcol = ""
-                    vivaldiwinbgcolprivate = ""
                 
                 vivaldiaccentinchrome = False
                 
+            #Now to make the Private theme    
+            vivaldiaccentcolprivate = self.colourFilter(icepackageinfo["icecolorhighlight"], 46.0, True)
+            vivaldiwinbgcolprivate = self.colourFilter(icepackageinfo["icecolorhighlight"], 70.0, True)
+            
+                
             profiletomake["vivaldi"]["themes"]["system"][0]["accentOnWindow"] = vivaldiaccentinchrome
             profiletomake["vivaldi"]["themes"]["system"][1]["accentOnWindow"] = vivaldiaccentinchrome
+            profiletomake["vivaldi"]["themes"]["system"][2]["accentOnWindow"] = False
             profiletomake["vivaldi"]["themes"]["system"][0]["colorAccentBg"] = vivaldiaccentcol
-            profiletomake["vivaldi"]["themes"]["system"][1]["colorAccentBg"] = vivaldiaccentcolprivate
+            profiletomake["vivaldi"]["themes"]["system"][1]["colorAccentBg"] = vivaldiaccentcoldark
+            profiletomake["vivaldi"]["themes"]["system"][2]["colorAccentBg"] = vivaldiaccentcolprivate
             profiletomake["vivaldi"]["themes"]["system"][0]["colorHighlightBg"] = vivaldihighlightcol
-            profiletomake["vivaldi"]["themes"]["system"][1]["colorHighlightBg"] = vivaldihighlightcol
+            profiletomake["vivaldi"]["themes"]["system"][1]["colorHighlightBg"] = vivaldihighlightcoldark
+            profiletomake["vivaldi"]["themes"]["system"][2]["colorHighlightBg"] = vivaldihighlightcol
             if vivaldiwinbgcol != "":
                 if self.get_luminant(vivaldiwinbgcol) == False: #Dark BG (in-Preferences default is Light, so no need for Light BG else)
                     profiletomake["vivaldi"]["themes"]["system"][0]["colorFg"] = "#FFFFFF"
-                if self.get_luminant(vivaldiwinbgcolprivate) == True: #Light BG (in-Preferences default is Dark, so no need for Dark BG else)
-                    profiletomake["vivaldi"]["themes"]["system"][1]["colorFg"] = "#000000"
                 profiletomake["vivaldi"]["themes"]["system"][0]["colorBg"] = vivaldiwinbgcol
-                profiletomake["vivaldi"]["themes"]["system"][1]["colorBg"] = vivaldiwinbgcolprivate
+            if vivaldiwinbgcoldark != "":
+                if self.get_luminant(vivaldiwinbgcoldark) == True: #Light BG (in-Preferences default is Dark, so no need for Dark BG else)
+                    profiletomake["vivaldi"]["themes"]["system"][1]["colorFg"] = "#000000"
+                profiletomake["vivaldi"]["themes"]["system"][1]["colorBg"] = vivaldiwinbgcoldark
+            #Private foreground
+            if self.get_luminant(vivaldiwinbgcolprivate) == True: #Light BG (in-Preferences default is Dark, so no need for Dark BG else)
+                profiletomake["vivaldi"]["themes"]["system"][2]["colorFg"] = "#000000"
+            profiletomake["vivaldi"]["themes"]["system"][2]["colorBg"] = vivaldiwinbgcolprivate
             
             
         
@@ -1040,42 +1066,55 @@ class main():
         
         
         #Update Vivaldi colour changes
-        #Vivaldi colour changes
-        if "icecolor" in icepackageinfo and "icecolorhighlight" in icepackageinfo:
+        #   Vivaldi colour changes
+        if "icecolor" in icepackageinfo and "icecolorhighlight" in icepackageinfo and "icecolordark" in icepackageinfo:
             vivaldihighlightcol = icepackageinfo["icecolorhighlight"]
+            vivaldihighlightcoldark = self.colourFilter(icepackageinfo["icecolorhighlight"], 0.7, True, True)
             if self.get_luminant(icepackageinfo["icecolor"]) == False: #Dark BG
                 vivaldiaccentcol = icepackageinfo["icecolor"]
                 vivaldiwinbgcol = ""
-                vivaldiaccentcolprivate = self.private_colourfilter(icepackageinfo["icecolor"])
-                vivaldiwinbgcolprivate = ""
+                vivaldiaccentcoldark = icepackageinfo["icecolordark"]
+                vivaldiwinbgcoldark = ""
                 vivaldiaccentinchrome = True
                 
             else: #Light BG
                 vivaldiaccentcol = icepackageinfo["icecolorhighlight"]
-                vivaldiaccentcolprivate = self.private_colourfilter(icepackageinfo["icecolorhighlight"])
+                vivaldiaccentcoldark = icepackageinfo["icecolorhighlight"]
                 
                 if self.get_are_colours_different(icepackageinfo["icecolor"], icepackageinfo["icecolorhighlight"]) and self.get_colour_bg_suitable(icepackageinfo["icecolor"]):
                     vivaldiwinbgcol = icepackageinfo["icecolor"]
-                    vivaldiwinbgcolprivate = self.private_colourfilter(icepackageinfo["icecolor"])
+                    vivaldiwinbgcoldark = icepackageinfo["icecolordark"]
                 else:
                     vivaldiwinbgcol = ""
-                    vivaldiwinbgcolprivate = ""
                 
                 vivaldiaccentinchrome = False
                 
+            #Now to make the Private theme    
+            vivaldiaccentcolprivate = self.colourFilter(icepackageinfo["icecolorhighlight"], 46.0, True)
+            vivaldiwinbgcolprivate = self.colourFilter(icepackageinfo["icecolorhighlight"], 70.0, True)
+            
+                
             profiletoupdate["vivaldi"]["themes"]["system"][0]["accentOnWindow"] = vivaldiaccentinchrome
             profiletoupdate["vivaldi"]["themes"]["system"][1]["accentOnWindow"] = vivaldiaccentinchrome
+            profiletoupdate["vivaldi"]["themes"]["system"][2]["accentOnWindow"] = False
             profiletoupdate["vivaldi"]["themes"]["system"][0]["colorAccentBg"] = vivaldiaccentcol
-            profiletoupdate["vivaldi"]["themes"]["system"][1]["colorAccentBg"] = vivaldiaccentcolprivate
+            profiletoupdate["vivaldi"]["themes"]["system"][1]["colorAccentBg"] = vivaldiaccentcoldark
+            profiletoupdate["vivaldi"]["themes"]["system"][2]["colorAccentBg"] = vivaldiaccentcolprivate
             profiletoupdate["vivaldi"]["themes"]["system"][0]["colorHighlightBg"] = vivaldihighlightcol
-            profiletoupdate["vivaldi"]["themes"]["system"][1]["colorHighlightBg"] = vivaldihighlightcol
+            profiletoupdate["vivaldi"]["themes"]["system"][1]["colorHighlightBg"] = vivaldihighlightcoldark
+            profiletoupdate["vivaldi"]["themes"]["system"][2]["colorHighlightBg"] = vivaldihighlightcol
             if vivaldiwinbgcol != "":
                 if self.get_luminant(vivaldiwinbgcol) == False: #Dark BG (in-Preferences default is Light, so no need for Light BG else)
                     profiletoupdate["vivaldi"]["themes"]["system"][0]["colorFg"] = "#FFFFFF"
-                if self.get_luminant(vivaldiwinbgcolprivate) == True: #Light BG (in-Preferences default is Dark, so no need for Dark BG else)
-                    profiletoupdate["vivaldi"]["themes"]["system"][1]["colorFg"] = "#000000"
                 profiletoupdate["vivaldi"]["themes"]["system"][0]["colorBg"] = vivaldiwinbgcol
-                profiletoupdate["vivaldi"]["themes"]["system"][1]["colorBg"] = vivaldiwinbgcolprivate
+            if vivaldiwinbgcoldark != "":
+                if self.get_luminant(vivaldiwinbgcoldark) == True: #Light BG (in-Preferences default is Dark, so no need for Dark BG else)
+                    profiletoupdate["vivaldi"]["themes"]["system"][1]["colorFg"] = "#000000"
+                profiletoupdate["vivaldi"]["themes"]["system"][1]["colorBg"] = vivaldiwinbgcoldark
+            #Private foreground
+            if self.get_luminant(vivaldiwinbgcolprivate) == True: #Light BG (in-Preferences default is Dark, so no need for Dark BG else)
+                profiletoupdate["vivaldi"]["themes"]["system"][2]["colorFg"] = "#000000"
+            profiletoupdate["vivaldi"]["themes"]["system"][2]["colorBg"] = vivaldiwinbgcolprivate
         
         
         

@@ -22,6 +22,7 @@ class StoreBrainException(Exception): # Name this according to the module to all
 #TODO: Brain API instead of storebrain access for everything, and simplify the GUI and Brain code
 #TODO: Move package information stuff to package manager plugins, and merge generic into the other plugins
 #TODO: Make Store Brain trigger refresh_memory on modules when loaded, and allow refreshing of modules pool
+#TODO: For subsources and sources, default the values to the one belonging to the first installed case, if possible (but for sources only in the event of entering the page)
 # ICE: dewit
 # APT: dewit (maybe later?)
 # Snap: dewit

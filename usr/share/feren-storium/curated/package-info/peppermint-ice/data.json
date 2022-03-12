@@ -16,6 +16,7 @@
         "icenohistory": true,
         "icegoogleinteg": true,
         "icecolor": "#212121",
+        "icecolordark": "#212121",
         "icecolorhighlight": "#FF0000",
         "icelastupdated": "20211210"
     }
@@ -35,6 +36,7 @@
         "websiteextras": ["https://www.office.com/launch/word", "https://www.office.com/launch/excel", "https://www.office.com/launch/powerpoint", "https://www.onenote.com/notebooks", "https://teams.microsoft.com", "https://outlook.live.com", "https://to-do.live.com"],
         "keywordsextras": ["Microsoft;Office;Word;", "Microsoft;Office;Excel;", "Microsoft;Office;PowerPoint;", "Microsoft;Office;OneNote;", "Microsoft;Office;Teams;", "Microsoft;Office;Outlook;", "Microsoft;Office;ToDo;"],
         "icecolor": "#D53A00",
+        "icecolordark": "#D53A00",
         "icecolorhighlight": "#D53A00",
         "icelastupdated": "20211210"
     }
@@ -53,6 +55,7 @@
         "websiteextras": ["https://outlook.com/calendar"],
         "keywordsextras": ["Microsoft;Office;Outlook;Live;Calendar;"],
         "icecolor": "#FFFFFF",
+        "icecolordark": "#000000",
         "icecolorhighlight": "#0078D4",
         "icelastupdated": "20211210"
     }
@@ -72,6 +75,7 @@
         "websiteextras": ["https://messenger.com"],
         "keywordsextras": ["Messenger;Zucc;Friends;Social;Chat;Facebook;"],
         "icecolor": "#1B74E4",
+        "icecolordark": "#1B74E4",
         "icecolorhighlight": "#1B74E4",
         "icelastupdated": "20211210"
     }
@@ -86,6 +90,7 @@
         "privpolurl": "",
         "icegoogleinteg": true,
         "icecolor": "#FFFFFF",
+        "icecolordark": "#000000",
         "icecolorhighlight": "#1DA1F2",
         "icelastupdated": "20211210"
     }
@@ -100,6 +105,7 @@
         "privpolurl": "",
         "icegoogleinteg": true,
         "icecolor": "#FFFFFF",
+        "icecolordark": "#000000",
         "icecolorhighlight": "#FF4500",
         "icelastupdated": "20211210"
     }
@@ -114,6 +120,7 @@
         "privpolurl": "",
         "icenohistory": true,
         "icecolor": "#FFFFFF",
+        "icecolordark": "#000000",
         "icecolorhighlight": "#0096FA",
         "icelastupdated": "20211210"
     }
@@ -129,6 +136,7 @@
         "icegoogleinteg": true,
         "icenohistory": true,
         "icecolor": "#2C2F33",
+        "icecolordark": "#2C2F33",
         "icecolorhighlight": "#5865F2",
         "icelastupdated": "20211210"
     }
@@ -142,6 +150,7 @@
         "tosurl": "",
         "privpolurl": "",
         "icecolor": "#FFFFFF",
+        "icecolordark": "#000000",
         "icecolorhighlight": "#bb1919",
         "icelastupdated": "20211210"
     }
@@ -155,6 +164,7 @@
         "tosurl": "",
         "privpolurl": "",
         "icecolor": "#FFFFFF",
+        "icecolordark": "#000000",
         "icecolorhighlight": "#E6001A",
         "icelastupdated": "20211210"
     }
@@ -169,6 +179,7 @@
         "privpolurl": "",
         "icegoogleinteg": true,
         "icecolor": "#121212",
+        "icecolordark": "#121212",
         "icecolorhighlight": "#1ED760",
         "icelastupdated": "20220303",
         "icenohistory": true,
