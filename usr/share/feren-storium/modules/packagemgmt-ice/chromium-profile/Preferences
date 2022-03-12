@@ -7,12 +7,17 @@
         "profile_enabled": false
     },
     "default_apps_install_state": 3,
+    "bookmark_bar": {
+        "show_only_on_ntp": false
+    },
     "brave": {
         "always_show_bookmark_bar_on_ntp": false,
         "enable_media_router_on_restart": false,
         "new_tab_page": { "hide_all_widgets": true, "show_branded_background_image": false, "show_brave_today": false },
         "shields_settings_version": 2,
+        "hangouts_enabled": true,
         "hide_brave_rewards_button": true,
+        "location_bar_is_wide": true,
         "wallet": {
             "auto_lock_minutes": 1,
             "default_wallet2": 1,
@@ -21,9 +26,29 @@
         },
         "webtorrent_enabled": false
     },
-    "browser": { "custom_chrome_frame": true, "has_seen_welcome_page": true },
+    "browser": {
+        "custom_chrome_frame": true,
+        "has_seen_welcome_page": true,
+        "show_hub_popup_on_download_start": false,
+        "show_toolbar_bookmarks_button": false,
+        "show_toolbar_collections_button": false,
+        "show_toolbar_downloads_button": true,
+        "show_toolbar_history_button": true,
+        "show_toolbar_vertical_tabs_button": false,
+        "toolbar_extensions_hub_button_visibility": 0
+    },
     "credentials_enable_autosignin": false,
+    "devtools": {
+        "f12_shortcut": {
+            "enabled": false
+        }
+    },
     "download": { "default_directory": "", "directory_upgrade": true },
+    "edge_quick_search": {
+        "show_mini_menu": false,
+        "show_smart_actions": false
+    },
+    "edge_shopping_assistant_enabled": false,
     "enable_do_not_track": true,
     "extensions": {
         "settings": {
@@ -83,7 +108,7 @@
         "show_settings": false
     },
     "payments": { "can_make_payment_enabled": false },
-    "plugins": { "always_open_pdf_externally": true },
+    "plugins": { "always_open_pdf_externally": true, "plugins_list": [] },
     "privacy_sandbox": { "apis_enabled": false, "floc_enabled": false, "manually_controlled": true },
     "profile": {
         "avatar_index": 34,
@@ -95,32 +120,12 @@
                 "notifications": 1
             },
             "exceptions": {
-                "ar": {
-                },
-                "background_sync": {
-                },
-                "clipboard": {
-                },
-                "file_handling": {
-                },
-                "font_access": {
-                },
-                "midi_sysex": {
-                },
-                "notifications": {
-                },
-                "payment_handler": {
-                },
-                "sensors": {
-                },
-                "window_placement": {
-                },
-                "vr": {
-                }
             },
             "pref_version": 1
         },
         "default_content_setting_values": {
+            "app_banner": 2,
+            "autoplay": 2,
             "ar": 2,
             "background_sync": 2,
             "clipboard": 2,
@@ -138,13 +143,21 @@
         },
         "signin.with_credential_provider": false
     },
+    "protocol_handler": {
+        "policy": {
+            "edge_enable_auto_launch_protocols_component": false
+        }
+    },
     "search": { "suggest_enabled": false },
     "session": { "restore_on_startup": 4, "startup_urls": ["https://feren-os.github.io/start-page"] },
     "sessions": { "session_data_status": 3 },
     "signin": { "allowed": false, "allowed_on_next_startup": false },
-    "sync": { "requested": false },
+    "sync": {
+        "requested": false
+    },
     "unified_consent": { "migration_state": 10 },
     "url_keyed_anonymized_data_collection": { "enabled": false },
+    "user_experience_metrics": { "personalization_data_consent_enabled_last_known_value": false },
     "vivaldi": {
         "address_bar": { 
             "extensions": {
@@ -187,7 +200,7 @@
         "homepage_cache": "",
         "menu": { "icon_type": 1 },
         "popups": { "show_in_tab": true },
-        "privacy": { "google_component_extensions": { "web_store": false } },
+        "privacy": { "google_component_extensions": { "web_store": false, "crypto_token": true } },
         "settings": { "in_tab": true },
         "startpage": { "navigation": 2, "speed_dial": { "add_button_visible": false, "allow_dnd": false, "controls_visible": false, "delete_visible": false, "favicon_visible": false, "titles_visible": 1 } },
         "startup": { "check_is_default": false, "has_seen_feature": 1, "last_seen_version": "99.0.0001.02" },
@@ -196,6 +209,7 @@
         "tabs": {
             "active_min_size": 90,
             "at_edge": true,
+            "cycle_by_recent_order": false,
             "dim_hibernated": true,
             "focus_webview": true,
             "horizontal_scrolling": true,
@@ -206,7 +220,10 @@
             },
             "page_load_info": 3,
             "show_synced_tabs_button": false,
-            "show_trash_can": true
+            "show_trash_can": true,
+            "visual_switch": {
+                "enable": true
+            }
         },
         "theme": { "schedule": { "enabled": 0 } },
         "themes": {
@@ -226,7 +243,7 @@
                     "colorHighlightBg": "#006AFF",
                     "colorWindowBg": "#212121",
                     "contrast": 4,
-                    "dimBlurred": true,
+                    "dimBlurred": false,
                     "engineVersion": 1,
                     "id": "Ice",
                     "name": "Ice",
@@ -252,7 +269,7 @@
                     "colorHighlightBg": "#006AFF",
                     "colorWindowBg": "#212121",
                     "contrast": 4,
-                    "dimBlurred": true,
+                    "dimBlurred": false,
                     "engineVersion": 1,
                     "id": "Vivaldi9",
                     "name": "Ice Private",
@@ -267,6 +284,24 @@
             ]
         },
         "toolbars": { "navigation": ["Back", "Forward", "Reload", "CaptureImages"] },
-        "windows": { "show_window_close_confirmation_dialog": false, "use_native_decoration": true }
+        "windows": { "show_window_close_confirmation_dialog": false, "use_native_decoration": false }
+    },
+    "webkit": {
+        "webprefs": {
+            "fonts": {
+                "fixed": {
+                    "Zyyy": "DejaVu Sans Mono"
+                },
+                "sansserif": {
+                    "Zyyy": "Inter"
+                },
+                "serif": {
+                    "Zyyy": "Inter"
+                },
+                "standard": {
+                    "Zyyy": "Inter"
+                }
+            }
+        }
     }
 }

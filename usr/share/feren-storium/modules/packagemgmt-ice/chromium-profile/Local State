@@ -18,6 +18,9 @@
     "brave_shields": {
         "p3a_usage": 0
     },
+    "browser": {
+        "enabled_labs_experiments": [ "ignore-gpu-blocklist" ]
+    },
     "hardware_acceleration_mode_previous": true,
     "tor": {
         "tor_disabled": true

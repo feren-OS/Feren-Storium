@@ -73,7 +73,7 @@ class main():
         self.currentpackagename = ""
         
         #Global Ice last updated date (so that all shortcuts can be updated if a major change occurs)
-        self.icelastupdated = "20220228"
+        self.icelastupdated = "20220313"
         
         #Sources storage
         self.sources_storage = {}
@@ -157,7 +157,7 @@ class main():
         else:
             lastupdated = "19700101" #Fallback date, and yes it's beginning of UNIX time - why not
         
-        if os.path.isfile(os.path.expanduser("~") + "/.local/share/applications/%s.desktop" % packagename) and os.path.isdir(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s" % packagename):
+        if os.path.isfile(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/Default/Preferences" % packagename) and os.path.isdir(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s" % packagename):
             if self.storebrain.get_item_info_specific(packagename, pkgtype, source, True)["icelastupdated"] > lastupdated or self.icelastupdated > lastupdated:
                 return 2
             else:
@@ -304,6 +304,10 @@ class main():
         #Install package and return exit code
         self.packagemgmtbusy = True
         self.currentpackagename = taskdata["packagename"]
+        
+        windowclassid = taskdata["packagename"]
+        if taskdata["source"] == "vivaldi": #FIXME: Temporary until Vivaldi adds proper shadows support
+            windowclassid = "vivaldi-" + taskdata["packagename"]
         
         icepackageinfo = taskdata["pkginfo"]
         if "extrasids" in icepackageinfo:
@@ -456,12 +460,20 @@ class main():
         
         
         #Background Sync, Clipboard, Notifications and Payment Handler ONLY for SSB's websites
-        for permtype in ["ar", "background_sync", "clipboard", "file_handling", "font_access", "midi_sysex", "notifications", "payment_handler", "sensors", "window_placement", "vr"]:
-            try:
-                shortenedurl = icepackageinfo["website"].split("://")[1:]
-                shortenedurl = ''.join(shortenedurl)
-            except:
-                shortenedurl = icepackageinfo["website"]
+        for permtype in ["ar", "autoplay", "automatic_downloads", "background_sync", "clipboard", "file_handling", "font_access", "midi_sysex", "notifications", "payment_handler", "sensors", "sound", "sleeping-tabs", "window_placement", "vr"]:
+            profiletomake["profile"]["content_settings"]["exceptions"][permtype] = {}
+            if "icedomain" in icepackageinfo:
+                try:
+                    shortenedurl = icepackageinfo["icedomain"].split("://")[1:]
+                    shortenedurl = ''.join(shortenedurl)
+                except:
+                    shortenedurl = icepackageinfo["icedomain"]
+            else:
+                try:
+                    shortenedurl = icepackageinfo["website"].split("://")[1:]
+                    shortenedurl = ''.join(shortenedurl)
+                except:
+                    shortenedurl = icepackageinfo["website"]
             try:
                 shortenedurl = shortenedurl.split("/")[0]
             except:
@@ -577,14 +589,14 @@ class main():
             
             
         try:
-            with open(os.path.expanduser("~") + "/.local/share/applications/%s.desktop" % taskdata["packagename"], 'w') as fp:
+            with open(os.path.expanduser("~") + "/.local/share/applications/%s.desktop" % windowclassid, 'w') as fp:
                 # I mean, this needs no explanation, it's a .desktop file
                 fp.write("[Desktop Entry]\n")
                 fp.write("Version=1.0\n")
                 fp.write("Name={0}\n".format(icepackageinfo["realname"]))
                 fp.write("Comment={0}\n".format(_("Website (obtained from Store)")))
                 
-                fp.write("Exec=/usr/bin/feren-storium-icelaunch {0} {1} {2} {3}\n".format(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s" % taskdata["packagename"], taskdata["source"], '"' + icepackageinfo["website"] + '"', taskdata["packagename"]))
+                fp.write("Exec=/usr/bin/feren-storium-icelaunch {0} {1} {2} {3}\n".format(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s" % taskdata["packagename"], taskdata["source"], '"' + icepackageinfo["website"] + '"', windowclassid))
 
                 fp.write("Terminal=false\n")
                 fp.write("X-MultipleArgs=false\n")
@@ -618,7 +630,7 @@ class main():
 
                 fp.write("Keywords=%s\n" % icepackageinfo["keywords"])
 
-                fp.write("StartupWMClass=%s\n" % taskdata["packagename"])
+                fp.write("StartupWMClass=%s\n" % windowclassid)
                 fp.write("StartupNotify=true\n")
         except Exception as exceptionstr:
             self.task_remove_package(taskdata, None, True) #Remove profile's files/folders on failure
@@ -647,7 +659,7 @@ class main():
                     fp.write("Name={0}\n".format(icepackageinfo["realnameextras"][extrascount]))
                     fp.write("Comment={0}\n".format(_("Website (part of %s)" % icepackageinfo["realname"])))
                     
-                    fp.write("Exec=/usr/bin/feren-storium-icelaunch {0} {1} {2} {3}\n".format(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s" % taskdata["packagename"], taskdata["source"], '"' + icepackageinfo["websiteextras"][extrascount] + '"', taskdata["packagename"]))
+                    fp.write("Exec=/usr/bin/feren-storium-icelaunch {0} {1} {2} {3}\n".format(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s" % taskdata["packagename"], taskdata["source"], '"' + icepackageinfo["websiteextras"][extrascount] + '"', windowclassid))
 
                     fp.write("Terminal=false\n")
                     fp.write("X-MultipleArgs=false\n")
@@ -691,7 +703,7 @@ class main():
         progress_callback(99)
         
         #Otherwise they'll refuse to launch from the Applications Menu (bug seen in Mint's own Ice code fork)
-        os.system("chmod +x " + os.path.expanduser("~") + "/.local/share/applications/%s.desktop" % taskdata["packagename"])
+        os.system("chmod +x " + os.path.expanduser("~") + "/.local/share/applications/%s.desktop" % windowclassid)
             
         progress_callback(100)
         
@@ -735,6 +747,8 @@ class main():
         try:
             if os.path.isfile(os.path.expanduser("~") + "/.local/share/applications/%s.desktop" % taskdata["packagename"]):
                 os.remove(os.path.expanduser("~") + "/.local/share/applications/%s.desktop" % taskdata["packagename"])
+            if os.path.isfile(os.path.expanduser("~") + "/.local/share/applications/vivaldi-%s.desktop" % taskdata["packagename"]):
+                os.remove(os.path.expanduser("~") + "/.local/share/applications/vivaldi-%s.desktop" % taskdata["packagename"])
         except Exception as exceptionstr:
             if not forinstall:
                 raise ICEModuleException(_("Failed to uninstall {0}: {1} was encountered when removing the shortcut from the Applications Menu").format(taskdata["packagename"], exceptionstr))
@@ -770,6 +784,21 @@ class main():
         #Update package and return exit code
         self.packagemgmtbusy = True
         self.currentpackagename = taskdata["packagename"]
+        
+        windowclassid = taskdata["packagename"]
+        if taskdata["source"] == "vivaldi": #FIXME: Temporary until Vivaldi adds proper shadows support
+            windowclassid = "vivaldi-" + taskdata["packagename"]
+            try:
+                if os.path.isfile(os.path.expanduser("~") + "/.local/share/applications/%s.desktop" % taskdata["packagename"]):
+                    os.remove(os.path.expanduser("~") + "/.local/share/applications/%s.desktop" % taskdata["packagename"])
+            except Exception as exceptionstr:
+                raise ICEModuleException(_("Failed to update {0}: {1} was encountered when switching the shortcut in the Applications Menu").format(taskdata["packagename"], exceptionstr))
+        else:
+            try:
+                if os.path.isfile(os.path.expanduser("~") + "/.local/share/applications/vivaldi-%s.desktop" % taskdata["packagename"]):
+                    os.remove(os.path.expanduser("~") + "/.local/share/applications/vivaldi-%s.desktop" % taskdata["packagename"])
+            except Exception as exceptionstr:
+                raise ICEModuleException(_("Failed to update {0}: {1} was encountered when switching the shortcut in the Applications Menu").format(taskdata["packagename"], exceptionstr))
         
         icepackageinfo = taskdata["pkginfo"]
         if "extrasids" in icepackageinfo:
@@ -814,11 +843,12 @@ class main():
         progress_callback(12)
             
         #Get some data from the files
-        if os.path.isfile(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/.storium-default-browser" % taskdata["packagename"]):
-            with open(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/.storium-default-browser" % taskdata["packagename"], 'r') as fp:
-                currenticebrowser = fp.readline()
-        else:
-            currenticebrowser = taskdata["source"] #Fallback
+        #if os.path.isfile(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/.storium-default-browser" % taskdata["packagename"]):
+            #with open(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/.storium-default-browser" % taskdata["packagename"], 'r') as fp:
+                #currenticebrowser = fp.readline()
+        #else:
+            #currenticebrowser = taskdata["source"] #Fallback
+        #TODO: Move above to determining current subsource
         if os.path.isfile(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/.storium-extra-ids" % taskdata["packagename"]):
             with open(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/.storium-extra-ids" % taskdata["packagename"], 'r') as fp:
                 currenticeextraids = ast.literal_eval(fp.readline())
@@ -972,12 +1002,20 @@ class main():
                 raise ICEModuleException(_("Failed to install {0}: {1} was encountered when setting up automatic history deletion").format(taskdata["packagename"], exceptionstr))
             
         #Background Sync, Clipboard, Notifications and Payment Handler ONLY for SSB's websites
-        for permtype in ["ar", "background_sync", "clipboard", "file_handling", "font_access", "midi_sysex", "notifications", "payment_handler", "sensors", "window_placement", "vr"]:
-            try:
-                shortenedurl = icepackageinfo["website"].split("://")[1:]
-                shortenedurl = ''.join(shortenedurl)
-            except:
-                shortenedurl = icepackageinfo["website"]
+        for permtype in ["ar", "autoplay", "automatic_downloads", "background_sync", "clipboard", "file_handling", "font_access", "midi_sysex", "notifications", "payment_handler", "sensors", "sound", "sleeping-tabs", "window_placement", "vr"]:
+            profiletoupdate["profile"]["content_settings"]["exceptions"][permtype] = {}
+            if "icedomain" in icepackageinfo:
+                try:
+                    shortenedurl = icepackageinfo["icedomain"].split("://")[1:]
+                    shortenedurl = ''.join(shortenedurl)
+                except:
+                    shortenedurl = icepackageinfo["icedomain"]
+            else:
+                try:
+                    shortenedurl = icepackageinfo["website"].split("://")[1:]
+                    shortenedurl = ''.join(shortenedurl)
+                except:
+                    shortenedurl = icepackageinfo["website"]
             try:
                 shortenedurl = shortenedurl.split("/")[0]
             except:
@@ -1052,7 +1090,7 @@ class main():
         try:
             if not os.path.isfile(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/.storium-default-browser" % taskdata["packagename"]):
                 with open(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/.storium-default-browser" % taskdata["packagename"], 'w') as fp:
-                    fp.write(currenticebrowser) # Used by module during updating to determine your browser
+                    fp.write(taskdata["source"]) # Used by module during updating to determine your browser
         except Exception as exceptionstr:
             self.task_remove_package(taskdata, None, True) #Remove profile's files/folders on failure
             raise ICEModuleException(_("Failed to update {0}: {1} was encountered when noting the browser selection value").format(taskdata["packagename"], exceptionstr))
@@ -1085,14 +1123,14 @@ class main():
             
             
         try:
-            with open(os.path.expanduser("~") + "/.local/share/applications/%s.desktop" % taskdata["packagename"], 'w') as fp:
+            with open(os.path.expanduser("~") + "/.local/share/applications/%s.desktop" % windowclassid, 'w') as fp:
                 # I mean, this needs no explanation, it's a .desktop file
                 fp.write("[Desktop Entry]\n")
                 fp.write("Version=1.0\n")
                 fp.write("Name={0}\n".format(icepackageinfo["realname"]))
                 fp.write("Comment={0}\n".format(_("Website (obtained from Store)")))
                 
-                fp.write("Exec=/usr/bin/feren-storium-icelaunch {0} {1} {2} {3}\n".format(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s" % taskdata["packagename"], currenticebrowser, '"' + icepackageinfo["website"] + '"', taskdata["packagename"]))
+                fp.write("Exec=/usr/bin/feren-storium-icelaunch {0} {1} {2} {3}\n".format(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s" % taskdata["packagename"], taskdata["source"], '"' + icepackageinfo["website"] + '"', windowclassid))
 
                 fp.write("Terminal=false\n")
                 fp.write("X-MultipleArgs=false\n")
@@ -1126,7 +1164,7 @@ class main():
 
                 fp.write("Keywords=%s\n" % icepackageinfo["keywords"])
 
-                fp.write("StartupWMClass=%s\n" % taskdata["packagename"])
+                fp.write("StartupWMClass=%s\n" % windowclassid)
                 fp.write("StartupNotify=true\n")
         except Exception as exceptionstr:
             raise ICEModuleException(_("Failed to update {0}: {1} was encountered when updating the shortcut in the Applications Menu").format(taskdata["packagename"], exceptionstr))
@@ -1166,7 +1204,7 @@ class main():
                     fp.write("Name={0}\n".format(icepackageinfo["realnameextras"][extrascount]))
                     fp.write("Comment={0}\n".format(_("Website (part of %s)" % icepackageinfo["realname"])))
                     
-                    fp.write("Exec=/usr/bin/feren-storium-icelaunch {0} {1} {2} {3}\n".format(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s" % taskdata["packagename"], currenticebrowser, '"' + icepackageinfo["websiteextras"][extrascount] + '"', taskdata["packagename"]))
+                    fp.write("Exec=/usr/bin/feren-storium-icelaunch {0} {1} {2} {3}\n".format(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s" % taskdata["packagename"], taskdata["source"], '"' + icepackageinfo["websiteextras"][extrascount] + '"', windowclassid))
 
                     fp.write("Terminal=false\n")
                     fp.write("X-MultipleArgs=false\n")
@@ -1209,7 +1247,7 @@ class main():
         progress_callback(99)
         
         #Otherwise they'll refuse to launch from the Applications Menu (bug seen in Mint's own Ice code fork)
-        os.system("chmod +x " + os.path.expanduser("~") + "/.local/share/applications/%s.desktop" % taskdata["packagename"])
+        os.system("chmod +x " + os.path.expanduser("~") + "/.local/share/applications/%s.desktop" % windowclassid)
             
         progress_callback(100)
         

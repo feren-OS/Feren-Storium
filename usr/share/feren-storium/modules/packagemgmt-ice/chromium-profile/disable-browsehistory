@@ -1,4 +1,7 @@
 {
+    "browser": {
+        "show_toolbar_history_button": false
+    },
     "vivaldi": {
         "panels": {
             "list": [

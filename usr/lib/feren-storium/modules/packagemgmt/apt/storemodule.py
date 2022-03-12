@@ -22,7 +22,7 @@ class APTModuleException(Exception): # Name this according to the module to allo
 
 
 
-class main():
+class module():
 
     def __init__(self, storeapi):
         #Gettext Translator

@@ -118,6 +118,21 @@
         "icelastupdated": "20211210"
     }
   },
+  "storium-ice-discord-discord": {
+    "sources-available": ["all"],
+    "all": {
+        "keywords": "Discord;Chat;Friends;Community;Servers",
+        "author": "Discord",
+        "bugreporturl": "",
+        "tosurl": "",
+        "privpolurl": "",
+        "icegoogleinteg": true,
+        "icenohistory": true,
+        "icecolor": "#2C2F33",
+        "icecolorhighlight": "#5865F2",
+        "icelastupdated": "20211210"
+    }
+  },
   "storium-ice-bbc-news": {
     "sources-available": ["all"],
     "all": {
@@ -142,6 +157,22 @@
         "icecolor": "#FFFFFF",
         "icecolorhighlight": "#E6001A",
         "icelastupdated": "20211210"
+    }
+  },
+  "storium-ice-spotify-spotify": {
+    "sources-available": ["all"],
+    "all": {
+        "keywords": "Spotify;Music;Streaming;Premium;Library",
+        "author": "Spotify",
+        "bugreporturl": "",
+        "tosurl": "",
+        "privpolurl": "",
+        "icegoogleinteg": true,
+        "icecolor": "#121212",
+        "icecolorhighlight": "#1ED760",
+        "icelastupdated": "20220303",
+        "icenohistory": true,
+        "icedomain": "https://spotify.com"
     }
   }
 }

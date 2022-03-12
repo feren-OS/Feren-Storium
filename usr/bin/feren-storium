@@ -36,11 +36,25 @@ class StoreBrainException(Exception): # Name this according to the module to all
 # task_* now returns Success?, and Output (for failure)
 
 #The API modules use to interface with the Brain (this code)
-class StoreAPI():
+#Generic (for all modules)
+class StoreGenericAPI():
     def __init__(self):
-        self.pastsourceslists = {} # Store the sources lists
-        
-        
+        #self.getDefaultItemInformation = Store.getDefaultItemInformation
+        #self.canceltask = Tasks.cancelTask
+        #self.installApp = Store.installApp
+        #self.updateApp = Store.updateApp
+        #self.removeApp = Store.removeApp
+        #self.addSource = Store.addSource
+        #self.removeSource = Store.removeSource
+        #self.showTaskConfirmation = Store.showTaskConfirmation
+        #self.gotoID = Store.gotoID
+        #self.refreshMemory = Store.refreshMemory
+        #self.reloadStore = Store.reloadStore
+        #self.reloadPages = Store.reloadPages
+        #self.reloadPkgStates = Store.reloadPkgStates
+        #self.fullUpdate = Store.fullUpdate
+        pass
+    
     
     def refreshMemory(self):
         #First refresh memory of API
@@ -59,45 +73,29 @@ class StoreAPI():
         pass
     
     
+#Settings (for ONLY Settings modules)
+class StoreSettingsAPI():
+    def __init__(self):
+        #self.changeAutoUpdateOn = Store.changeAutoUpdateOn
+        #self.getAutoUpdateOn = Store.getAutoUpdateOn
+        #self.getAutoUpdateSupported = Store.getAutoUpdateSupported
+        #self.changeAutoUpdateBandwidth = Store.changeAutoUpdateBandwidth
+        #self.getAutoUpdateBandwidthSupported = Store.getAutoUpdateBandwidthSupported
+        #self.getPackageMgmtModulesInfo = Store.getPackageMgmtModulesInfo
+        #self.setPackageMgmtModuleSetting = Store.setPackageMgmtModuleSetting
+        pass
+    
+    
+        
+    
     
     
 
 
 #This class here is the main brains that connect the pieces of code together per each module
 class StoreModuleContainer():
-    def __init__(self, storebrain, path):
-        self.path = None
-        self.main = None
-        if 'module' in sys.modules:
-            sys.modules.pop('module')
-        
-        if not os.path.isfile(path + "/module.py"):
-            raise StoreBrainException("Invalid module")
-        with open(path + "/module.py", 'r') as modulecheck:
-            check = False
-            for i in modulecheck:
-                if "class main(" in i:
-                    check = True
-            if check == False:
-                raise StoreBrainException("Invalid module")
-        
-        self.path = path
-        sys.path.insert(0, path) #Adds the module directory to the path for this class, so the next part knows where module.py is
-        try:
-            import module
-            importlib.reload(module) #Otherwise only one module will be loaded across all variables
-            
-            if module.should_load() == True:
-                #Imports the 'module.py' file of the folder
-                self.main = module.main(storebrain)
-                self.main.modulename = path.split("/")[-1]
-        except Exception as e:
-            sys.path.remove(path)
-            self.main = None
-            raise StoreBrainException(e)
-        
-        
-        sys.path.remove(path)
+    def __init__(self, path):
+        pass
         
         
 class StoreTasks():
@@ -282,9 +280,50 @@ class StoreTasks():
         print("TASKS DEBUG ("+task["packagename"]+"): progress is now", progress)
 
 
-class StoreBrain():
-    #TODO: Store each module with IDs, such as package module 'apt' having an ID of pmapt
-    #Then, have the module storage be something along the lines of {..., 'pmapt': StoreModuleContainer(storeapi, path), ...} so the API knows which module to call for what
+class StoreBrain():    
+    def new_module(self, modulepath):
+        #First off, check module is even valid in the first place
+        if not os.path.isfile(modulepath + "/storemodule.py"):
+            raise StoreBrainException("Invalid module")
+        with open(modulepath + "/storemodule.py", 'r') as modulecheck:
+            check = False
+            for i in modulecheck:
+                if "class main(" in i:
+                    check = True
+            if check == False:
+                raise StoreBrainException("Invalid module")
+        
+        #Create new module and return it
+        if 'module' in sys.modules:
+            sys.modules.pop('module')
+        
+        result = StoreModuleContainer(modulepath)
+        
+        sys.path.insert(1, modulepath)
+        exceptionstr = ""
+        try:
+            import storemodule
+            importlib.reload(storemodule) #Otherwise only one module will be loaded across all variables
+            
+            if storemodule.should_load() == True:
+                #Imports the 'module.py' file of the folder
+                result.module = storemodule.main(self)
+                result.main = result.module #TODO: Once everything is migrated, remove the storebrain variable entirely, and rename 'main' to 'module'
+                result.main.modulename = modulepath.split("/")[-1] #TODO: Remove in favour of moduleid
+                
+                #Now give the module an ID so Store can store it later
+                result.moduleid = modulepath.split("/")[-2] + "-" + modulepath.split("/")[-1]
+        except Exception as e:
+            exceptionstr = e
+            
+        sys.path.remove(modulepath)
+        
+        if exceptionstr != "":
+            raise StoreBrainException(exceptionstr)
+        else:
+            return result
+        
+        
     
     #Load the initial modules
     def load_modules(self):
@@ -296,7 +335,7 @@ class StoreBrain():
                 path = os.path.join(MODULES_DIR+"/localpackagemgmt", dir_name)
                 module = None
                 try:
-                    module = StoreModuleContainer(self, path)
+                    module = self.new_module(path)
                     self.localpkgmgmt_modules[dir_name] = module.main
                 except Exception as e:
                     print("Failed to load local package management module %s: \n%s\n" % (dir_name, e))
@@ -304,7 +343,7 @@ class StoreBrain():
                 path = os.path.join(MODULES_DIR+"/packagemgmt", dir_name)
                 module = None
                 try:
-                    module = StoreModuleContainer(self, path)
+                    module = self.new_module(path)
                     self.pkgmgmt_modules[dir_name] = module.main
                 except Exception as e:
                     print("Failed to load package management module %s: \n%s\n" % (dir_name, e))
@@ -312,7 +351,7 @@ class StoreBrain():
                 path = os.path.join(MODULES_DIR+"/packageinfo", dir_name)
                 module = None
                 try:
-                    module = StoreModuleContainer(self, path)
+                    module = self.new_module(path)
                     self.pkginfo_modules[dir_name] = module.main
                 except Exception as e:
                     print("Failed to load package information module %s: \n%s\n" % (dir_name, e))
@@ -320,7 +359,7 @@ class StoreBrain():
                 path = os.path.join(MODULES_DIR+"/search", dir_name)
                 module = None
                 try:
-                    module = StoreModuleContainer(self, path)
+                    module = self.new_module(path)
                     self.search_modules[dir_name] = module.main
                 except Exception as e:
                     print("Failed to load search module %s: \n%s\n" % (dir_name, e))
@@ -328,7 +367,7 @@ class StoreBrain():
                 path = os.path.join(MODULES_DIR+"/sourceinfo", dir_name)
                 module = None
                 try:
-                    module = StoreModuleContainer(self, path)
+                    module = self.new_module(path)
                     self.sourceinfo_modules[dir_name] = module.main
                 except Exception as e:
                     print("Failed to load source information module %s: \n%s\n" % (dir_name, e))
@@ -336,7 +375,7 @@ class StoreBrain():
                 path = os.path.join(MODULES_DIR+"/settings", dir_name)
                 module = None
                 try:
-                    module = StoreModuleContainer(self, path)
+                    module = self.new_module(path)
                     self.settings_modules[dir_name] = module.main
                 except Exception as e:
                     print("Failed to load settings module %s: \n%s\n" % (dir_name, e))
@@ -346,9 +385,17 @@ class StoreBrain():
         self.tasks = StoreTasks()
         self.tasks.storebrain = self
         
-        self.gui_module = StoreModuleContainer(self, "/usr/lib/feren-storium/modules/gui/gtk3-demo").main
+        self.last_module_path = ""
+        self.module_storage = {}
+        #TODO: Store each module with IDs, such as package module 'apt' having an ID of pmapt
+        #Then, have the module storage be something along the lines of {..., 'pmapt': self.new_module(path), ...} so the API knows which module to call for what
+        
+        
+        
+        
+        self.gui_module = self.new_module("/usr/lib/feren-storium/modules/gui/gtk3-demo").main
         # TODO: Have it be determined by gsettings
-        #self.settings_gui_module = StoreModuleContainer(self, "/usr/lib/feren-storium/modules/settings-gui/gtk3-demo").main
+        #self.settings_gui_module = self.new_module(self, "/usr/lib/feren-storium/modules/settings-gui/gtk3-demo").main
         # TODO: Have it be determined by gsettings
         self.localpkgmgmt_modules = {}
         self.pkgmgmt_modules = {}
@@ -380,7 +427,7 @@ class StoreBrain():
             os.mkdir(self.tempdir + "/icons")
         
         #TODO: Remove this later on
-        self.debug_module = StoreModuleContainer(self, "/usr/lib/feren-storium/modules/tempdebug").main
+        self.debug_module = self.new_module("/usr/lib/feren-storium/modules/tempdebug").main
         
         #Name of 'generic' modules, as Store's generic modules play a big part in it
         self.generic_module = "generic"

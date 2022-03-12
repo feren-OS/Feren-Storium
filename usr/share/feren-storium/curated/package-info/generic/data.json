@@ -91,6 +91,20 @@
         "images": [""]
     }
   },
+  "storium-ice-discord-discord": {
+    "type-importance": ["peppermint-ice"],
+    "sources-available": [],
+    "all": {
+        "realname": "Discord",
+        "iconuri": "https://pnggrid.com/wp-content/uploads/2021/05/Discord-Logo-Circle-1024x1024.png",
+        "shortdescription": "",
+        "description": "TODO",
+        "website": "https://discord.com/app",
+        "donateurl": "",
+        "category": "ice-internet",
+        "images": [""]
+    }
+  },
   "storium-ice-bbc-news": {
     "type-importance": ["peppermint-ice"],
     "sources-available": [],
@@ -116,6 +130,20 @@
         "website": "https://www3.nhk.or.jp/nhkworld/",
         "donateurl": "",
         "category": "ice-internet",
+        "images": [""]
+    }
+  },
+  "storium-ice-spotify-spotify": {
+    "type-importance": ["peppermint-ice"],
+    "sources-available": [],
+    "all": {
+        "realname": "Spotify",
+        "iconuri": "https://open.scdn.co/cdn/images/icons/Spotify_512.49a0bf03.png",
+        "shortdescription": "",
+        "description": "TODO",
+        "website": "https://open.spotify.com/?utm_source=pwa_install",
+        "donateurl": "",
+        "category": "ice-multimedia",
         "images": [""]
     }
   },
