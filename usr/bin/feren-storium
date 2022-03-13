@@ -91,6 +91,42 @@ class StoreSettingsAPI():
     
     
     
+#Tasks body for Tasks storage
+class TaskBody():
+    def __init__(self, itemid, moduleid, operation, sourceid, subsourceid, realname, cancellable=False, becauseof="", directto=""):
+        #itemid: ID of item, such as a package or whatever
+        #module: ID of module performing actions
+        #operation: Operation type number (0: Install/Add, 1: Remove, 2: Update)
+        #sourceid: ID of source to be obtained from
+        #subsourceid: ID of chosen subsource
+        #realname: Human-friendly name for notifications, etc. to use
+        #cancellable: Can be cancelled once in progress? (Boolean)
+        #becauseof: Task ID this was because of - when in place, this task follows that task's progress, state changes, finished, etc. (useful for showing dependency changes as tasks, or showing app removals from source removals as tasks)
+        #directto: Item ID to direct the user to the page for upon clicking the Task in GUI
+        self.itemid = itemid
+        self.moduleid = moduleid
+        self.operation = operation
+        self.sourceid = sourceid
+        self.subsourceid = subsourceid
+        self.realname = realname
+        self.cancellable = cancellable
+        self.becauseof = becauseof
+        self.directto = directto
+        
+        self.pendingconfirm = True #Task won't run until confirmation is made
+        self.cancelling = False #Task is in process of being cancelled?
+        self.bonusids = [] #These get appended to by confirmation dialog
+        
+        self.progress = 0 #Progress percent
+        
+    
+    def cancel(self):
+        if self.cancellable == False:
+            raise TasksException("The task %s cannot be cancelled." % self.itemid)
+            return
+        #TODO: Call to StoreBrain, or a new Tasks-only API, to initiate cancelling the task
+        #TODO: Move this function to TasksMgmt
+
 
 
 #This class here is the main brains that connect the pieces of code together per each module
@@ -281,7 +317,9 @@ class StoreTasks():
         print("TASKS DEBUG ("+task["packagename"]+"): progress is now", progress)
 
 
-class StoreBrain():    
+class StoreBrain():
+    # Modules Management
+    ##############################################
     def new_module(self, modulepath):
         #First off, check module is even valid in the first place
         if not os.path.isfile(modulepath + "/storemodule.py"):
@@ -324,8 +362,6 @@ class StoreBrain():
         else:
             return result
         
-        
-    
     #Load the initial modules
     def load_modules(self):
         MODULES_DIR = "/usr/lib/feren-storium/modules"
@@ -380,6 +416,21 @@ class StoreBrain():
                     self.settings_modules[dir_name] = module.main
                 except Exception as e:
                     print("Failed to load settings module %s: \n%s\n" % (dir_name, e))
+                    
+                    
+    # API functions passed from Store into StoreAPI
+    ##############################################
+    def APIgetDefaultItemInformation(self, itemid):
+        #Get full information about an item from the most recommended source it is available in
+        pass #TODO: Move current code into here
+        #Also TODO: Check item availability first, then go by source order of what is available to find the information
+        
+    def APIcancelTask(self, taskid):
+        #Cancels the task of that Task ID
+        # If it isn't found or cannot be cancelled, throw an exception.
+        pass #TODO
+    
+    #def APIinstallApp(self, 
     
     
     def __init__(self):

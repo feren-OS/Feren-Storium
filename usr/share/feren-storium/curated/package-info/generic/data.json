@@ -3,6 +3,7 @@
     "type-importance": ["peppermint-ice"],
     "all": {
         "realname": "YouTube",
+        "iconname": "youtube",
         "iconuri": "https://www.gstatic.com/youtube/img/branding/favicon/favicon_192x192.png",
         "shortdescription": "",
         "description": "See what the world is watching -- from the hottest music videos to what’s trending in gaming, entertainment, news, and more. Subscribe to channels you love, share with friends, and watch on any device.",
@@ -16,6 +17,7 @@
     "type-importance": ["peppermint-ice"],
     "all": {
         "realname": "Microsoft Office Online",
+        "iconname": "ms-office",
         "iconuri": "https://blobs.officehome.msocdn.com/versionless/webmanifestimages/OfficeDesktop_256.png",
         "shortdescription": "",
         "description": "Microsoft Office Online allows you to use Word, Excel, PowerPoint, OneNote and more of the Office suite on the go through Microsoft's cloud services. It gives you access to all the essential Office features you should need on a daily basis.",
@@ -29,6 +31,7 @@
     "type-importance": ["peppermint-ice"],
     "all": {
         "realname": "Outlook",
+        "iconname": "ms-outlook",
         "iconuri": "https://res-1.cdn.office.net/assets/mail/pwa/v1/pngs/Outlook.512x512.png",
         "shortdescription": "",
         "description": "TODO",
@@ -42,6 +45,7 @@
     "type-importance": ["peppermint-ice"],
     "all": {
         "realname": "Facebook",
+        "iconname": "facebook",
         "iconuri": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/05/Facebook_Logo_%282019%29.png/480px-Facebook_Logo_%282019%29.png",
         "shortdescription": "",
         "description": "Keeping up with friends is faster and easier than ever. Share updates and photos, engage with friends and Pages, and stay connected to communities important to you.",
@@ -55,6 +59,7 @@
     "type-importance": ["peppermint-ice"],
     "all": {
         "realname": "Twitter",
+        "iconname": "twitter",
         "iconuri": "https://abs.twimg.com/responsive-web/client-web/icon-default-large.8e027b65.png",
         "shortdescription": "",
         "description": "Join the conversation! Twitter is your go-to social media app and the source for what's happening in the world. From world news to local news updates, entertainment to sports and gaming, politics to fun stories that go viral, when it happens in the world, it happens on Twitter first. Find friends, gain followers or follow influential people - every voice can impact the world! Join over 2 BILLION users worldwide!",
@@ -68,6 +73,7 @@
     "type-importance": ["peppermint-ice"],
     "all": {
         "realname": "Reddit",
+        "iconname": "reddit",
         "iconuri": "https://www.redditstatic.com/desktop2x/img/favicon/android-icon-192x192.png",
         "shortdescription": "",
         "description": "With over 100K active communities, on Reddit you can laugh, think, discuss and dig deep into topics that matter to you.\nReddit is free and open for everyone to post, share, vote and discuss.\nReddit is powered by people. Your communities upvote and downvote posts to highlight the most interesting and relevant content. On Reddit, your privacy and opinions matter.\nYou can share your passion for your favorite books, movies, video games, sports, TV shows, music and technology with millions of people who share your interests.",
@@ -82,12 +88,13 @@
     "sources-available": [],
     "all": {
         "realname": "Pixiv",
+        "iconname": "pixiv",
         "iconuri": "https://source.pixiv.net/common/images/android-chrome-192x192.png?20200601",
         "shortdescription": "",
         "description": "TODO",
         "website": "https://pixiv.net/",
         "donateurl": "",
-        "category": "ice-internet",
+        "category": "ice-graphics",
         "images": [""]
     }
   },
@@ -96,6 +103,7 @@
     "sources-available": [],
     "all": {
         "realname": "Discord",
+        "iconname": "discord",
         "iconuri": "https://pnggrid.com/wp-content/uploads/2021/05/Discord-Logo-Circle-1024x1024.png",
         "shortdescription": "",
         "description": "TODO",
@@ -110,6 +118,7 @@
     "sources-available": [],
     "all": {
         "realname": "BBC News",
+        "iconname": "bbc-news",
         "iconuri": "http://m.files.bbci.co.uk/modules/bbc-morph-news-waf-page-meta/5.2.0/apple-touch-icon.png",
         "shortdescription": "",
         "description": "TODO",
@@ -124,6 +133,7 @@
     "sources-available": [],
     "all": {
         "realname": "NHK World Japan",
+        "iconname": "nhk-world-japan",
         "iconuri": "https://www3.nhk.or.jp/nhkworld/common/site_images/nw_webapp_1500x1500.png",
         "shortdescription": "",
         "description": "TODO",
@@ -138,6 +148,7 @@
     "sources-available": [],
     "all": {
         "realname": "Spotify",
+        "iconname": "spotify",
         "iconuri": "https://open.scdn.co/cdn/images/icons/Spotify_512.49a0bf03.png",
         "shortdescription": "",
         "description": "TODO",
@@ -151,6 +162,7 @@
     "type-importance": ["apt"],
     "all": {
         "realname": "Feren OS 2017.0 Backgrounds",
+        "iconname": "preferences-desktop-wallpaper",
         "iconuri": "file:///usr/share/icons/Inspire/256/apps/preferences-wallpaper.png",
         "shortdescription": "Backgrounds from Feren OS 2017.0",
         "description": "TODO",
@@ -165,6 +177,7 @@
     "type-importance": ["apt"],
     "all": {
         "realname": "Feren Store",
+        "iconname": "softwarecenter",
         "iconuri": "file:///usr/share/icons/Inspire/256/apps/feren-store.png",
         "shortdescription": "The original Feren OS Store",
         "description": "The old Feren OS Store",
@@ -179,6 +192,7 @@
     "type-importance": ["snap"],
     "all": {
         "realname": "Chromium",
+        "iconname": "chromium",
         "iconuri": "https://upload.wikimedia.org/wikipedia/commons/2/26/Chromium_logo.png",
         "shortdescription": "TODO",
         "description": "TODO",
@@ -193,6 +207,7 @@
     "type-importance": ["flatpak", "snap"],
     "all": {
         "realname": "Firefox",
+        "iconname": "firefox",
         "iconuri": "https://lh3.googleusercontent.com/zqsuwFUBwKRcGOSBinKQCL3JgfvOW49vJphq0ZF32aDgfqmuDyl-fEpx4Lxm4pRr7A=s0",
         "shortdescription": "TODO",
         "description": "TODO",
@@ -207,6 +222,7 @@
     "type-importance": ["snap", "apt", "flatpak"],
     "all": {
         "realname": "OBS Studio",
+        "iconname": "obs-studio",
         "iconuri": "https://avatars.githubusercontent.com/u/7725691?s=256&v=4",
         "shortdescription": "TODO",
         "description": "TODO",

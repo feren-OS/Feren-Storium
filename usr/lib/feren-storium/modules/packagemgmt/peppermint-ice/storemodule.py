@@ -73,7 +73,7 @@ class main():
         self.currentpackagename = ""
         
         #Global Ice last updated date (so that all shortcuts can be updated if a major change occurs)
-        self.icelastupdated = "20220313"
+        self.icelastupdated = "20220314"
         
         #Sources storage
         self.sources_storage = {}
@@ -243,22 +243,22 @@ class main():
         #Returns:
         # True: Yes
         # False: No
-        #    Based on if the r, g, and b values of cc2 aren't matching within 10 above to 10 below cc1's values
+        #    Based on if the r, g, and b values of cc2 aren't matching within 20 above to 20 below cc1's values
         
         red1, green1, blue1 = tuple(int(colourcode1[i:i+2], 16) for i in (1, 3, 5))
         red2, green2, blue2 = tuple(int(colourcode2[i:i+2], 16) for i in (1, 3, 5))
         
         #Red
         redmatches = False
-        if red2 > (red1 - 10) and red2 < (red1 + 10):
+        if red2 > (red1 - 20) and red2 < (red1 + 20):
             redmatches = True
         #Green
         greenmatches = False
-        if green2 > (green1 - 10) and green2 < (green1 + 10):
+        if green2 > (green1 - 20) and green2 < (green1 + 20):
             greenmatches = True
         #Blue
         bluematches = False
-        if blue2 > (blue1 - 10) and blue2 < (blue1 + 10):
+        if blue2 > (blue1 - 20) and blue2 < (blue1 + 20):
             bluematches = True
             
         if redmatches and greenmatches and bluematches:
@@ -276,7 +276,7 @@ class main():
         red1, green1, blue1 = tuple(int(colourcode[i:i+2], 16) for i in (1, 3, 5))
         
         #Red
-        if red1 > (green1 - 4) and red1 < (green1 + 4) and red1 > (blue1 - 4) and red1 < (blue1 + 4):
+        if red1 > (green1 - 20) and red1 < (green1 + 20) and red1 > (blue1 - 20) and red1 < (blue1 + 20) and green1 > (blue1 - 20) and green1 < (blue1 + 20):
             return True
         else:
             return False
@@ -515,24 +515,20 @@ class main():
         if "icecolor" in icepackageinfo and "icecolorhighlight" in icepackageinfo and "icecolordark" in icepackageinfo:
             vivaldihighlightcol = icepackageinfo["icecolorhighlight"]
             vivaldihighlightcoldark = self.colourFilter(icepackageinfo["icecolorhighlight"], 0.7, True, True)
-            if self.get_luminant(icepackageinfo["icecolor"]) == False: #Dark BG
+            if self.get_are_colours_different(icepackageinfo["icecolor"], icepackageinfo["icecolorhighlight"]) and self.get_colour_bg_suitable(icepackageinfo["icecolor"]): #Suitable background colour used
+                vivaldiaccentcol = icepackageinfo["icecolorhighlight"]
+                vivaldiaccentcoldark = icepackageinfo["icecolorhighlight"]
+                vivaldiwinbgcol = icepackageinfo["icecolor"]
+                vivaldiwinbgcoldark = icepackageinfo["icecolordark"]
+                vivaldiaccentinchrome = False
+                
+            else: #Otherwise use fallback colours
                 vivaldiaccentcol = icepackageinfo["icecolor"]
                 vivaldiwinbgcol = ""
                 vivaldiaccentcoldark = icepackageinfo["icecolordark"]
                 vivaldiwinbgcoldark = ""
                 vivaldiaccentinchrome = True
                 
-            else: #Light BG
-                vivaldiaccentcol = icepackageinfo["icecolorhighlight"]
-                vivaldiaccentcoldark = icepackageinfo["icecolorhighlight"]
-                
-                if self.get_are_colours_different(icepackageinfo["icecolor"], icepackageinfo["icecolorhighlight"]) and self.get_colour_bg_suitable(icepackageinfo["icecolor"]):
-                    vivaldiwinbgcol = icepackageinfo["icecolor"]
-                    vivaldiwinbgcoldark = icepackageinfo["icecolordark"]
-                else:
-                    vivaldiwinbgcol = ""
-                
-                vivaldiaccentinchrome = False
                 
             #Now to make the Private theme    
             vivaldiaccentcolprivate = self.colourFilter(icepackageinfo["icecolorhighlight"], 46.0, True)
@@ -1070,24 +1066,20 @@ class main():
         if "icecolor" in icepackageinfo and "icecolorhighlight" in icepackageinfo and "icecolordark" in icepackageinfo:
             vivaldihighlightcol = icepackageinfo["icecolorhighlight"]
             vivaldihighlightcoldark = self.colourFilter(icepackageinfo["icecolorhighlight"], 0.7, True, True)
-            if self.get_luminant(icepackageinfo["icecolor"]) == False: #Dark BG
+            if self.get_are_colours_different(icepackageinfo["icecolor"], icepackageinfo["icecolorhighlight"]) and self.get_colour_bg_suitable(icepackageinfo["icecolor"]): #Suitable background colour used
+                vivaldiaccentcol = icepackageinfo["icecolorhighlight"]
+                vivaldiaccentcoldark = icepackageinfo["icecolorhighlight"]
+                vivaldiwinbgcol = icepackageinfo["icecolor"]
+                vivaldiwinbgcoldark = icepackageinfo["icecolordark"]
+                vivaldiaccentinchrome = False
+                
+            else: #Otherwise use fallback colours
                 vivaldiaccentcol = icepackageinfo["icecolor"]
                 vivaldiwinbgcol = ""
                 vivaldiaccentcoldark = icepackageinfo["icecolordark"]
                 vivaldiwinbgcoldark = ""
                 vivaldiaccentinchrome = True
                 
-            else: #Light BG
-                vivaldiaccentcol = icepackageinfo["icecolorhighlight"]
-                vivaldiaccentcoldark = icepackageinfo["icecolorhighlight"]
-                
-                if self.get_are_colours_different(icepackageinfo["icecolor"], icepackageinfo["icecolorhighlight"]) and self.get_colour_bg_suitable(icepackageinfo["icecolor"]):
-                    vivaldiwinbgcol = icepackageinfo["icecolor"]
-                    vivaldiwinbgcoldark = icepackageinfo["icecolordark"]
-                else:
-                    vivaldiwinbgcol = ""
-                
-                vivaldiaccentinchrome = False
                 
             #Now to make the Private theme    
             vivaldiaccentcolprivate = self.colourFilter(icepackageinfo["icecolorhighlight"], 46.0, True)
