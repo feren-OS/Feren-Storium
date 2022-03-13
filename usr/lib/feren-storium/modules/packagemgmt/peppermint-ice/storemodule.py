@@ -525,7 +525,7 @@ class main():
             else: #Otherwise use fallback colours
                 vivaldiaccentcol = icepackageinfo["icecolor"]
                 vivaldiwinbgcol = ""
-                vivaldiaccentcoldark = icepackageinfo["icecolordark"]
+                vivaldiaccentcoldark = self.colourFilter(icepackageinfo["icecolordark"], 0.7, True, True)
                 vivaldiwinbgcoldark = ""
                 vivaldiaccentinchrome = True
                 
@@ -1076,7 +1076,7 @@ class main():
             else: #Otherwise use fallback colours
                 vivaldiaccentcol = icepackageinfo["icecolor"]
                 vivaldiwinbgcol = ""
-                vivaldiaccentcoldark = icepackageinfo["icecolordark"]
+                vivaldiaccentcoldark = self.colourFilter(icepackageinfo["icecolordark"], 0.7, True, True)
                 vivaldiwinbgcoldark = ""
                 vivaldiaccentinchrome = True
                 
