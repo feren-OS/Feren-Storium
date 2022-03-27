@@ -4,9 +4,20 @@
 import sys
 import subprocess
 import os
+
+sys.path.insert(0, "/usr/lib/feren-storium/shared-data")
+import aptshared
+
 snapdin = False
 flatpakin = False
+desktopenvin = False
+communityin = False
+
 autoyes = False
+simulatemode = False
+proceed = False
+
+response = ''
 
 if len(sys.argv) >= 2:
     if sys.argv[1] == "install":
@@ -15,17 +26,83 @@ if len(sys.argv) >= 2:
                 snapdin = True
             elif argument == "flatpak":
                 flatpakin = True
+            elif argument in aptshared.dewmpkgs:
+                desktopenvin = True
+            elif argument in aptshared.communitypkgs:
+                communityin = True
             elif argument == "-y" or argument == "--yes" or argument == "--assume-yes":
                 autoyes = True
+            elif argument == "-s" or argument == "--simulate" or argument == "--just-print" or argument == "--dry-run" or argument == "--recon" or argument == "--no-act":
+                simulatemode = True
             elif argument == "--help" or argument == "-h":
-                exit(0)
-        if snapdin == True and not os.path.isfile("/usr/bin/snapd"):
-            if autoyes == False:
-                response = input('Snap Store is currently disabled in your Application Sources. Would you like to enable it? [y/N] ').upper()
-            if autoyes == True or response == "Y" or response == "YES":
-                subprocess.Popen(["/usr/bin/feren-appsources-settings", "--activate-snapstore"]).wait()
-        if flatpakin == True and not os.path.isfile("/usr/bin/flatpak"):
-            if autoyes == False:
-                response = input('Flatpak is currently disabled in your Application Sources. Would you like to enable it? [y/N] ').upper()
-            if autoyes == True or response == "Y" or response == "YES":
-                subprocess.Popen(["/usr/bin/feren-appsources-settings", "--activate-flatpak"]).wait()
+                proceed = True
+        if proceed == False:
+            if desktopenvin == True and not os.path.isfile("DesktopEnvirBlacklistFileTBD"):
+                if autoyes == False and simulatemode == False:
+                    response = input('''You are trying to install a Desktop Environment or Window Manager {0}not supported by Feren OS{1}. By continuing, you will be enabling Unsupported Community Software installation.
+{2}If you do not know what a "Desktop Environment" is, nor what a "Window Manager" is, you {0}should not{1}{2} continue with installation.{1}
+
+{0}If you would like to continue, there will be dragons:{1}
+- We are {0}not{1} inclined to give support in the event Feren OS breaks as a result of installing unsupported community software.
+- Desktop Environments and Window Managers not supported by Feren OS {0}can bring{1} application and system {0}compatibility issues{1}.
+- Some will not provide essential functionality programs expect, meaning issues may occur such as not having a close button nor a way to move or resize application windows, applications running in the background with no way to quit them, and so on.
+- Applications will have issues with configurations from each installed Desktop Environment and Window Manager clashing.
+
+Would you like to enable Unsupported Community Software, knowing this, and continue? [y/N] '''.format('\033[1m', '\033[0m', '\033[93m')).upper()
+                if (autoyes == True or response == "Y" or response == "YES") and simulatemode == False:
+                    subprocess.Popen(["/usr/bin/feren-appsources-settings", "--activate-communityrepo"]).wait()
+                    #TODO: Change this to Store command for telling it to directly do ask the module to enable the sauce
+                    proceed = True
+                    
+                if simulatemode == True:
+                    print("Enab Unsupported Community Software")
+                    print("")
+                    proceed = True
+            if communityin == True and not os.path.isfile("DesktopEnvirBlacklistFileTBD"):
+                if autoyes == False and simulatemode == False:
+                    response = input('''You are trying to install software that is {0}not supported by Feren OS{1} currently. By continuing, you will be enabling Unsupported Community Software installation.
+{2}If you do not know how to use the Terminal, nor what a "TTY" is, you {0}should not{1}{2} continue with installation.{1}
+
+{0}If you would like to continue, there will be dragons:{1}
+- We are {0}not{1} inclined to give support in the event Feren OS breaks as a result of installing unsupported community software.
+- The software might be unoptimised, have issues, or cause issues in Feren OS.
+- System issues may occur if unsupported community software such as power management software is installed.
+
+Would you like to enable Unsupported Community Software, knowing this, and continue? [y/N] '''.format('\033[1m', '\033[0m', '\033[93m')).upper()
+                if (autoyes == True or response == "Y" or response == "YES") and simulatemode == False:
+                    subprocess.Popen(["/usr/bin/feren-appsources-settings", "--activate-communityrepo"]).wait()
+                    proceed = True
+                    
+                if simulatemode == True:
+                    print("Enab Unsupported Community Software")
+                    print("")
+                    proceed = True
+            if snapdin == True and not os.path.isfile("/usr/bin/snapd"):
+                if autoyes == False and simulatemode == False:
+                    response = input('Snap Store is currently disabled in your Application Sources. Would you like to enable it? [y/N] ').upper()
+                if (autoyes == True or response == "Y" or response == "YES") and simulatemode == False:
+                    subprocess.Popen(["/usr/bin/feren-appsources-settings", "--activate-snapstore"]).wait()
+                    proceed = True
+                    
+                if simulatemode == True:
+                    print("Enab Snap Store")
+                    print("")
+                    proceed = True
+            if flatpakin == True and not os.path.isfile("/usr/bin/flatpak"):
+                if autoyes == False and simulatemode == False:
+                    response = input('Flatpak is currently disabled in your Application Sources. Would you like to enable it? [y/N] ').upper()
+                if (autoyes == True or response == "Y" or response == "YES") and simulatemode == False:
+                    subprocess.Popen(["/usr/bin/feren-appsources-settings", "--activate-flatpak"]).wait()
+                    proceed = True
+                    
+                if simulatemode == True:
+                    print("Enab Flatpak")
+                    print("")
+                    proceed = True
+
+if proceed == True:
+    commandtorun = sys.argv
+    commandtorun.pop(0)
+    commandtorun.insert(0, "/usr/bin/apt")
+    
+    subprocess.Popen(commandtorun).wait()

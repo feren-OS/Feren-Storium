@@ -66,7 +66,7 @@ class StoreGenericAPI():
     
     
     def getCuratedJSON(self, path): #Get curated JSON file from the curated folder
-        with open("/usr/share/feren-storium/curated/" + path + "/data.json", 'r') as fp:            
+        with open("/usr/share/feren-storium/curated/" + path + "/data.json", 'r') as fp:
                 return json.loads(fp.read())
     
     
@@ -93,7 +93,7 @@ class StoreSettingsAPI():
     
 #Tasks body for Tasks storage
 class TaskBody():
-    def __init__(self, itemid, moduleid, operation, sourceid, subsourceid, realname, cancellable=False, becauseof="", directto=""):
+    def __init__(self, itemid, moduleid, operation, sourceid, subsourceid, realname, cancellable=False, becauseof="", follows="", directto=""):
         #itemid: ID of item, such as a package or whatever
         #module: ID of module performing actions
         #operation: Operation type number (0: Install/Add, 1: Remove, 2: Update)
@@ -102,6 +102,7 @@ class TaskBody():
         #realname: Human-friendly name for notifications, etc. to use
         #cancellable: Can be cancelled once in progress? (Boolean)
         #becauseof: Task ID this was because of - when in place, this task follows that task's progress, state changes, finished, etc. (useful for showing dependency changes as tasks, or showing app removals from source removals as tasks)
+        #follows: Use when this Task has to follow another Task ID, for example Source Adding. If that Task ID is cancelled or fails, this Task will cancel as well.
         #directto: Item ID to direct the user to the page for upon clicking the Task in GUI
         self.itemid = itemid
         self.moduleid = moduleid
@@ -111,6 +112,7 @@ class TaskBody():
         self.realname = realname
         self.cancellable = cancellable
         self.becauseof = becauseof
+        self.follows = follows
         self.directto = directto
         
         self.pendingconfirm = True #Task won't run until confirmation is made
@@ -430,9 +432,104 @@ class StoreBrain():
         # If it isn't found or cannot be cancelled, throw an exception.
         pass #TODO
     
-    #def APIinstallApp(self, 
+    def APIinstallApp(self, itemid, moduleid, sourceid, subsourceid):
+        #Installs the item of itemid from sourceid : subsourceid, using moduleid
+        pass #TODO
+    
+    def APIupdateApp(self, itemid, moduleid, sourceid, subsourceid):
+        #Same as APIinstallApp, except it triggers an Update task instead
+        pass #TODO
+    
+    def APIremoveApp(self, itemid, moduleid, sourceid, subsourceid):
+        #Same as APIinstallApp, except it triggers a Remove task instead
+        pass #TODO
+    
+    def APIaddSource(self, sourceid, moduleid):
+        #Tells the module of moduleid matching to add the source of ID sourceid
+        pass #TODO
+    
+    def APIremoveSource(self, sourceid, moduleid):
+        #Same as APIaddSource, except it removes it instead
+        pass #TODO
+    
+    def APIshowTaskConfirmation(self, itemid, idsadded, idsupdated, idsremoved):
+        #Tells GUI to show task confirmation dialog, and then waits for value (True/False), alongside a bonus installs list, to be returned.
+        #FIXME: Uh... how DO we even hold code in this context until we return a value from user input?
+        pass #TODO
+    
+    def APIgotoID(self, itemid):
+        #Tells GUI to go to the 'package page' for ID itemid, that's it.
+        pass #TODO
+    
+    def APIrefreshMemory(self):
+        #Store calls refreshMemory on EVERY single module that Store knows of
+        pass #TODO
+    
+    def APIreloadStore(self):
+        #Straight up restarts Store
+        pass #TODO
+    
+    def APIreloadPages(self):
+        #Reloads every single Store GUI page that's loaded right now
+        
+        
+        self.reloadPkgStates("all")
+        pass #TODO
+    
+    def APIreloadPkgStates(self, moduleids, packageids=["all"]):
+        #moduleids: List of all module IDs to affect
+        #packageids: Optional - List of all package IDs to affect
+        
+        #Refresh install status of all packageids from all the sources belonging managed the moduleids
+        #Also uncache any install statuses for them that are cached
+        pass #TODO
+    
+    def APIfullUpdate(self):
+        #Run updateApp on every single updatable item
+        #TODO: Consolidate all changes into big confirmation
+        pass #TODO
+    
+    def APIitemSearch(self, searchstring):
+        #For each Search module, do a search with searchstring as the search term
+        # Then, sort by numeralphabetical based on the human-readable names, though prior
+        #Finally, return the itemids in a sorted dictionary with the priorities
+        #TODO: Priority levels: ID match, Exact, ID starts with, Starts with, Ends with, ID ends with
+        pass #TODO
     
     
+    # API functions passed from Store into SettingsAPI
+    ##############################################
+    def APIchangeAutoUpdateOn(self, moduleid, newvalue):
+        #Module changes automatic updates value to newvalue (bool)
+        pass #TODO
+    
+    def APIgetAutoUpdateOn(self, moduleid):
+        #Module returns true/false for if automatic updates are on
+        pass #TODO
+    
+    def APIgetAutoUpdateSupported(self, moduleid):
+        #Get module's value for autoUpdateSupported
+        pass #TODO
+    
+    def APIchangeAutoUpdateBandwidth(self, moduleid, newfloat):
+        #Module changes automatic updates bandwidth to newfloat (float)
+        pass #TODO
+    
+    def APIgetAutoUpdateBandwidth(self, moduleid):
+        #Module returns float for automatic updates bandwidth
+        pass #TODO
+    
+    def APIgetAutoUpdateBandwidthSupported(self, moduleid):
+        #Get module's value for autoUpdateBandwidthSupported
+        pass #TODO
+    
+    def APIgetPackageMgmtModulesInfo(self, moduleid="all"):
+        #Gets dictionary of information about the package module matching moduleid, or if all then all the package modules
+        pass #TODO
+    
+    
+    # Main functionality of Store Brain
+    ##############################################
     def __init__(self):
         self.tasks = StoreTasks()
         self.tasks.storebrain = self
