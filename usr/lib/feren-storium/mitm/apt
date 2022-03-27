@@ -101,8 +101,6 @@ Would you like to enable Unsupported Community Software, knowing this, and conti
                     proceed = True
 
 if proceed == True:
-    commandtorun = sys.argv
-    commandtorun.pop(0)
-    commandtorun.insert(0, "/usr/bin/apt")
-    
-    subprocess.Popen(commandtorun).wait()
+    exit(0)
+else:
+    exit(1)

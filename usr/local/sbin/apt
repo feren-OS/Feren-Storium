@@ -2,5 +2,7 @@
 ### Feren Store APT Man-In-The-Middle - checks for snapd and flatpak, and if they are in the arguments, if $1 is install, and prompts accordingly.
 
 /usr/lib/feren-store-new/mitm/apt $@
-/usr/bin/apt $@
+if [ $? -eq 0 ]; then
+    /usr/bin/apt $@
+fi
 exit $?

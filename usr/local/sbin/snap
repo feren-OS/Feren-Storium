@@ -4,7 +4,7 @@
 if [ ! -f /usr/bin/snap ]; then
     read -p "The Snap Application Source isn't currently enabled, would you like to enable it? [y/N] " yn
     case $yn in
-        [Yy]* ) sudo apt install snapd -y || exit 1;;
+        [Yy]* ) sudo /usr/local/sbin/apt install snapd -y || exit 1;;
         * ) exit 1;;
     esac
     /usr/bin/snap $@
