@@ -16,6 +16,7 @@ import gi
 from gi.repository import GLib
 import re
 import colorsys
+from urllib import parse
 
 
 def should_load(): #Should this module be loaded?
@@ -73,7 +74,7 @@ class main():
         self.currentpackagename = ""
         
         #Global Ice last updated date (so that all shortcuts can be updated if a major change occurs)
-        self.icelastupdated = "20220314"
+        self.icelastupdated = "20220329"
         
         #Sources storage
         self.sources_storage = {}
@@ -462,14 +463,15 @@ class main():
         
         #Extra site-specific tweaks
         profiletomake["homepage"] = icepackageinfo["website"]
+        profiletomake["custom_links"]["list"][0]["title"] = icepackageinfo["realname"]
+        profiletomake["custom_links"]["list"][0]["url"] = icepackageinfo["website"]
         profiletomake["session"]["startup_urls"] = [icepackageinfo["website"]]
         profiletomake["download"]["default_directory"] = GLib.get_user_special_dir(GLib.UserDirectory.DIRECTORY_DOWNLOAD) + "/" + _("{0} Downloads").format(icepackageinfo["realname"]) #TODO: Allow configuration of downloads location, whether or not to save to individual folders
         profiletomake["profile"]["name"] = _("Ice - {0}").format(icepackageinfo["realname"])
-        profiletomake["ntp"]["custom_background_dict"]["attribution_line_1"] = _("Feren OS Ice Website Application:")
-        profiletomake["ntp"]["custom_background_dict"]["attribution_line_2"] = icepackageinfo["realname"]
-        profiletomake["vivaldi"]["tabs"]["new_page"]["custom_url"] = "https://feren-os.github.io/start-page/ice?ice-text="+(_("Feren OS Ice Website Application - {0}").format(icepackageinfo["realname"]))
-        profiletomake["vivaldi"]["homepage"] = "https://feren-os.github.io/start-page/ice?ice-text="+(_("Feren OS Ice Website Application - {0}").format(icepackageinfo["realname"]))
-        profiletomake["vivaldi"]["homepage_cache"] = "https://feren-os.github.io/start-page/ice?ice-text="+(_("Feren OS Ice Website Application - {0}").format(icepackageinfo["realname"]))
+        profiletomake["ntp"]["custom_background_dict"]["attribution_line_1"] = _("Feren OS Ice Website Application - {0}").format(icepackageinfo["realname"])
+        profiletomake["vivaldi"]["tabs"]["new_page"]["custom_url"] = "https://feren-os.github.io/start-page/ice?ice-text="+(_("Feren OS Ice Website Application - {0}").format(icepackageinfo["realname"]))+"&home-url={0}".format(parse.quote(icepackageinfo["website"], safe=""))+"&home-icon={0}".format(parse.quote(icepackageinfo["iconuri"], safe=""))
+        profiletomake["vivaldi"]["homepage"] = icepackageinfo["website"]
+        profiletomake["vivaldi"]["homepage_cache"] = icepackageinfo["website"]
         
         
         #Background Sync, Clipboard, Notifications and Payment Handler ONLY for SSB's websites
@@ -929,6 +931,9 @@ class main():
         except Exception as exceptionstr:
             raise ICEModuleException(_("Failed to update {0}: {1} was encountered when reading the browser profile (is the profile corrupt?)").format(taskdata["packagename"], exceptionstr))
         
+        #Remove the custom links (Chromiums) before adding default shortcut back in and updating it again
+        profiletoupdate["custom_links"] = {}
+        
         profiletoupdate = self.storebrain.dict_recurupdate(profiletoupdate, profiledefaults)
         
         
@@ -990,14 +995,15 @@ class main():
         
         #Extra site-specific tweaks
         profiletoupdate["homepage"] = icepackageinfo["website"]
+        profiletoupdate["custom_links"]["list"][0]["title"] = icepackageinfo["realname"]
+        profiletoupdate["custom_links"]["list"][0]["url"] = icepackageinfo["website"]
         profiletoupdate["session"]["startup_urls"] = [icepackageinfo["website"]]
         profiletoupdate["download"]["default_directory"] = GLib.get_user_special_dir(GLib.UserDirectory.DIRECTORY_DOWNLOAD) + "/" + _("{0} Downloads").format(icepackageinfo["realname"])
         profiletoupdate["profile"]["name"] = _("Ice - {0}").format(icepackageinfo["realname"])
-        profiletoupdate["ntp"]["custom_background_dict"]["attribution_line_1"] = _("Feren OS Ice Website Application:")
-        profiletoupdate["ntp"]["custom_background_dict"]["attribution_line_2"] = icepackageinfo["realname"]
-        profiletoupdate["vivaldi"]["tabs"]["new_page"]["custom_url"] = "https://feren-os.github.io/start-page/ice?ice-text="+(_("Feren OS Ice Website Application - {0}").format(icepackageinfo["realname"]))
-        profiletoupdate["vivaldi"]["homepage"] = "https://feren-os.github.io/start-page/ice?ice-text="+(_("Feren OS Ice Website Application - {0}").format(icepackageinfo["realname"]))
-        profiletoupdate["vivaldi"]["homepage_cache"] = "https://feren-os.github.io/start-page/ice?ice-text="+(_("Feren OS Ice Website Application - {0}").format(icepackageinfo["realname"]))
+        profiletoupdate["ntp"]["custom_background_dict"]["attribution_line_1"] = _("Feren OS Ice Website Application - {0}").format(icepackageinfo["realname"])
+        profiletoupdate["vivaldi"]["tabs"]["new_page"]["custom_url"] = "https://feren-os.github.io/start-page/ice?ice-text="+(_("Feren OS Ice Website Application - {0}").format(icepackageinfo["realname"]))+"&home-url={0}".format(parse.quote(icepackageinfo["website"], safe=""))+"&home-icon={0}".format(parse.quote(icepackageinfo["iconuri"], safe=""))
+        profiletoupdate["vivaldi"]["homepage"] = icepackageinfo["website"]
+        profiletoupdate["vivaldi"]["homepage_cache"] = icepackageinfo["website"]
         
         
         #Update these as well

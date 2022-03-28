@@ -132,7 +132,7 @@
   "storium-ice-discord-discord": {
     "sources-available": ["all"],
     "all": {
-        "keywords": "Discord;Chat;Friends;Community;Servers",
+        "keywords": "Discord;Chat;Friends;Community;Servers;",
         "author": "Discord",
         "bugreporturl": "",
         "tosurl": "",
@@ -148,7 +148,7 @@
   "storium-ice-bbc-news": {
     "sources-available": ["all"],
     "all": {
-        "keywords": "BBC;News;UK;World;Africa;Asia;Australia;Europe;America;Canada",
+        "keywords": "BBC;News;UK;World;Africa;Asia;Australia;Europe;America;Canada;",
         "author": "BBC",
         "bugreporturl": "",
         "tosurl": "",
@@ -176,7 +176,7 @@
   "storium-ice-spotify-spotify": {
     "sources-available": ["all"],
     "all": {
-        "keywords": "Spotify;Music;Streaming;Premium;Library",
+        "keywords": "Spotify;Music;Streaming;Premium;Library;",
         "author": "Spotify",
         "bugreporturl": "",
         "tosurl": "",
@@ -188,6 +188,21 @@
         "icelastupdated": "20220303",
         "icenohistory": true,
         "icedomain": "https://spotify.com"
+    }
+  },
+  "storium-ice-omg-ubuntu": {
+    "sources-available": ["all"],
+    "all": {
+        "keywords": "News;Ubuntu;Tips;OHSO;",
+        "author": "OHSO Media",
+        "bugreporturl": "",
+        "tosurl": "",
+        "privpolurl": "",
+        "icegoogleinteg": true,
+        "icecolor": "#DEDEDE",
+        "icecolordark": "#2F2F2F",
+        "icecolorhighlight": "#F15D22",
+        "icelastupdated": "20220328"
     }
   }
 }

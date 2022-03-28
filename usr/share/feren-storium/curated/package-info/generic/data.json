@@ -158,6 +158,21 @@
         "images": [""]
     }
   },
+  "storium-ice-omg-ubuntu": {
+    "type-importance": ["peppermint-ice"],
+    "sources-available": [],
+    "all": {
+        "realname": "OMG! Ubuntu",
+        "iconname": "omg-ubuntu",
+        "iconuri": "https://www.omgubuntu.co.uk/omg-assets/logo-512x512.png",
+        "shortdescription": "",
+        "description": "TODO",
+        "website": "https://www.omgubuntu.co.uk/?utm_source=a2hs",
+        "donateurl": "",
+        "category": "ice-internet",
+        "images": [""]
+    }
+  },
   "feren-backgrounds-murdock": {
     "type-importance": ["apt"],
     "all": {

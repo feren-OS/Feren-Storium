@@ -38,6 +38,16 @@
         "toolbar_extensions_hub_button_visibility": 0
     },
     "credentials_enable_autosignin": false,
+    "custom_links": {
+        "initialized": true,
+        "list": [
+            {
+                "isMostVisited": false,
+                "title": "WEBSITENAME",
+                "url": "WEBSITEHERE"
+            }
+        ]
+    },
     "devtools": {
         "f12_shortcut": {
             "enabled": false
@@ -83,7 +93,7 @@
         },
         "theme": { "id": "pdcjjgefkpoemmlcjfcfkeminneboaob" }
     },
-    "homepage": "https://feren-os.github.io/start-page",
+    "homepage": "WEBSITEHERE",
     "homepage_is_newtabpage": false,
     "https_only_mode_enabled": true,
     "ntp": {
@@ -91,7 +101,6 @@
         "custom_background_dict": {
             "attribution_action_url": "",
             "attribution_line_1": "",
-            "attribution_line_2": "",
             "background_url": "https://feren-os.github.io/ice/resources/ntp_bg.png",
             "collection_id": "",
             "refresh_timestamp": 0,
@@ -101,11 +110,11 @@
         "enable_prerender": false,
         "layout_mode": 3,
         "news_feed_display": "off",
-        "num_personal_suggestions": 0,
+        "num_personal_suggestions": 1,
         "quick_links_options": 0,
-        "shortcust_visible": false,
         "show_image_of_day": false,
-        "show_settings": false
+        "show_settings": false,
+        "use_most_visited_tiles": false
     },
     "payments": { "can_make_payment_enabled": false },
     "plugins": { "always_open_pdf_externally": true, "plugins_list": [] },
