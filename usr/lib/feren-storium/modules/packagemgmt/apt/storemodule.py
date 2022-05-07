@@ -12,10 +12,6 @@ gi.require_version('PackageKitGlib', '1.0')
 from gi.repository import PackageKitGlib
 
 
-def should_load(): #Should this module be loaded?
-    return os.path.isfile("/usr/bin/apt")
-
-
 
 class APTModuleException(Exception): # Name this according to the module to allow easier debugging
     pass
@@ -28,7 +24,7 @@ class module():
         #Gettext Translator
         gettext.install("feren-storium", "/usr/share/locale", names="ngettext")
         
-        #Store Brain
+        #Store APIs
         self.storeapi = storeapi
 
         #Name to be used in Debugging output
@@ -73,7 +69,7 @@ class module():
         self.apt_cache = apt.Cache()
         #Refresh package listings
         self.json_storage = {}
-        for i in ["package-info/apt"]:       
+        for i in ["package-info/apt", "package-info/generic"]:
             self.json_storage[i] = storeapi.getCuratedJSON(i)
         
         self.memory_refreshing = False
@@ -144,7 +140,7 @@ class module():
         self.progress_callback(progress.get_percentage())
     
     
-    def task_cleanup(self, packagename):
+    def cleanupModule(self):
         #Cleanup after package operations
         self.currentpackagename = ""
         self.packagemgmtbusy = False
@@ -172,7 +168,7 @@ class module():
         self.storebrain.tasks.add_task(packagename, pkgtype, self, 2, self.storebrain.get_item_info_specific(packagename, pkgtype, source, True), source, subsource)
         
     
-    #Actual management TODO: Progress callback
+    #Actual management
     def task_install_package(self, taskdata, progress_callback):
         import traceback
         #Install package and return exit code
@@ -255,10 +251,6 @@ class module():
         #Disable an Application Source
         pass
 
-
-
-
-    #////Package Information////
     def internalToPkgName(self, internalname, packagetype):
         #Translate internal Store name to the appropriate package name
         #e.g.: mozilla-firefox + Flatpak = org.mozilla.firefox

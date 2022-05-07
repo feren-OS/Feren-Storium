@@ -139,7 +139,7 @@
         "privpolurl": "",
         "icegoogleinteg": true,
         "icenohistory": true,
-        "icecolor": "#2C2F33",
+        "icecolor": "#F2F3F4",
         "icecolordark": "#2C2F33",
         "icecolorhighlight": "#5865F2",
         "icelastupdated": "20211210"
@@ -202,6 +202,21 @@
         "icecolor": "#DEDEDE",
         "icecolordark": "#2F2F2F",
         "icecolorhighlight": "#F15D22",
+        "icelastupdated": "20220328"
+    }
+  },
+  "storium-ice-deviantart-deviantart": {
+    "sources-available": ["all"],
+    "all": {
+        "keywords": "Art;Customisation;Gallery;Community;Groups;Artwork;",
+        "author": "DeviantArt",
+        "bugreporturl": "",
+        "tosurl": "",
+        "privpolurl": "",
+        "icegoogleinteg": true,
+        "icecolor": "#F8F8F8",
+        "icecolordark": "#06070D",
+        "icecolorhighlight": "#00C787",
         "icelastupdated": "20220328"
     }
   }

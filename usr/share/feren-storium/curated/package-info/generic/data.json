@@ -173,6 +173,21 @@
         "images": [""]
     }
   },
+  "storium-ice-deviantart-deviantart": {
+    "type-importance": ["peppermint-ice"],
+    "sources-available": [],
+    "all": {
+        "realname": "DeviantArt",
+        "iconname": "deviantart",
+        "iconuri": "https://st.deviantart.net/eclipse/icons/android-192.png",
+        "shortdescription": "",
+        "description": "TODO",
+        "website": "https://www.deviantart.com",
+        "donateurl": "",
+        "category": "ice-graphics",
+        "images": [""]
+    }
+  },
   "feren-backgrounds-murdock": {
     "type-importance": ["apt"],
     "all": {

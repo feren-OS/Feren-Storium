@@ -18,10 +18,6 @@ from threading import Thread
 from queue import Queue, Empty
 
 
-def should_load(): #Should this module be loaded?
-    return True
-
-
 ####Application icon
 class AppItemIcon(Gtk.Stack):
     
@@ -1017,7 +1013,7 @@ class AppMainView(Gtk.Stack):
 
 
 ####Store Window
-class main(object):    
+class module(object):
     def __init__(self, storebrain):
         self.storebrain = storebrain
 

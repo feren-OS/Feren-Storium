@@ -41,6 +41,8 @@ class StoreBrainException(Exception): # Name this according to the module to all
 class StoreGenericAPI():
     def __init__(self):
         #self.getDefaultItemInformation = Store.getDefaultItemInformation
+        #self.getSpecificItemInformation = Store.getSpecificItemInformation
+        #self.getAvailableSources = Store.getAvailableSources
         #self.canceltask = Tasks.cancelTask
         #self.installApp = Store.installApp
         #self.updateApp = Store.updateApp
@@ -54,36 +56,38 @@ class StoreGenericAPI():
         #self.reloadPages = Store.reloadPages
         #self.reloadPkgStates = Store.reloadPkgStates
         #self.fullUpdate = Store.fullUpdate
+        #self.itemSearch = Store.itemSearch
+        #self.getAutoUpdateOn = Store.getAutoUpdateOn
+        #self.getAutoUpdateBandwidthOn = Store.getAutoUpdateBandwidthOn
         pass
-    
-    
-    def refreshMemory(self):
-        #First refresh memory of API
-        self.pastsourceslists = {}
-        
-        #Now do so with the modules
-        self.modules_refresh_memory() #Store Brain gives API this callback
-    
-    
-    def getCuratedJSON(self, path): #Get curated JSON file from the curated folder
-        with open("/usr/share/feren-storium/curated/" + path + "/data.json", 'r') as fp:
-                return json.loads(fp.read())
-    
-    
-    def sourcesList(self, pkgid): #Get the sources for this package id {sourcename: subsources]}
+
+
+#Tasks (for ONLY Tasks module)
+class StoreTasksAPI():
+    def __init__(self):
+        #self.addConfirmedTask = Store.addConfirmedTask
+        #self.deleteTask = Store.deleteTask
+        #self.runTask = Store.runTask
+        #self.showFailure = Store.showFailure
+        #self.cleanupModule = Store.cleanupModule
         pass
-    
-    
+
+
 #Settings (for ONLY Settings modules)
 class StoreSettingsAPI():
     def __init__(self):
         #self.changeAutoUpdateOn = Store.changeAutoUpdateOn
-        #self.getAutoUpdateOn = Store.getAutoUpdateOn
         #self.getAutoUpdateSupported = Store.getAutoUpdateSupported
-        #self.changeAutoUpdateBandwidth = Store.changeAutoUpdateBandwidth
+        #self.changeAutoUpdateBandwidthOn = Store.changeAutoUpdateBandwidthOn
         #self.getAutoUpdateBandwidthSupported = Store.getAutoUpdateBandwidthSupported
         #self.getPackageMgmtModulesInfo = Store.getPackageMgmtModulesInfo
-        #self.setPackageMgmtModuleSetting = Store.setPackageMgmtModuleSetting
+        pass
+
+
+
+#This class here is the main brains that connect the pieces of code together per each module
+class StoreModuleContainer():
+    def __init__(self, path):
         pass
     
     
@@ -93,230 +97,167 @@ class StoreSettingsAPI():
     
 #Tasks body for Tasks storage
 class TaskBody():
-    def __init__(self, itemid, moduleid, operation, sourceid, subsourceid, realname, cancellable=False, becauseof="", follows="", directto=""):
-        #itemid: ID of item, such as a package or whatever
-        #module: ID of module performing actions
-        #operation: Operation type number (0: Install/Add, 1: Remove, 2: Update)
-        #sourceid: ID of source to be obtained from
-        #subsourceid: ID of chosen subsource
-        #realname: Human-friendly name for notifications, etc. to use
-        #cancellable: Can be cancelled once in progress? (Boolean)
-        #becauseof: Task ID this was because of - when in place, this task follows that task's progress, state changes, finished, etc. (useful for showing dependency changes as tasks, or showing app removals from source removals as tasks)
-        #follows: Use when this Task has to follow another Task ID, for example Source Adding. If that Task ID is cancelled or fails, this Task will cancel as well.
-        #directto: Item ID to direct the user to the page for upon clicking the Task in GUI
-        self.itemid = itemid
-        self.moduleid = moduleid
-        self.operation = operation
-        self.sourceid = sourceid
-        self.subsourceid = subsourceid
-        self.realname = realname
-        self.cancellable = cancellable
-        self.becauseof = becauseof
-        self.follows = follows
-        self.directto = directto
+    def __init__(self, itemid, moduleid, operation, sourceid, subsourceid, becauseof="", dependson="", directto=""):
+        self.itemid = itemid #ID of item, e.g.: mozilla-firefox
+        self.moduleid = moduleid #ID of module, e.g.: packagemgmt-apt
+        self.operation = operation #0 for install/add, 1 for remove, 2 for update
+        self.sourceid = sourceid #ID of source to obtain from
+        self.subsourceid = subsourceid #ID of subsource to obtain from, if appropriate
+        self.becauseof = becauseof #(optional) Task was because of - status matches said task's, and completes with that task
+        self.dependson = dependson #(optional) Task depends on said task - if said task cancels or fails, this does too
+        self.directto = directto #Item ID to direct users to the page for upon clicking
         
+        self.cancellable = True #Can be cancelled?
         self.pendingconfirm = True #Task won't run until confirmation is made
         self.cancelling = False #Task is in process of being cancelled?
         self.bonusids = [] #These get appended to by confirmation dialog
         
         self.progress = 0 #Progress percent
-        
-    
-    def cancel(self):
-        if self.cancellable == False:
-            raise TasksException("The task %s cannot be cancelled." % self.itemid)
-            return
-        #TODO: Call to StoreBrain, or a new Tasks-only API, to initiate cancelling the task
-        #TODO: Move this function to TasksMgmt
-
-
-
-#This class here is the main brains that connect the pieces of code together per each module
-class StoreModuleContainer():
-    def __init__(self, path):
-        pass
+        self.status = 0 #Status type (0 = Unconfirmed, 1 = Pending, 2 = Staged (post-logout), 3 = Staging (to be done next Store instance), 4 = In Progress)
         
         
-class StoreTasks():
-    #TODO: Task Items sorta like the old PackageStorage item, with working callbacks (e.g.: .cancel being a callback to Package-Module-Here.cancelTask(this task item), etc.)
-    
-    #Each task item will be this:
-    # "module:packagename:operation": {"type": "item/packageitem/source", "module": "modulenamehere", "packagename": "packagenamehere", "operation": 0/1/2, "progress": "0-100", "directto": "packagepageidhere", "realname": "Actual Name for notifications", "source": source, "subsource": subsource, "bonuses": [listgobrrr]}
-    #
-    # type: Is it an item (application) or source (source) or package file item (packageitem)?
-    # module: Name of module that'll manage the item (module that'll manage the source on source)
-    # packagename: Storium ID of package (Storium ID of source on source)
-    # operation: 0 for Install, 1 for Update, 2 for Remove (0 for Add, 1 for Remove on source)
-    # progress: int from 0 to 100 of progress so far
-    # directto: On click of Task, redirect to packagepage with id (value goes here)
-    # realname: Human readable name of item for use in Notifications
-    # source: Source to obtain the application from ("" on source)
-    # subsource: Subsource to obtain the application from ("" on source)
-    # bonuses: List of bonuses to add ([] on source)
-    
+class TaskManager():    
     def __init__(self):
-        self.currenttasks = {} #Tasks lists (per module)
-        self.currenttask = {} #ID of current task (per module)
+        self.tasks = {"visibleorder": {}} #List of Tasks, in chronological order and modules order
+        #self.storeAPI = StoreGenericAPI NOTE: StoreBrain gives it this
+        #self.storeTasksAPI = StoreTasksAPI NOTE: StoreBrain gives it this
         
-        self.dontcontinue = False #Used for when a logoff is initiated, or Store is pending a restart during updates, as the goal is to stop after the current task
-        self.tasksrunning = {} #True/False for Tasks running on each module
+        self.stage_tasks = False #Are we logging out, or is Store about to restart (if so, stage future tasks instead)
         
-        self.updatesapplying = False #Used for when updates are being installed, to prevent major hiccups
-        self.currenttasksupdates = {} #Used for only storing updates tasks
+        #For Tasks Management
+        self.doing_tasks = {} #Is tasks management running? (per module)
+        self.confirming_tasks = False #Is tasks management - pending tasks running?
+    
+    
+    def add_task(self, itemid, moduleid, operation, sourceid, subsourceid, becauseof="", dependson="", directto="", preconfirmed=False):
+        #Create a Task Body for our new task
+        newtask = TaskBody(itemid, moduleid, operation, sourceid, subsourceid, becauseof, follows, directto)
+        if self.stage_tasks == True:
+            newtask.status = 3 #Set status to Staging
+        elif preconfirmed == True:
+            newtask.status = 1 #Set status to Pending
         
-        self.overalltasksorder = {} #For GUI organising of tasks
+        #Add to tasks order, and then to order list
+        if not moduleid in self.tasks:
+            self.tasks[moduleid] = []
+        self.tasks["order"][moduleid+":"+itemid+":"+sourceid+":"+subsourceid+":"+str(operation)] = newtask
+        self.tasks[moduleid].append(moduleid+":"+itemid+":"+sourceid+":"+subsourceid+":"+str(operation))
         
-        self.currenttaskmodules = [] #Current modules in use for managing tasks (for multi-thread tasks management)
-        self.currentpkgtaskmodules = [] #Same as the above, but for package file tasks
+        #Refresh item state in GUI to make it now be known to be in-tasks
+        self.storeAPI.reloadPkgStates([moduleid], [itemid])
         
-    def add_task_item_ifnotexists(self, module): #Adds Tasks section if it's not a section yet
-        if module.modulename not in self.currenttasks:
-            self.currenttasks[module.modulename] = {}
-        if module.modulename not in self.currenttask:
-            self.currenttask[module.modulename] = {}
-        if module.modulename not in self.tasksrunning:
-            self.tasksrunning[module.modulename] = {}
-        if module.modulename not in self.currenttasksupdates:
-            self.currenttasksupdates[module.modulename] = {}
+        #Trigger tasks launching in case it isn't doing tasks
+        self.begin_tasks_management()
     
         
-    def add_task(self, packagename, packagetype, module, operation, packageinfo, source, subsource, bonuses=[]): #Add package management task
-        self.add_task_item_ifnotexists(module)
+    def cancel_task(self, taskid): #Cancel task
+        if taskid not in self.tasks["order"]:
+            raise StoreBrainException("The task %s could not be cancelled as it does not exist as a task. Perhaps the task finished?" % taskid)
+        if self.tasks["order"][taskid].cancellable == False:
+            raise StoreBrainException("The task %s could not be cancelled." % taskid)
+        self.storeAPI.cancelTask(taskid)
         
-        newtask = module.modulename + ":" + packagetype + ":" + packagename + ":" + str(operation)
-        if not newtask in self.currenttasks[module.modulename]:
-            self.currenttasks[module.modulename][newtask] = {"type": "item", "module": module, "pkgtype": packagetype, "packagename": packagename, "operation": operation, "progress": 0, "directto": packagename, "pkginfo": packageinfo, "source": source, "subsource": subsource, "bonuses": bonuses}
-            self.overalltasksorder[newtask] = self.currenttasks[module.modulename][newtask]
-            
-        self.begin_tasks() #Trigger Tasks action if it isn't already in action
         
-    def add_task_package(self, packagename, packagetype, module, operation, packageinfo, source, subsource, bonuses=[]): #Add package management task for a package file
-        self.add_task_item_ifnotexists(module)
-        
-        newtask = module.modulename + ":" + packagetype + ":" + packagename + ":" + str(operation)
-        if not newtask in self.currenttasks[module]:
-            self.currenttasks[module.modulename][newtask] = {"type": "packagefile", "module": module, "pkgtype": packagetype, "packagename": packagename, "operation": operation, "progress": 0, "directto": packagename, "pkginfo": packageinfo, "source": source, "subsource": subsource, "bonuses": []}
-            self.overalltasksorder[newtask] = self.currenttasks[module.modulename][newtask]
-            
+    def begin_tasks_management(self):
+        #Launch pending tasks confirmations task if not running already
+        self.begin_unconfirmed_tasks()
+        #Launch main tasks runner
         self.begin_tasks()
-        
-    def add_task_source(self, packagename, module, operation, packageinfo, source, subsource): #Add source management task
-        self.add_task_item_ifnotexists(module)
-        
-        newtask = module.modulename + ":" + packagetype + ":" + packagename + ":" + str(operation)
-        if not newtask in self.currenttasks[module]:
-            self.currenttasks[module.modulename][newtask] = {"type": "source", "module": module, "packagename": packagename, "operation": operation, "progress": 0, "directto": "", "pkginfo": packageinfo, "source": source, "subsource": subsource, "bonuses": []}
-            self.overalltasksorder[newtask] = self.currenttasks[module.modulename][newtask]
-            
-        self.begin_tasks()
-    
-        
-    def cancel_task(self, modulename, packagetype, packagename): #Cancel task
-        #TODO: Figure out redoing this so that one can do this for source tasks and package file tasks
-        for item in self.currenttasks[modulename]:
-            if item.split(":")[:-1] == [modulename, packagetype, packagename]:
-                targettask = self.currenttasks[modulename][item]
-                break #Exit the loop
-        if self.currenttask[modulename] == self.currenttasks[modulename][item]:
-            print("TASKS DEBUG ("+module.humanreadabletitle+"): Couldn't cancel task - task is already in progress")
-            return
-        self.currenttasks[modulename].pop(item)
-        self.overalltasksorder.pop(item)
-        print("TASKS DEBUG ("+modulename+"): Cancelled a task")
-        
-        self.storebrain.gui_module.refresh_taskslist()
             
         
-    def begin_tasks(self):
-        self.storebrain.gui_module.refresh_taskslist()
+    def begin_unconfirmed_tasks(self):        
+        thread = Thread(target=self._begin_unconfirmed_tasks,
+                        args=())
+        thread.daemon = True
+        thread.start()
         
-        for module in self.currenttasks: #Initiate tasks working for all modules
-            thread = Thread(target=self._begin_tasks,
-                            args=(module,))
-            thread.daemon = True
-            thread.start()
-        
-    def _begin_tasks(self, module):
-        if self.tasksrunning[module] == True:
+    def _begin_unconfirmed_tasks(self):
+        if self.confirming_tasks == True:
             return #It's already running, don't bother running it again
         
-        self.tasksrunning[module] = True
-        while self.currenttasks[module] != {}:
+        self.confirming_tasks = True
+        tasksdonethisloop = 1
+        
+        while tasksdonethisloop != 0:
+            tasksdonethisloop = 0
+            for item in self.tasks["order"]:
+                if self.tasks["order"][item].status == 0:
+                    tasksdonethisloop += 1
+                    
+                    #TODO: Make call to module to get package changes made
+                    itemsadded, itemsupdated, itemsremoved, bonusoptions = {"mozilla-firefox"}, {}, {}, {"ice-extra-darkreader-chromium"} #FIXME: Test values
+                    
+                    response, bonusids = self.storeAPI.showTaskConfirmation(self.tasks["order"][item], itemsadded, itemsupdated, itemsremoved, bonusoptions)
+                    
+                    if response == False:
+                        self.storeAPI.cancelTask(item) #Cancel if No
+                        continue #Skip to next loop item
+                    
+                    self.tasks["order"][item].bonusids = bonusids #Set tasks's bonuses
+                    self.tasks["order"][item].status = 1 #Set status to Pending (confirmed) as well
+                    
+                    #Refresh item state in GUI to address the state change
+                    self.storeAPI.reloadPkgStates([self.tasks["order"][item].moduleid], [self.tasks["order"][item].itemid])
             
-            if self.dontcontinue == True:
-                #Abort loop if we're out of locked tasks list items
-                break
             
-            #Get the task's name
-            targettaskname = list(self.currenttasks[module].keys())[0]
+        self.confirming_tasks = False
+        print("TASKS DEBUG ("+module+"): unconfirmed tasks is all done, returning.")
             
-            self.do_task(targettaskname, self.currenttasks[module][targettaskname], module, partial(self.set_progress, self.currenttasks[module][targettaskname]), self.completion_status_callback)
-            
-            self.storebrain.gui_module.refresh_taskslist() #FIXME: This gets called way too often
+        
+    def begin_tasks(self):        
+        for moduleid in self.tasks: #Initiate tasks working for all modules
+            if moduleid != "order": #Skip the 'order' variable
+                thread = Thread(target=self._begin_tasks,
+                                args=(moduleid,))
+                thread.daemon = True
+                thread.start()
+        
+    def _begin_tasks(self, moduleid):
+        if not moduleid in self.doing_tasks:
+            return #No tasks to do
+        if self.doing_tasks[moduleid] == True:
+            return #It's already running, don't bother running it again
+        
+        self.doing_tasks[moduleid] = True
+        tasksdonethisloop = 1
+        
+        while tasksdonethisloop != 0:
+            tasksdonethisloop = 0
+            for item in self.tasks["order"]:
+                if self.tasks["order"][item].status == 1 and self.tasks["order"][item].moduleid == moduleid:
+                    tasksdonethisloop += 1
+                    
+                    self.do_task(item)
+                    
+                    #Delete task now it's finished
+                    self.storeTasksAPI.deleteTask(item)
+                    
+                    #Refresh item state in GUI to address the task completion
+                    self.storeAPI.reloadPkgStates([self.tasks["order"][item].moduleid], [self.tasks["order"][item].itemid])
             
             
         self.tasksrunning[module] = False
         print("TASKS DEBUG ("+module+"): currenttasks is all done, returning.")
         
         
-    def do_task(self, taskname, task, module, progress_callback, completion_status_callback):
-        self.currenttask[module][taskname] = task
+    def do_task(self, taskid):
+        currenttask = self.tasks["order"][taskid]
         
-        self.storebrain.gui_module.refresh_tasksstatus() #TODO: Move to Brain API
+        currenttask.status = 4 #Set status to In Progress
         
-        #FIXME: Needs GUI connections
+        #Refresh item state in GUI to address the task completion
+        self.storeAPI.reloadPkgStates([currenttask.moduleid], [currenttask.itemid])
         
         print("TASKS DEBUG: Working on", taskname)
         try:
-            if task["type"] == "item":
-                if task["operation"] == 0:
-                    task["module"].task_install_package(task, progress_callback)
-                elif task["operation"] == 1:
-                    task["module"].task_update_package(task, progress_callback)
-                elif task["operation"] == 2:
-                    task["module"].task_remove_package(task, progress_callback)
-            elif task["type"] == "packagefile":
-                pass
-            elif task["type"] == "source":
-                pass
-                #TODO
-            
-            #do_task is ran via a Thread, so we do the code in a non-threaded way.
-            print("TASKS DEBUG: Finished", taskname)
-            thread = Thread(target=completion_status_callback,
-                            args=(task, True))
+            self.storeTasksAPI.runTask(currenttask)
         except Exception as exceptionstr:
-            print("TASKS DEBUG: TASK FAILED:", taskname+":", exceptionstr)
-            thread = Thread(target=completion_status_callback,
-                            args=(task, False, exceptionstr))
+            self.storeTasksAPI.showFailure(currenttask, exceptionstr)
         
         thread.daemon = True
         thread.start()
         
-        task["module"].task_cleanup(task)
-        
-        self.currenttasks[module].pop(taskname)
-        self.overalltasksorder.pop(taskname)
-        self.currenttasksupdates.pop(taskname, None)
-        self.currenttask[module] = {}
-        
-        #TODO: Move to Brain API too
-        self.storebrain.gui_module.refresh()
-    
-    
-    def completion_status_callback(self, task, completed, output=""):
-        #TODO
-        if completed == False:
-            #self.storebrain.gui_module.on_task_fail(task, output)
-            pass
-        else:
-            #self.storebrain.gui_module.on_task_success(task, output)
-            pass
-        
-    def set_progress(self, task, progress):
-        task["progress"] = progress
-        self.storebrain.gui_module.refresh_tasksstatus()
-        print("TASKS DEBUG ("+task["packagename"]+"): progress is now", progress)
+        self.storeTasksAPI.cleanup_module(currenttask.moduleid)
 
 
 class StoreBrain():
@@ -329,15 +270,12 @@ class StoreBrain():
         with open(modulepath + "/storemodule.py", 'r') as modulecheck:
             check = False
             for i in modulecheck:
-                if "class main(" in i:
+                if "class module(" in i:
                     check = True
             if check == False:
                 raise StoreBrainException("Invalid module")
         
         #Create new module and return it
-        if 'module' in sys.modules:
-            sys.modules.pop('module')
-        
         result = StoreModuleContainer(modulepath)
         
         sys.path.insert(1, modulepath)
@@ -346,17 +284,14 @@ class StoreBrain():
             import storemodule
             importlib.reload(storemodule) #Otherwise only one module will be loaded across all variables
             
-            if storemodule.should_load() == True:
-                #Imports the 'module.py' file of the folder
-                result.module = storemodule.main(self)
-                result.main = result.module #TODO: Once everything is migrated, remove the storebrain variable entirely, and rename 'main' to 'module'
-                result.main.modulename = modulepath.split("/")[-1] #TODO: Remove in favour of moduleid
-                
-                #Now give the module an ID so Store can store it later
-                result.moduleid = modulepath.split("/")[-2] + "-" + modulepath.split("/")[-1]
+            result = storemodule.module(self.genericapi)
+
+            #Now give the module an ID so Store can store it later
+            result.moduleid = modulepath.split("/")[-2] + "-" + modulepath.split("/")[-1]
         except Exception as e:
             exceptionstr = e
             
+        #Now remove it from path, irregardless
         sys.path.remove(modulepath)
         
         if exceptionstr != "":
@@ -375,47 +310,40 @@ class StoreBrain():
                 module = None
                 try:
                     module = self.new_module(path)
-                    self.localpkgmgmt_modules[dir_name] = module.main
+                    self.modules[module.moduleid] = module
+                    #TODO: self.modules["localpackagemgmt-"+dir_name].storemanagementapi = self.managementapi
                 except Exception as e:
                     print("Failed to load local package management module %s: \n%s\n" % (dir_name, e))
+
             for dir_name in sorted(os.listdir(MODULES_DIR+"/packagemgmt")):
                 path = os.path.join(MODULES_DIR+"/packagemgmt", dir_name)
                 module = None
                 try:
                     module = self.new_module(path)
-                    self.pkgmgmt_modules[dir_name] = module.main
+                    self.modules[module.moduleid] = module
+                    #TODO: self.modules["packagemgmt-"+dir_name].storemanagementapi = self.managementapi
                 except Exception as e:
                     print("Failed to load package management module %s: \n%s\n" % (dir_name, e))
-            for dir_name in sorted(os.listdir(MODULES_DIR+"/packageinfo")):
-                path = os.path.join(MODULES_DIR+"/packageinfo", dir_name)
-                module = None
-                try:
-                    module = self.new_module(path)
-                    self.pkginfo_modules[dir_name] = module.main
-                except Exception as e:
-                    print("Failed to load package information module %s: \n%s\n" % (dir_name, e))
+
             for dir_name in sorted(os.listdir(MODULES_DIR+"/search")):
                 path = os.path.join(MODULES_DIR+"/search", dir_name)
                 module = None
                 try:
                     module = self.new_module(path)
-                    self.search_modules[dir_name] = module.main
+                    self.modules[module.moduleid] = module
+                    #No extra APIs for search.
                 except Exception as e:
                     print("Failed to load search module %s: \n%s\n" % (dir_name, e))
-            for dir_name in sorted(os.listdir(MODULES_DIR+"/sourceinfo")):
-                path = os.path.join(MODULES_DIR+"/sourceinfo", dir_name)
-                module = None
-                try:
-                    module = self.new_module(path)
-                    self.sourceinfo_modules[dir_name] = module.main
-                except Exception as e:
-                    print("Failed to load source information module %s: \n%s\n" % (dir_name, e))
+
+            #TODO: Move source information module to package management modules
+
             for dir_name in sorted(os.listdir(MODULES_DIR+"/settings")):
                 path = os.path.join(MODULES_DIR+"/settings", dir_name)
                 module = None
                 try:
                     module = self.new_module(path)
-                    self.settings_modules[dir_name] = module.main
+                    self.modules[module.moduleid] = module
+                    #TODO: self.modules["settings-"+dir_name].storemanagementapi = self.managementapi
                 except Exception as e:
                     print("Failed to load settings module %s: \n%s\n" % (dir_name, e))
                     
@@ -426,169 +354,294 @@ class StoreBrain():
         #Get full information about an item from the most recommended source it is available in
         pass #TODO: Move current code into here
         #Also TODO: Check item availability first, then go by source order of what is available to find the information
+
+    def APIgetSpecificItemInformation(self, itemid, moduleid, sourceid, subsourceid):
+        #Get information about an item from the specified source
+        pass #TODO: Move current code into here
+
+    def APIgetAvailableSources(self, itemid):
+        #Get the sources for this package id {sourcename: subsources]}
+        pass #TODO: Move current code into here
+
         
     def APIcancelTask(self, taskid):
         #Cancels the task of that Task ID
         # If it isn't found or cannot be cancelled, throw an exception.
-        pass #TODO
-    
+        if taskid not in self.taskManager.tasks:
+            raise StoreBrainException(_("%s does not exist as a task. Perhaps the task finished?") % taskid)
+        if self.taskManager.tasks[taskid].cancellable == False:
+            raise StoreBrainException(_("The task %s cannot be cancelled.") % taskid)
+        #Get the module to cancel the task, otherwise
+        try:
+            self.modules[self.taskManager.tasks[taskid].moduleid].taskCancel(taskid)
+        except Exception as e:
+            raise StoreBrainException(_("The task {0} could not be cancelled as the following error occurred while cancelling it: {1}").format(taskid, e))
+        #Now delete the task since it was cancelled
+        self.storeTasksAPI.deleteTask(taskid)
+
+
     def APIinstallApp(self, itemid, moduleid, sourceid, subsourceid):
         #Installs the item of itemid from sourceid : subsourceid, using moduleid
-        pass #TODO
-    
+        self.taskManager.add_task(itemid, moduleid, 0, sourceid, subsourceid, "", "", itemid, False)
+
     def APIupdateApp(self, itemid, moduleid, sourceid, subsourceid):
         #Same as APIinstallApp, except it triggers an Update task instead
-        pass #TODO
-    
+        self.taskManager.add_task(itemid, moduleid, 2, sourceid, subsourceid, "", "", itemid, False)
+
     def APIremoveApp(self, itemid, moduleid, sourceid, subsourceid):
         #Same as APIinstallApp, except it triggers a Remove task instead
-        pass #TODO
-    
+        self.taskManager.add_task(itemid, moduleid, 1, sourceid, subsourceid, "", "", itemid, False)
+
     def APIaddSource(self, sourceid, moduleid):
         #Tells the module of moduleid matching to add the source of ID sourceid
-        pass #TODO
-    
+        self.taskManager.add_task(sourceid, moduleid, 0, "", "", "", "", itemid, False)
+
     def APIremoveSource(self, sourceid, moduleid):
         #Same as APIaddSource, except it removes it instead
-        pass #TODO
-    
-    def APIshowTaskConfirmation(self, itemid, idsadded, idsupdated, idsremoved):
+        self.taskManager.add_task(sourceid, moduleid, 1, "", "", "", "", itemid, False)
+
+    def APIshowTaskConfirmation(self, taskbody, idsadded, idsupdated, idsremoved):
         #Tells GUI to show task confirmation dialog, and then waits for value (True/False), alongside a bonus installs list, to be returned.
         #FIXME: Uh... how DO we even hold code in this context until we return a value from user input?
-        pass #TODO
-    
+        return self.modules[self.GUImodule].showTaskConfirmation(taskbody, idsadded, idsupdated, idsremoved)
+
     def APIgotoID(self, itemid):
         #Tells GUI to go to the 'package page' for ID itemid, that's it.
-        pass #TODO
-    
+        self.modules[self.GUImodule].gotoID(itemid)
+
     def APIrefreshMemory(self):
         #Store calls refreshMemory on EVERY single module that Store knows of
-        pass #TODO
-    
+        for module in self.modules:
+            self.modules[module].refreshMemory()
+
     def APIreloadStore(self):
         #Straight up restarts Store
         pass #TODO
-    
+
     def APIreloadPages(self):
         #Reloads every single Store GUI page that's loaded right now
-        
-        
-        self.reloadPkgStates("all")
-        pass #TODO
-    
+        self.storeAPI.reloadPkgStates(["all"])
+        self.modules[self.GUImodule].reloadPages()
+
     def APIreloadPkgStates(self, moduleids, packageids=["all"]):
         #moduleids: List of all module IDs to affect
         #packageids: Optional - List of all package IDs to affect
-        
+
         #Refresh install status of all packageids from all the sources belonging managed the moduleids
         #Also uncache any install statuses for them that are cached
-        pass #TODO
-    
+
+        if moduleids == "all":
+            moduleidsloop = self.modules
+        else:
+            moduleidsloop = moduleids
+
+        for module in moduleids:
+            self.modules[module].reloadPkgStates(packageids)
+
     def APIfullUpdate(self):
         #Run updateApp on every single updatable item
         #TODO: Consolidate all changes into big confirmation
         pass #TODO
-    
+
     def APIitemSearch(self, searchstring):
         #For each Search module, do a search with searchstring as the search term
         # Then, sort by numeralphabetical based on the human-readable names, though prior
         #Finally, return the itemids in a sorted dictionary with the priorities
         #TODO: Priority levels: ID match, Exact, ID starts with, Starts with, Ends with, ID ends with
+        results = {"idmatch": [], "exact": [], "idstarts": [], "starts": [], "ends": [], "idends": []}
+
+        for module in self.search_modules:
+            moduletemp = self.search_modules[module].getResults(searchterm)
+            moduletemp = dict(moduletemp) #For some reason, not doing this pops it inside the module(s) too on the next line
+            moduletemp.pop('status', None)
+            try:
+                for item in results:
+                    results[item] = self.dict_recurupdate(results[item], moduletemp[item])
+            except Exception as e:
+                #TODO: API for generic errors
+                print("DEBUG: {0} failed to search due to the following exception or missing value: {1}".format(module, e))
+
+        #FIXME: Is there not a more efficient way to remove duplicate results? (proritise is over begins with, contains and ends with, begins with over contains and ends with, and contains over ends with)
+        #for result in overall_results["exactmatch"]:
+            #if result in overall_results["begins"]:
+                #overall_results["begins"].pop(result, None)
+            #elif result in overall_results["contains"]:
+                #overall_results["contains"].pop(result, None)
+            #elif result in overall_results["ends"]:
+                #overall_results["ends"].pop(result, None)
+        #for result in overall_results["begins"]:
+            #if result in overall_results["contains"]:
+                #overall_results["contains"].pop(result, None)
+            #elif result in overall_results["ends"]:
+                #overall_results["contains"].pop(result, None)
+        #for result in overall_results["contains"]:
+            #if result in overall_results["ends"]:
+                #overall_results["ends"].pop(result, None)
+
+        return results
+
+
+    def APIgetAutoUpdateOn(self, moduleid):
+        #Module returns true/false for if automatic updates are on
         pass #TODO
-    
-    
+
+    def APIgetAutoUpdateBandwidthOn(self, moduleid):
+        #Module returns float for automatic updates bandwidth
+        pass #TODO
+
+
+    # API functions passed from Store into TasksAPI
+    ##############################################
+    def APIaddConfirmedTask(self, itemid, moduleid, operation, sourceid, subsourceid, becauseof="", dependson="", directto=""):
+        #Add a task but make it confirmed right from the start
+        self.taskManager.add_task(itemid, moduleid, operation, sourceid, subsourceid, becauseof, dependson, directto, True)
+
+    def APIdeleteTask(self, taskid):
+        #Delete the task matching taskid
+        moduleid = self.taskManager.tasks["order"][taskid].moduleid
+        itemid = self.taskManager.tasks["order"][taskid].itemid
+        self.taskManager.tasks[moduleid].pop(taskid, None)
+        self.taskManager.tasks["order"].pop(taskid, None)
+        self.storeAPI.reloadPkgStates([moduleid], [itemid])
+
+    def APIrunTask(self, taskbody):
+        #Run a task, matching taskbody
+        if taskbody.operation == 0: #Install/Add
+            self.modules[moduleid].task_install_package(taskbody)
+        elif taskbody.operation == 1: #Remove
+            self.modules[moduleid].task_remove_package(taskbody)
+        elif taskbody.operation == 2: #Update
+            self.modules[moduleid].task_update_package(taskbody)
+
+    def APIshowFailure(self, taskbody, exceptionstr):
+        #Show a failure dialog in the GUI to indicate that an item failed to install/remove/update/etc. and indicate the why
+        print("DEBUG: {0} failed: {1}".format(taskbody.moduleid+":"+taskbody.itemid+":"+taskbody.sourceid+":"+taskbody.subsourceid+":"+str(taskbody.operation), exceptionstr)) #FIXME: Temporary method
+        pass #TODO
+
+    def APIcleanupModule(self, moduleid):
+        #Trigger post-task cleanup in the module matching moduleid
+        self.modules[moduleid].cleanupModule()
+
+
     # API functions passed from Store into SettingsAPI
     ##############################################
     def APIchangeAutoUpdateOn(self, moduleid, newvalue):
         #Module changes automatic updates value to newvalue (bool)
         pass #TODO
-    
-    def APIgetAutoUpdateOn(self, moduleid):
-        #Module returns true/false for if automatic updates are on
+
+    def APIchangeAutoUpdateBandwidthOn(self, moduleid, newfloat):
+        #Module changes automatic updates bandwidth to newfloat (float)
         pass #TODO
-    
+
     def APIgetAutoUpdateSupported(self, moduleid):
         #Get module's value for autoUpdateSupported
         pass #TODO
-    
-    def APIchangeAutoUpdateBandwidth(self, moduleid, newfloat):
-        #Module changes automatic updates bandwidth to newfloat (float)
-        pass #TODO
-    
-    def APIgetAutoUpdateBandwidth(self, moduleid):
-        #Module returns float for automatic updates bandwidth
-        pass #TODO
-    
+
     def APIgetAutoUpdateBandwidthSupported(self, moduleid):
         #Get module's value for autoUpdateBandwidthSupported
         pass #TODO
-    
+
     def APIgetPackageMgmtModulesInfo(self, moduleid="all"):
         #Gets dictionary of information about the package module matching moduleid, or if all then all the package modules
         pass #TODO
-    
-    
+
+
     # Main functionality of Store Brain
     ##############################################
     def __init__(self):
-        self.tasks = StoreTasks()
-        self.tasks.storebrain = self
-        
+        self.taskManager = TaskManager()
+
         self.last_module_path = ""
-        self.module_storage = {}
+        self.modules = {}
         #TODO: Store each module with IDs, such as package module 'apt' having an ID of pmapt
         #Then, have the module storage be something along the lines of {..., 'pmapt': self.new_module(path), ...} so the API knows which module to call for what
-        
-        
-        
-        
-        self.gui_module = self.new_module("/usr/lib/feren-storium/modules/gui/gtk3-demo").main
-        # TODO: Have it be determined by gsettings
-        #self.settings_gui_module = self.new_module(self, "/usr/lib/feren-storium/modules/settings-gui/gtk3-demo").main
-        # TODO: Have it be determined by gsettings
-        self.localpkgmgmt_modules = {}
-        self.pkgmgmt_modules = {}
-        self.pkginfo_modules = {}
-        self.search_modules = {}
-        self.sourceinfo_modules = {}
-        self.settings_modules = {}
-        
-        #For Search modules
-        self.current_search = ""
-        
-        
-        #For modules and GUI - mainly source selection dropdown
-        self.current_package_viewed = ""
-        self.current_module_selected = ""
-        self.current_pkgsource_selected = ""
-        self.current_pkgsubsource_selected = ""
-        
-        
+
+        #Prepare the APIs and map the calls:
+        # Generic
+        self.genericapi = StoreGenericAPI()
+        self.genericapi.getDefaultItemInformation = self.APIgetDefaultItemInformation
+        self.genericapi.getSpecificItemInformation = self.APIgetSpecificItemInformation
+        self.genericapi.getAvailableSources = self.APIgetAvailableSources
+        self.genericapi.cancelTask = self.APIcancelTask
+        self.genericapi.installApp = self.APIinstallApp
+        self.genericapi.updateApp = self.APIupdateApp
+        self.genericapi.removeApp = self.APIremoveApp
+        self.genericapi.addSource = self.APIaddSource
+        self.genericapi.removeSource = self.APIremoveSource
+        self.genericapi.showTaskConfirmation = self.APIshowTaskConfirmation
+        self.genericapi.gotoID = self.APIgotoID
+        self.genericapi.refreshMemory = self.APIrefreshMemory
+        self.genericapi.reloadStore = self.APIreloadStore
+        self.genericapi.reloadPages = self.APIreloadPages
+        self.genericapi.reloadPkgStates = self.APIreloadPkgStates
+        self.genericapi.fullUpdate = self.APIfullUpdate
+        self.genericapi.itemSearch = self.APIitemSearch
+        self.genericapi.getAutoUpdateOn = self.APIgetAutoUpdateOn
+        self.genericapi.getAutoUpdateBandwidthOn = self.APIgetAutoUpdateBandwidthOn
+
+        # Tasks
+        self.tasksapi = StoreTasksAPI()
+        self.tasksapi.addConfirmedTask = self.APIaddConfirmedTask
+        self.tasksapi.deleteTask = self.APIdeleteTask
+        self.tasksapi.runTask = self.APIrunTask
+        self.tasksapi.showFailure = self.APIshowFailure
+        self.tasksapi.cleanupModule = self.APIcleanupModule
+
+        # Settings
+        self.settingsapi = StoreSettingsAPI()
+        self.settingsapi.changeAutoUpdateOn = self.APIchangeAutoUpdateOn
+        self.settingsapi.getAutoUpdateSupported = self.APIgetAutoUpdateSupported
+        self.settingsapi.changeAutoUpdateBandwidthOn = self.APIchangeAutoUpdateBandwidthOn
+        self.settingsapi.getAutoUpdateBandwidthSupported = self.APIgetAutoUpdateBandwidthSupported
+        self.settingsapi.getPackageMgmtModulesInfo = self.APIgetPackageMgmtModulesInfo
+
+        #Load the GUI while it loads
+        self.modules["gui"] = self.new_module("/usr/lib/feren-storium/modules/gui/gtk3-demo")
+        # TODO: Have GUI be determined by gsettings
+
+        self.post_init()
+        self.modules["gui"].init()
+
+
+    def post_init(self):
+        thread = Thread(target=self._post_init,
+                        args=())
+        thread.daemon = True
+        thread.start()
+
+    def _post_init(self):
+        #Load in the modules
+        # TODO: Have the loaded modules be determined by gsettings
+        self.load_modules()
+
+
         #Headers information for requests
         self.reqHeaders = {'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.114 Safari/537.36'}
-        
-        
+
+
         self.tempdir = "/tmp/feren-storium-"+getpass.getuser()
         #Make the folder if it doesn't exist
         if not os.path.isdir(self.tempdir):
             os.mkdir(self.tempdir)
         if not os.path.isdir(self.tempdir + "/icons"):
             os.mkdir(self.tempdir + "/icons")
-        
-        #TODO: Remove this later on
-        self.debug_module = self.new_module("/usr/lib/feren-storium/modules/tempdebug").main
-        
-        #Name of 'generic' modules, as Store's generic modules play a big part in it
-        self.generic_module = "generic"
-        
-        self.load_modules()
-        
-        self.refresh_modules()
-        
-        # For search and whatnot
-        self.refresh_overall_package_data()
-                
-                
+
+
+
+
+        #TODO: Use idle_add to exit the splash screen and load the pages
+        #GLib.idle_add(self.__post_init)
+
+
+
+
+
+
+
+
+
+
+
     def refresh_modules(self):
         for module in self.localpkgmgmt_modules:
             try:
@@ -946,28 +999,10 @@ class StoreBrain():
                 return iconuri.split('file://')[1]
             else:
                 raise StoreBrainException(_("Failed to retrieve the icon of "+packagename+" because: File Not Found"))
-            
-        
-        
-        
-    def run_module(self, module):
-        thread = Thread(target=self._run_module,
-                        args=(module,))
-        thread.daemon = True
-        thread.start()
 
-    def _run_module(self, module):
-        GLib.idle_add(self.__run_module, module)
-        
-    def __run_module(self, module):
-        module.init()
         
     def run(self):
         signal.signal(signal.SIGINT, signal.SIG_DFL)
-        
-        self.run_module(self.debug_module)
-        
-        self.gui_module.init() #TODO: Move this to before the other modules run so we can display a splash screen during loading
      
      
 

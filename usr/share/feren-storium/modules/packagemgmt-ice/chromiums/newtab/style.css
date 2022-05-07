@@ -1,0 +1,124 @@
+* {
+    margin: 0;
+    padding: 0;
+    text-decoration: none;
+    font-family: Inter, Arial, Helvetica, sans-serif;
+    color: white;
+    font-size: 10pt;
+    cursor: default;
+}
+
+input[type="text"] {
+    cursor: text;
+}
+
+a {
+    font-weight: 600;
+}
+
+placeholder {
+	color: rgba(255, 255, 255, 0.5);
+}
+
+::-webkit-input-placeholder {
+	color: rgba(255,255,255,0.5);
+}
+
+:-moz-placeholder { /* Firefox 18- */
+	color: rgba(255,255,255,0.5);
+}
+
+::-moz-placeholder {  /* Firefox 19+ */
+	color: rgba(255,255,255,0.5);
+}
+
+:-ms-input-placeholder {
+	color: rgba(255, 255, 255, 0.5);
+}
+
+body {
+	-webkit-text-size-adjust: none;
+	-webkit-user-select: none;
+}
+
+body, html {
+    height: 100%;
+}
+
+.parallax {
+    /* The image used */
+    background-image: "";
+    background-color: #212121;
+
+    /* Set a specific height */
+    height: 100%;
+
+    /* Create the parallax scrolling effect */
+    background-attachment: fixed;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: cover;
+}
+
+.parallax::before {
+    -webkit-backdrop-filter: blur(70px);
+    backdrop-filter: blur(70px);
+    background: rgba(0, 0, 0, 0.6);
+    content: "";
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 0;
+}
+
+.leftsection {
+    position: fixed;
+    margin: 0 auto;
+    top: 50%;
+    left: 14%;
+    z-index: 1;
+    
+    display: flex;
+    align-items: center;
+}
+
+.leftsectlabels {
+    display: flex;
+    flex-direction: column;
+    align-items: start;
+    margin: 0 10px;
+}
+.leftsectlabels p {
+    margin: 2px 0;
+}
+
+#icehomebtn img {
+    max-width: 48px;
+    max-height: 48px;
+    width: 48px;
+    height: 48px;
+    border-radius: 4px;
+    /*background: linear-gradient(to bottom, #ffffff4a, #ffffff3b) border-box !important;
+    border: 1px solid #ffffff85;*/
+}
+
+#iceid {
+}
+
+#returntip {
+    opacity: 0.7;
+}
+
+.bottomleftfooter {
+    position: absolute;
+    left: 25px;
+    bottom: 25px;
+    z-index: 1;
+    
+    display: flex;
+    align-items: center;
+    
+}
