@@ -490,6 +490,36 @@ class StoreBrain():
         pass #TODO
 
 
+    def APIgetItemIDs(self, categories):
+        #Gets all available item IDs from each module, belonging to the category ID category provides (if ['all'], all available item IDs without filtering), and returns them as a dictionary of listings per category
+        result = {}
+        for item in categories:
+            result[item] = []
+
+
+        return result #TODO
+
+    def APIgetFallbackIconLocation(self, iconlocal, iconuri, itemid): #TODO: Move icons from /tmp to ~/.cache, and set a disk space cap on it
+        #In case the icon set cannot be used to supply an icon:
+        # try to use the file path provided by iconlocal to provide the icon image
+        # otherwise try retrieving it from iconuri and then returning that filepath
+        # if all else fails, return None
+
+        if iconlocal != "" and os.path.isfile(iconlocal):
+            return iconlocal
+        else:
+            try:
+                #Download the application icon
+                if not os.path.isfile(self.cachedir+"/icons/"+packagename):
+                    r=requests.get(iconuri, headers=self.reqHeaders)
+                    with open(self.cachedir+"/icons/"+packagename, "wb") as f:
+                        f.write(r.content)
+                return self.cachedir+"/icons/"+packagename
+            except Exception as e:
+                print(_("Failed to retrieve the icon of "+packagename+" because: %s") % e)
+                return None
+
+
     # API functions passed from Store into TasksAPI
     ##############################################
     def APIaddConfirmedTask(self, itemid, moduleid, operation, sourceid, subsourceid, becauseof="", dependson="", directto=""):
@@ -578,6 +608,7 @@ class StoreBrain():
         self.genericapi.itemSearch = self.APIitemSearch
         self.genericapi.getAutoUpdateOn = self.APIgetAutoUpdateOn
         self.genericapi.getAutoUpdateBandwidthOn = self.APIgetAutoUpdateBandwidthOn
+        self.genericapi.getItemIDs = self.APIgetItemIDs
 
         # Tasks
         self.tasksapi = StoreTasksAPI()
@@ -599,6 +630,13 @@ class StoreBrain():
         self.modules["gui"] = self.new_module("/usr/lib/feren-storium/modules/gui/gtk3-demo")
         # TODO: Have GUI be determined by gsettings
 
+        self.cachedir = os.path.expanduser("~")+"/.cache/feren-storium"
+        #Make the folder if it doesn't exist
+        if not os.path.isdir(self.cachedir):
+            os.mkdir(self.cachedir)
+        if not os.path.isdir(self.cachedir + "/icons"):
+            os.mkdir(self.cachedir + "/icons")
+
         self.post_init()
         self.modules["gui"].init()
 
@@ -617,14 +655,6 @@ class StoreBrain():
 
         #Headers information for requests
         self.reqHeaders = {'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.114 Safari/537.36'}
-
-
-        self.tempdir = "/tmp/feren-storium-"+getpass.getuser()
-        #Make the folder if it doesn't exist
-        if not os.path.isdir(self.tempdir):
-            os.mkdir(self.tempdir)
-        if not os.path.isdir(self.tempdir + "/icons"):
-            os.mkdir(self.tempdir + "/icons")
 
 
 
@@ -980,25 +1010,6 @@ class StoreBrain():
     
     def set_progress(self, packagename, packagetype, value): #TODO: Change into being part of Tasks management
         self.gui_module.set_progress(packagename, packagetype, value)
-        
-        
-    def get_icon(self, iconuri, packagename): #TODO: Move icons from /tmp to ~/.cache, and set a disk space cap on it
-        if not iconuri.startswith("file://"):
-            try:
-                #Download the application icon
-                if not os.path.isfile(self.tempdir+"/icons/"+packagename):
-                    r=requests.get(iconuri, headers=self.reqHeaders)
-                    with open(self.tempdir+"/icons/"+packagename, "wb") as f:
-                        f.write(r.content)
-                
-                return self.tempdir+"/icons/"+packagename
-            except Exception as e:
-                raise StoreBrainException(_("Failed to retrieve the icon of "+packagename+" because: %s") % e)
-        else:
-            if os.path.isfile(iconuri.split('file://')[1]):
-                return iconuri.split('file://')[1]
-            else:
-                raise StoreBrainException(_("Failed to retrieve the icon of "+packagename+" because: File Not Found"))
 
         
     def run(self):

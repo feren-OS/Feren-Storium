@@ -21,12 +21,12 @@ from queue import Queue, Empty
 ####Application icon
 class AppItemIcon(Gtk.Stack):
     
-    def __init__(self, get_icon_callback):
+    def __init__(self, storeapi):
         Gtk.Stack.__init__(self)
         GObject.threads_init()
         
         
-        self.get_icon_callback = get_icon_callback
+        self.storeapi = storeapi
         
         self.app_iconimg = Gtk.Image()
         self.app_iconimg_loading = Gtk.Spinner()
@@ -52,8 +52,10 @@ class AppItemIcon(Gtk.Stack):
         GLib.idle_add(self.set_visible_child, self.app_iconimg_loading_box)
         GLib.idle_add(self.app_iconimg_loading.start,)
         
-        try:
-            iconurilocat = self.get_icon_callback(iconuri, packagename)
+        try: #TODO: Try to get from icon set
+            #TODO: Make it get package information to determine icon data
+            iconurilocat = "/usr/share/icons/Inspire/256/apps/feren-store.png"
+            #iconurilocat = self.fallback_icon_callback(iconuri, packagename)
         except:
             #TODO: Change to store-missing-icon
             iconurilocat = "/usr/share/icons/Inspire/256/apps/feren-store.png"
@@ -69,17 +71,17 @@ class AppItemIcon(Gtk.Stack):
 ####Item button
 class AppItemButton(Gtk.Button):
     
-    def __init__(self, packagename, storebrain, showwarns=True, packageinfo={}):
+    def __init__(self, packagename, storeapi, showwarns=True, packageinfo={}):
         
         Gtk.Button.__init__(self)
-        self.storebrain = storebrain
+        self.storeapi = storeapi
         
         self.child_items = []
         
         if packageinfo == {}:
-            packageinfo = self.storebrain.get_item_info_default(packagename)
+            packageinfo = self.storeapi.get_item_info_default(packagename)
         
-        app_icon = AppItemIcon(self.storebrain.get_icon)
+        app_icon = AppItemIcon(self.storeapi)
         app_icon.set_icon(packageinfo["iconuri"], packagename)
         
         label_name = Gtk.Label(label=packageinfo["realname"])
@@ -122,10 +124,10 @@ class AppItemButton(Gtk.Button):
 ####Task Item button
 class TaskItemButton(Gtk.Button):
     
-    def __init__(self, taskid, storebrain, taskinfo={}):
+    def __init__(self, taskid, storeapi, taskinfo={}):
         
         Gtk.Button.__init__(self)
-        self.storebrain = storebrain
+        self.storeapi = storeapi
         
         self.taskinfo = taskinfo
         self.taskid = taskid
@@ -139,11 +141,11 @@ class TaskItemButton(Gtk.Button):
         packageinfo = {}
         
         if taskinfo == {}:
-            packageinfo = self.storebrain.get_item_info_default(packagename)
+            packageinfo = self.storeapi.get_item_info_default(packagename)
         else:
             packageinfo = taskinfo["pkginfo"]
         
-        app_icon = AppItemIcon(self.storebrain.get_icon)
+        app_icon = AppItemIcon(self.storeapi)
         app_icon.set_icon(packageinfo["iconuri"], packagename)
         
         label_name = Gtk.Label(label=packageinfo["realname"])
@@ -214,19 +216,19 @@ class TaskItemButton(Gtk.Button):
     
     
     #def on_cancelaction(self, gtk_widget): #Ununsed as the button hitbox of self overrides hitboxes of buttons inside self
-        #self.storebrain.tasks.cancel_task(self.taskinfo["module"].modulename, self.taskinfo["pkgtype"], self.taskinfo["packagename"])
+        #self.storeapi.tasks.cancel_task(self.taskinfo["module"].modulename, self.taskinfo["pkgtype"], self.taskinfo["packagename"])
 
 
 
 ####Application Details Header
 class AppDetailsHeader(Gtk.VBox):
 
-    def __init__(self, storebrain):
+    def __init__(self, storeapi):
         
         Gtk.Box.__init__(self)
-        self.storebrain = storebrain
+        self.storeapi = storeapi
         
-        self.app_icon = AppItemIcon(self.storebrain.get_icon)
+        self.app_icon = AppItemIcon(self.storeapi)
         
         self.app_title = Gtk.Label()
         self.app_title.set_label("APPLICATION TITLE")
@@ -291,7 +293,7 @@ class AppDetailsHeader(Gtk.VBox):
         thread.start()
     
     def _populate_sources(self, currentpackage):
-        self.source_ids, sourcenames = self.storebrain.get_sources(currentpackage)
+        self.source_ids, sourcenames = self.storeapi.get_sources(currentpackage)
         
         iface_list_store = Gtk.ListStore(GObject.TYPE_STRING)
         
@@ -314,7 +316,7 @@ class AppDetailsHeader(Gtk.VBox):
         thread.start()
     
     def _populate_subsources(self, currentpackage, sourceid):
-        self.subsource_ids, subsourcenames = self.storebrain.get_subsources(sourceid, currentpackage)
+        self.subsource_ids, subsourcenames = self.storeapi.get_subsources(sourceid, currentpackage)
         
         iface_list_store = Gtk.ListStore(GObject.TYPE_STRING)
         
@@ -367,7 +369,7 @@ class AppDetailsHeader(Gtk.VBox):
     def installapp_pressed(self, gtk_widget):
         #TODO: Confirmation and whatnot, let's just get the main event working first
         subsource = self.mv.current_subsource_viewed
-        self.storebrain.pkgmgmt_modules[self.mv.current_module_viewed].install_package(self.mv.current_item_viewed, self.mv.current_type_viewed, self.mv.current_source_viewed, self.mv.current_subsource_viewed)
+        self.storeapi.pkgmgmt_modules[self.mv.current_module_viewed].install_package(self.mv.current_item_viewed, self.mv.current_type_viewed, self.mv.current_source_viewed, self.mv.current_subsource_viewed)
 
     def installappnosource_pressed(self, gtk_widget):
         #TODO
@@ -375,12 +377,12 @@ class AppDetailsHeader(Gtk.VBox):
 
     def updateapp_pressed(self, gtk_widget):
         #TODO: Confirmation and whatnot, let's just get the main event working first
-        self.storebrain.pkgmgmt_modules[self.mv.current_module_viewed].update_package(self.mv.current_item_viewed, self.mv.current_type_viewed, self.mv.current_source_viewed, self.mv.current_subsource_viewed)
+        self.storeapi.pkgmgmt_modules[self.mv.current_module_viewed].update_package(self.mv.current_item_viewed, self.mv.current_type_viewed, self.mv.current_source_viewed, self.mv.current_subsource_viewed)
 
     def removeapp_pressed(self, gtk_widget):
         source = ""
         #TODO: Confirmation and whatnot, let's just get the main event working first
-        self.storebrain.pkgmgmt_modules[self.mv.current_module_viewed].remove_package(self.mv.current_item_viewed, self.mv.current_type_viewed, self.mv.current_source_viewed, self.mv.current_subsource_viewed)
+        self.storeapi.pkgmgmt_modules[self.mv.current_module_viewed].remove_package(self.mv.current_item_viewed, self.mv.current_type_viewed, self.mv.current_source_viewed, self.mv.current_subsource_viewed)
 
 
     def cancelapp_pressed(self, gtk_widget):
@@ -390,7 +392,7 @@ class AppDetailsHeader(Gtk.VBox):
         
     def _cancelapp_pressed(self, gtk_widget):
         GLib.idle_add(self.cancelapp_btn.set_sensitive, False)
-        self.storebrain.tasks.cancel_task(self.mv.current_module_viewed, self.mv.current_type_viewed, self.mv.current_item_viewed)
+        self.storeapi.tasks.cancel_task(self.mv.current_module_viewed, self.mv.current_type_viewed, self.mv.current_item_viewed)
     
         
     def update_buttons(self, status):
@@ -791,20 +793,20 @@ class AppMainView(Gtk.Stack):
             
         currentmodule, currenttype, currentsource = self.AppDetailsHeader.source_ids[self.AppDetailsHeader.app_source_dropdown.get_active()].split(":")
             
-        packageinfo = self.storebrain.get_generic_item_info(currentpackage, currenttype)
-        packageinfo = self.storebrain.dict_recurupdate(packageinfo, self.storebrain.get_item_info_specific(currentpackage, currenttype, currentsource))
+        packageinfo = self.storeapi.get_generic_item_info(currentpackage, currenttype)
+        packageinfo = self.storeapi.dict_recurupdate(packageinfo, self.storeapi.get_item_info_specific(currentpackage, currenttype, currentsource))
         
         self.add_source_information(packageinfo, currentpackage)
         
         GLib.idle_add(self.AppDetailsHeader.app_mgmt_progress.set_fraction, 0.0)
         
         currentstatus = None
-        if currentstatus == None and currentmodule in self.storebrain.tasks.currenttasks: #Check if package is in queue
-            for item in self.storebrain.tasks.currenttasks[currentmodule]:
+        if currentstatus == None and currentmodule in self.storeapi.tasks.currenttasks: #Check if package is in queue
+            for item in self.storeapi.tasks.currenttasks[currentmodule]:
                 if item.split(":")[2] == currentpackage:
                     currentstatus = 902
         if currentstatus == None:
-            currentstatus = self.storebrain.pkgmgmt_modules[currentmodule].get_status(currentpackage, currenttype, currentsource)
+            currentstatus = self.storeapi.pkgmgmt_modules[currentmodule].get_status(currentpackage, currenttype, currentsource)
         
         self.AppDetailsHeader.update_buttons(currentstatus)
         
@@ -840,10 +842,10 @@ class AppMainView(Gtk.Stack):
     
     def _populate_mainpage(self):
         #TODO: Split into sections
-        data = self.storebrain.pkginfo_modules[self.storebrain.generic_module].pkg_categoryids
+        data = self.storeapi.getItemIDs(["all"])
         for category in data:
             for pkgname in data[category]:
-                btn = AppItemButton(pkgname, self.storebrain, False)
+                btn = AppItemButton(pkgname, self.storeapi, False)
                 btn.connect("clicked", self._btn_goto_packageview, pkgname)
                 if category.startswith("ice-"):
                     GLib.idle_add(self.websitesitems.insert, btn, -1)
@@ -877,7 +879,7 @@ class AppMainView(Gtk.Stack):
                     
                     
                 else:                    
-                    btn = AppItemButton(item, self.storebrain, False)
+                    btn = AppItemButton(item, self.storeapi, False)
                     btn.connect("clicked", self._btn_goto_packageview, item)
                     GLib.idle_add(self.searchresults.insert, btn, -1)
             
@@ -910,20 +912,20 @@ class AppMainView(Gtk.Stack):
         GLib.idle_add(self.tasksitemscontainer.pack_start, self.tasksitems, True, True, 0)
         
         itemsdone = 0
-        if len(self.storebrain.tasks.overalltasksorder) == 0:
+        if len(self.storeapi.tasks.overalltasksorder) == 0:
             self.refreshing_tasklist_queue -= 1
             return #Don't continue if empty
-        while itemsdone < len(self.storebrain.tasks.overalltasksorder): #We can't use python3's normal iteration as the dict size changes causing a SizeChanged exception
-            if len(self.storebrain.tasks.overalltasksorder) == 0:
+        while itemsdone < len(self.storeapi.tasks.overalltasksorder): #We can't use python3's normal iteration as the dict size changes causing a SizeChanged exception
+            if len(self.storeapi.tasks.overalltasksorder) == 0:
                 self.refreshing_tasklist_queue -= 1
                 self._refresh_tasks() #Run again, as tasks have finished during this
                 return
             
-            taskname = list(self.storebrain.tasks.overalltasksorder.keys())[itemsdone]
-            task = self.storebrain.tasks.overalltasksorder[taskname]
+            taskname = list(self.storeapi.tasks.overalltasksorder.keys())[itemsdone]
+            task = self.storeapi.tasks.overalltasksorder[taskname]
         
             module, pkgtype, itemname = taskname.split(":")[0:3] #I guess python3 just omits the maximum ID, so 3 is used instead of 1 here (3 = operation id)
-            btn = TaskItemButton(taskname, self.storebrain, task)
+            btn = TaskItemButton(taskname, self.storeapi, task)
             btn.connect("clicked", self._btn_goto_packageview, itemname) #TODO: Teleportation to specific module
             GLib.idle_add(self.tasksitems.insert, btn, -1)
             
@@ -948,7 +950,7 @@ class AppMainView(Gtk.Stack):
         
         print("DEBUG: Refreshing tasks status")
         
-        if len(self.storebrain.tasks.overalltasksorder) == 0 or self.tasksitems == None:
+        if len(self.storeapi.tasks.overalltasksorder) == 0 or self.tasksitems == None:
             return #Don't continue if empty
         for flowbox in self.tasksitems.get_children():
             for item in flowbox.get_children():
@@ -956,7 +958,7 @@ class AppMainView(Gtk.Stack):
         
     
     def _refresh_taskstatus(self, item):
-        if len(self.storebrain.tasks.currenttask[item.taskinfo["module"].modulename]) != 0 and item.taskid == list(self.storebrain.tasks.currenttask[item.taskinfo["module"].modulename].keys())[0]:
+        if len(self.storeapi.tasks.currenttask[item.taskinfo["module"].modulename]) != 0 and item.taskid == list(self.storeapi.tasks.currenttask[item.taskinfo["module"].modulename].keys())[0]:
             status = 901
         else:
             status = 900
@@ -1007,15 +1009,15 @@ class AppMainView(Gtk.Stack):
         if self.searchbar.get_text() == "":
             self._populate_searchpage({'exactmatch': {}, 'begins': {}, 'contains': {}, 'ends': {}})
         else:
-            results = self.storebrain.item_search(self.searchbar.get_text())
+            results = self.storeapi.item_search(self.searchbar.get_text())
             self._populate_searchpage(results)
 
 
 
 ####Store Window
 class module(object):
-    def __init__(self, storebrain):
-        self.storebrain = storebrain
+    def __init__(self, storeapi):
+        self.storeapi = storeapi
 
         #systemstate.first_run = self._check_first_run()
         #systemstate.first_run = True
@@ -1031,7 +1033,7 @@ class module(object):
 
     def _build_app_post_splashscreen(self, mainwindow, maintoolbar, mv):
         # build rest of window
-        box_application_header = AppDetailsHeader(self.storebrain)
+        box_application_header = AppDetailsHeader(self.storeapi)
         #box_application_header.set_visible(False)
         box_application_header.parent_window = self.w
         # add the box to the parent window and show
@@ -1140,7 +1142,7 @@ class module(object):
         
         mv.header = header
         
-        mv.storebrain = self.storebrain
+        mv.storeapi = self.storeapi
         mv.modulebrain = self
         
         mv.connect("notify::visible-child", self.page_changed)

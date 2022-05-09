@@ -29,7 +29,7 @@ class module():
         gettext.install("feren-storium", "/usr/share/locale", names="ngettext")
         
         #Store APIs
-        self.storebrain = storebrain
+        self.storeapi = storeapi
 
         #Name to be used in Debugging output
         self.title = _("Ice Management Module")

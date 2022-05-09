@@ -1,0 +1,43 @@
+.UrlBar-AddressField .BookmarkButton,
+.UrlBar-AddressField .toolbar-insideinput {
+    display: none !important;
+}
+
+.UrlBar-AddressField {
+    background: none !important;
+    border: none !important;
+    outline: none !important;
+}
+
+.UrlField::before {
+    background: transparent;
+    content: "";
+    display: block;
+    position: absolute;
+    height: 100%;
+    width: 100%;
+    z-index: 9999;
+}
+
+.toolbar-mainbar .UrlBar-AddressField .SiteInfoButton:not(.insecure),
+.UrlFragment-Wrapper,
+.UrlFragment--Highlight {
+    fill: var(--colorFg) !important;
+    color: var(--colorFg) !important;
+    --HighlightColor: var(--colorFg) !important;
+    --LowlightColor: var(--colorFg) !important;
+}
+.color-behind-tabs-off .toolbar-mainbar .UrlBar-AddressField .SiteInfoButton:not(.insecure),
+.color-behind-tabs-off .UrlFragment-Wrapper,
+.color-behind-tabs-off .UrlFragment--Highlight {
+    fill: var(--colorAccentFg) !important;
+    color: var(--colorAccentFg) !important;
+}
+.UrlFragment-Wrapper--ShouldHighlight {
+    --HighlightColor: var(--colorFg) !important;
+    --LowlightColor: var(--colorFg) !important;
+}
+.color-behind-tabs-off .UrlFragment-Wrapper--ShouldHighlight {
+    --HighlightColor: var(--colorAccentFg) !important;
+    --LowlightColor: var(--colorAccentFg) !important;
+}
