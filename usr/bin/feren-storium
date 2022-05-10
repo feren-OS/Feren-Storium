@@ -290,13 +290,14 @@ class StoreBrain():
             result.moduleid = modulepath.split("/")[-2] + "-" + modulepath.split("/")[-1]
         except Exception as e:
             exceptionstr = e
-            
+
         #Now remove it from path, irregardless
         sys.path.remove(modulepath)
-        
+
         if exceptionstr != "":
             raise StoreBrainException(exceptionstr)
         else:
+            result.refresh_memory()
             return result
         
     #Load the initial modules
@@ -495,9 +496,13 @@ class StoreBrain():
         result = {}
         for item in categories:
             result[item] = []
+            for module in self.modules:
+                if module.startswith("packagemgmt-"):
+                    for cateresult in self.modules[module].getCategoryIDs(item):
+                        if cateresult not in result[item]:
+                            result[item].append(cateresult)
 
-
-        return result #TODO
+        return result
 
     def APIgetFallbackIconLocation(self, iconlocal, iconuri, itemid): #TODO: Move icons from /tmp to ~/.cache, and set a disk space cap on it
         #In case the icon set cannot be used to supply an icon:
@@ -637,8 +642,9 @@ class StoreBrain():
         if not os.path.isdir(self.cachedir + "/icons"):
             os.mkdir(self.cachedir + "/icons")
 
+        self.modules["gui"].prepareGUI()
         self.post_init()
-        self.modules["gui"].init()
+        self.modules["gui"].showGUIHold()
 
 
     def post_init(self):
@@ -664,7 +670,7 @@ class StoreBrain():
 
 
 
-
+        self.modules["gui"].GUILoadingFinished()
 
 
 

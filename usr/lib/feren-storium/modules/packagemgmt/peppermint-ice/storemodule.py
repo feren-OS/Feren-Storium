@@ -88,6 +88,15 @@ class module():
         
         
     #////Package Management////
+    def getCategoryIDs(self, categoryid):
+        #Get list of itemids in the category of categoryid and return that list
+        result = []
+        for itemid in self.json_storage["package-info/peppermint-ice"]:
+            if self.json_storage["package-info/generic"][itemid]["category"] == categoryid or "all" == categoryid:
+                result.append(itemid)
+        return result
+
+
     def getSources(self, pkgid):
         #TODO: Check package even has a Website Application source in the first place
         
@@ -876,17 +885,6 @@ class module():
     def build_categories_ids(self): #Build categories list for package IDs
         self.pkg_categoryids = {}
         #Do nothing else as this isn't a generic module
-        
-    def refresh_memory(self): # Function to refresh some memory values
-        self.memory_refreshing = True
-        
-        self.json_storage = {}
-        
-        for i in ["package-info/peppermint-ice"]:
-            with open("/usr/share/feren-storium/curated/" + i + "/data.json", 'r') as fp:            
-                self.json_storage[i] = json.loads(fp.read())
-        
-        self.memory_refreshing = False
                 
         
     def getPackageJSON(self):

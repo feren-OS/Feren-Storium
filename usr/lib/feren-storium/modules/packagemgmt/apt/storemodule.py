@@ -77,6 +77,15 @@ class module():
 
 
     #////Package Management////
+    def getCategoryIDs(self, categoryid):
+        #Get list of itemids in the category of categoryid and return that list
+        result = []
+        for itemid in self.json_storage["package-info/apt"]:
+            if self.json_storage["package-info/generic"][itemid]["category"] == categoryid or "all" == categoryid:
+                result.append(itemid)
+        return result
+
+
     def getSources(self, pkgid):
         #Get a list of sources available for use via this module, for each pkgtype {pkgtype: [sources]}
         # sources = [subsources]
