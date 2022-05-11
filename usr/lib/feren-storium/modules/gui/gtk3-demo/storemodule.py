@@ -159,11 +159,13 @@ class PageArea(Gtk.Stack):
         Gtk.Stack.__init__(self)
         self.guimain = guimain
 
+
+        #Main Page
         self.mainpage = Gtk.ScrolledWindow()
         self.mainpage.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
-
         mainpagesub = Gtk.VBox(spacing=8)
 
+        #Main Page: Application Listings
         appslabel_box = Gtk.Box()
         appslabel = Gtk.Label(label="Application Listings:")
         appslabel_box.pack_start(appslabel, False, False, 0)
@@ -176,6 +178,8 @@ class PageArea(Gtk.Stack):
         self.appsitems.set_homogeneous(True)
         self.appsitems.set_valign(Gtk.Align.START)
 
+
+        #Main Page: Games Listings
         gameslabel_box = Gtk.Box()
         gameslabel = Gtk.Label(label="Games Listings:")
         gameslabel_box.pack_start(gameslabel, False, False, 0)
@@ -188,6 +192,8 @@ class PageArea(Gtk.Stack):
         self.gamesitems.set_homogeneous(True)
         self.gamesitems.set_valign(Gtk.Align.START)
 
+
+        #Main Page: Themes Listings
         themeslabel_box = Gtk.Box()
         themeslabel = Gtk.Label(label="Themes Listings:")
         themeslabel_box.pack_start(themeslabel, False, False, 0)
@@ -200,6 +206,8 @@ class PageArea(Gtk.Stack):
         self.themesitems.set_homogeneous(True)
         self.themesitems.set_valign(Gtk.Align.START)
 
+
+        #Main Page: Websites Listings
         websiteslabel_box = Gtk.Box()
         websiteslabel = Gtk.Label(label="Websites Listings:")
         websiteslabel_box.pack_start(websiteslabel, False, False, 0)
@@ -212,6 +220,8 @@ class PageArea(Gtk.Stack):
         self.websitesitems.set_homogeneous(True)
         self.websitesitems.set_valign(Gtk.Align.START)
 
+
+        #Assemble the main page
         mainpagesub.pack_start(appslabel_box, False, True, 0)
         mainpagesub.pack_start(self.appsitems, False, True, 0)
         mainpagesub.pack_start(gameslabel_box, False, True, 0)
@@ -228,13 +238,16 @@ class PageArea(Gtk.Stack):
 
         self.mainpage.add(mainpagesub)
 
-
+        #Add the main page to the page control
         self.add_named(self.mainpage, "home")
 
 
-        # build tasks page
+        #Tasks Page
+        self.taskspage = Gtk.ScrolledWindow()
+        self.taskspage.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
         taskspagesub = Gtk.VBox(spacing=8)
 
+        #Tasks Page: Tasks in progress
         taskslabel_box = Gtk.Box()
         taskslabel = Gtk.Label(label="Currently working on these tasks:")
         taskslabel_box.pack_start(taskslabel, False, False, 0)
@@ -245,6 +258,8 @@ class PageArea(Gtk.Stack):
         self.tasksitemscontainer.set_valign(Gtk.Align.START)
         self.tasksitems = None
 
+
+        #Tasks Page: Updates available
         updateslabel_box = Gtk.Box()
         updateslabel = Gtk.Label(label="Updates are available for:")
         updateslabel_box.pack_start(updateslabel, False, False, 0)
@@ -258,6 +273,8 @@ class PageArea(Gtk.Stack):
         self.updatesitems.set_homogeneous(True)
         self.updatesitems.set_valign(Gtk.Align.START)
 
+
+        #Tasks Page: Installed items
         installedlabel_box = Gtk.Box()
         installedlabel = Gtk.Label(label="Currently installed:")
         installedlabel_box.pack_start(installedlabel, False, False, 0)
@@ -271,16 +288,14 @@ class PageArea(Gtk.Stack):
         self.installeditems.set_homogeneous(True)
         self.installeditems.set_valign(Gtk.Align.START)
 
+
+        #Assemble the tasks page
         taskspagesub.pack_start(taskslabel_box, False, True, 0)
         taskspagesub.pack_start(self.tasksitemscontainer, False, True, 0)
         taskspagesub.pack_start(updateslabel_box, False, True, 0)
         taskspagesub.pack_start(self.updatesitems, False, True, 0)
         taskspagesub.pack_start(installedlabel_box, False, True, 0)
         taskspagesub.pack_start(self.installeditems, False, True, 0)
-
-        # build another scrolled window widget and add our tasks view
-        self.taskspage = Gtk.ScrolledWindow()
-        self.taskspage.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
 
         taskspagesub.set_margin_bottom(8)
         taskspagesub.set_margin_top(8)
@@ -289,28 +304,31 @@ class PageArea(Gtk.Stack):
 
         self.taskspage.add(taskspagesub)
 
-
+        #Add the tasks page to the main control
         self.add_named(self.taskspage, "tasks")
 
 
 
-        # build search page
+        #Search Page
+        self.searchpage = Gtk.ScrolledWindow()
+        self.searchpage.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
         searchpagesub = Gtk.VBox(spacing=8)
 
+        #Search Page: Main Searchbar
         self.searchbar = Gtk.Entry()
         #self.searchbar.connect("changed", self.searchbar_search)
 
+
+        #Search Page: Search Results
         self.searchresultscontainer = Gtk.Box()
         self.searchresultscontainer.set_margin_top(4)
         self.searchresultscontainer.set_margin_bottom(4)
         self.searchresults = None
 
+
+        #Assemble the search page
         searchpagesub.pack_start(self.searchbar, False, True, 4)
         searchpagesub.pack_start(self.searchresultscontainer, False, True, 4)
-
-        # build another scrolled window widget and add our search view
-        self.searchpage = Gtk.ScrolledWindow()
-        self.searchpage.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
 
         searchpagesub.set_margin_bottom(8)
         searchpagesub.set_margin_top(8)
@@ -320,88 +338,155 @@ class PageArea(Gtk.Stack):
         self.searchpage.add(searchpagesub)
 
 
+        #Add the search page to the main control
         self.add_named(self.searchpage, "search")
 
 
+        #Item's page
+        self.itempage = Gtk.ScrolledWindow()
+        self.itempage.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
+        self.itempagestack = Gtk.Stack()
+        self.itempagesub = Gtk.VBox(spacing=8)
+        self.itempageloading = Gtk.Label(label=_("Loading..."))
 
-        # build package page
-        packagepagesub = Gtk.VBox(spacing=8)
 
-        self.packagepagecontents = Gtk.FlowBox()
-        self.packagepagecontents.set_min_children_per_line(1)
-        self.packagepagecontents.set_max_children_per_line(1)
+        #Item's Page: Information container
+        self.itempagecontents = Gtk.FlowBox()
+        self.itempagecontents.set_min_children_per_line(1)
+        self.itempagecontents.set_max_children_per_line(1)
 
-        self.packagepagemessages = [] #Storage for package page messages
+        self.itempagesub.pack_start(self.itempagecontents, True, True, 8)
 
-        packagepagesub.pack_start(self.packagepagecontents, True, True, 8)
-
+        #Images list; NOTE: Boxes are used to left-align the labels
         images_box = Gtk.Box()
         self.pkgpage_images = Gtk.Label(label="Images: ")
         images_box.pack_start(self.pkgpage_images, False, False, 0)
 
-        self.packagepagecontents.insert(images_box, -1)
+        self.itempagecontents.insert(images_box, -1)
 
+        #Description
         description_box = Gtk.Box()
         self.pkgpage_description = Gtk.Label(label="Description: ")
         description_box.pack_start(self.pkgpage_description, False, False, 0)
 
-        self.packagepagecontents.insert(description_box, -1)
+        self.itempagecontents.insert(description_box, -1)
 
+        #Category
         category_box = Gtk.Box()
         self.pkgpage_category = Gtk.Label(label="Category: ")
         category_box.pack_start(self.pkgpage_category, False, False, 0)
 
-        self.packagepagecontents.insert(category_box, -1)
+        self.itempagecontents.insert(category_box, -1)
 
+        #Website
         website_box = Gtk.Box()
         self.pkgpage_website = Gtk.Label(label="Website: ")
         website_box.pack_start(self.pkgpage_website, False, False, 0)
 
-        self.packagepagecontents.insert(website_box, -1)
+        self.itempagecontents.insert(website_box, -1)
 
+        #Author
         author_box = Gtk.Box()
         self.pkgpage_author = Gtk.Label(label="Author: ")
         author_box.pack_start(self.pkgpage_author, False, False, 0)
 
-        self.packagepagecontents.insert(author_box, -1)
+        self.itempagecontents.insert(author_box, -1)
 
+        #URL for Donations
         donateurl_box = Gtk.Box()
         self.pkgpage_donateurl = Gtk.Label(label="Donate URL: ")
         donateurl_box.pack_start(self.pkgpage_donateurl, False, False, 0)
 
-        self.packagepagecontents.insert(donateurl_box, -1)
+        self.itempagecontents.insert(donateurl_box, -1)
 
+        #URL for Bugs
         bugsurl_box = Gtk.Box()
         self.pkgpage_bugsurl = Gtk.Label(label="Bugs URL: ")
         bugsurl_box.pack_start(self.pkgpage_bugsurl, False, False, 0)
 
-        self.packagepagecontents.insert(bugsurl_box, -1)
+        self.itempagecontents.insert(bugsurl_box, -1)
 
+        #URL for Terms of Service
         tosurl_box = Gtk.Box()
         self.pkgpage_tosurl = Gtk.Label(label="TOS URL: ")
         tosurl_box.pack_start(self.pkgpage_tosurl, False, False, 0)
 
-        self.packagepagecontents.insert(tosurl_box, -1)
+        self.itempagecontents.insert(tosurl_box, -1)
 
+        #URL for Privacy Policy
         privpolurl_box = Gtk.Box()
         self.pkgpage_privpolurl = Gtk.Label(label="Privacy Policy URL: ")
         privpolurl_box.pack_start(self.pkgpage_privpolurl, False, False, 0)
 
-        self.packagepagecontents.insert(privpolurl_box, -1)
+        self.itempagecontents.insert(privpolurl_box, -1)
 
         # build another scrolled window widget and add our package view
-        self.packagepage = Gtk.ScrolledWindow()
-        self.packagepage.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
 
-        packagepagesub.set_margin_bottom(8)
-        packagepagesub.set_margin_top(8)
-        packagepagesub.set_margin_left(10)
-        packagepagesub.set_margin_right(10)
+        self.itempagesub.set_margin_bottom(8)
+        self.itempagesub.set_margin_top(8)
+        self.itempagesub.set_margin_left(10)
+        self.itempagesub.set_margin_right(10)
 
-        self.packagepage.add(packagepagesub)
+        self.itempage.add(self.itempagestack)
+        self.itempagestack.add_named(self.itempagesub, "page")
+        self.itempagestack.add_named(self.itempageloading, "loading")
 
 
-        self.add_named(self.packagepage, "packagepage")
+        self.add_named(self.itempage, "itempage")
+
+
+    #Main page
+    def populate_mainpage(self):
+        thread = Thread(target=self._populate_mainpage,
+                            args=())
+        thread.start()
+
+    def _populate_mainpage(self):
+        #TODO: Split into sections
+        data = self.guimain.storeapi.getItemIDs(["all"])
+        for category in data:
+            for pkgname in data[category]:
+                btn = Gtk.Button(label=(pkgname))
+                btn.connect("clicked", self.btn_goto_itempage, pkgname)
+                if category.startswith("ice-"):
+                    GLib.idle_add(self.websitesitems.insert, btn, -1)
+                elif category.startswith("themes-"):
+                    GLib.idle_add(self.themesitems.insert, btn, -1)
+                elif category.startswith("games-"):
+                    GLib.idle_add(self.themesitems.insert, btn, -1)
+                else:
+                    GLib.idle_add(self.appsitems.insert, btn, -1)
+        GLib.idle_add(self.show_all)
+
+
+    def btn_goto_itempage(self, btn, itemid, sourceid=""):
+        self.gotoID(itemid, moduleid, sourceid)
+
+    def gotoID(self, itemid, sourceid=""): #API call
+        print(itemid, moduleid, sourceid)
+
+        thread = Thread(target=self._gotoID,
+                            args=(itemid, moduleid, sourceid))
+        thread.start()
+
+    def _gotoID(self, itemid, sourceid=""):
+        #Go to Item Page, with the loading screen for now
+        GLib.idle_add(self.itempagestack.set_visible_child, self.itempageloading)
+        GLib.idle_add(self.set_visible_child, self.itempage)
+
+        #Get available sources
+        availablesources = None #TODO
+
+        #Feed the information to the header to get it loading
+        #TODO: self.guimain.detailsheader.load_data(availablesources, sourceid)
+
+        #TODO: Move the below code to call made by Header from changing the source (and make said call change to loading again every time)
+        #Get information from default source
+        pkginfo = None #TODO
+
+        #Switch from loading screen to page now the loading's done
+        GLib.idle_add(self.itempagestack.set_visible_child, self.itempagesub)
+        pass #TODO
 
 
 
@@ -419,14 +504,6 @@ class module(object):
         #TODO: Consider divulging this into module-source-subsource IDs?
 
 
-    def build_app_post_splashscreen(self):
-        GLib.idle_add(self._build_app_post_splashscreen)
-        
-        
-        
-        #self.mv.populate_mainpage()
-
-
     def _gohome_pressed(self, gtk_widget):
         self.pagearea.set_visible_child(self.pagearea.mainpage)
 
@@ -435,6 +512,37 @@ class module(object):
 
     def _status_pressed(self, gtk_widget):
         self.pagearea.set_visible_child(self.pagearea.taskspage)
+
+    def pagearea_pagechanged(self, gtk_widget, value):
+        #Toggle block buttons first
+        self.gohome_btn.handler_block(self.gohome_handle_id)
+        self.status_btn.handler_block(self.status_handle_id)
+        self.search_btn.handler_block(self.search_handle_id)
+
+        #Empty button presseds
+        self.gohome_btn.set_active(False)
+        self.status_btn.set_active(False)
+        self.search_btn.set_active(False)
+
+        #Assign the right button pressed
+        if self.pagearea.get_visible_child() == self.pagearea.taskspage:
+            self.status_btn.set_active(True)
+        elif self.pagearea.get_visible_child() == self.pagearea.searchpage:
+            self.search_btn.set_active(True)
+            self.pagearea.searchbar.grab_focus()
+        elif self.pagearea.get_visible_child() == self.pagearea.itempage:
+            pass
+        elif self.pagearea.get_visible_child() == self.pagearea.mainpage:
+            self.gohome_btn.set_active(True)
+
+        #Now unblock the signals
+        self.gohome_btn.handler_unblock(self.gohome_handle_id)
+        self.status_btn.handler_unblock(self.status_handle_id)
+        self.search_btn.handler_unblock(self.search_handle_id)
+
+        #Hide details header outside of Item Page
+        if self.pagearea.get_visible_child() != self.pagearea.itempage:
+            GLib.idle_add(self.detailsheader.set_visible, False)
 
 
     def close(self, p1 = None, p2 = None):
@@ -519,19 +627,24 @@ class module(object):
         thread.start()
 
     def _GUILoadingFinished(self):
+        GLib.idle_add(self.__GUILoadingFinished)
+
+    def __GUILoadingFinished(self):
         #Details header
         self.detailsheader = AppDetailsHeader(self)
 
         #Pages area
         self.pagearea = PageArea(self)
         self.pagearea.get_style_context().add_class(Gtk.STYLE_CLASS_VIEW)
-        #self.pagearea.connect("notify::visible-child", self.page_changed)
+        self.pagearea.connect("notify::visible-child", self.pagearea_pagechanged)
 
         #Assemble everything in the window
         self.windowcontents.pack_start(self.maintoolbar, False, True, 0)
         self.windowcontents.pack_start(self.detailsheader, False, True, 0)
         self.windowcontents.pack_end(self.pagearea, True, True, 0)
-        self.storewnd.show_all()
+        GLib.idle_add(self.storewnd.show_all)
+
+        self.pagearea.populate_mainpage()
 
 
     def showGUIHold(self):
@@ -539,3 +652,11 @@ class module(object):
 
     def refresh_memory(self):
         pass
+
+
+
+
+
+    # API CALLS FOR CLASSES
+    def gotoID(self, itemid):
+        self.pagearea.gotoID(itemid)
