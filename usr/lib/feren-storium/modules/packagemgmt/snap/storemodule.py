@@ -63,8 +63,7 @@ class module():
         #Refresh package listings
         self.json_storage = {}
         for i in ["package-info/snap", "package-info/generic"]:
-            with open("/usr/share/feren-storium/curated/" + i + "/data.json", 'r') as fp:
-                self.json_storage[i] = json.loads(fp.read())
+            self.json_storage[i] = self.storeapi.getCuratedJSON(i)
         
         self.memory_refreshing = False
 
@@ -83,7 +82,8 @@ class module():
     def getSources(self, pkgid):
         #Get a list of sources available for use via this module, for each pkgtype {pkgtype: [sources]}
         # sources = [subsources]
-        return {"snap": {}} #Snap only has one source - the Snap Store
+        return {"snapstore": {"subsources": [], "name": "snapstore"}} #Snap only has one source - the Snap Store
+        #TODO: Human-readable name
 
 
     def getAvailable(self, pkgid, sourceid):

@@ -75,14 +75,12 @@ class module():
         self.json_storage = {}
 
         for i in ["package-info/peppermint-ice", "package-info/generic"]:
-            with open("/usr/share/feren-storium/curated/" + i + "/data.json", 'r') as fp:
-                self.json_storage[i] = json.loads(fp.read())
+            self.json_storage[i] = self.storeapi.getCuratedJSON(i)
         
         self.sources_storage = {}
             
         for i in ["package-sources-info/generic"]:
-            with open("/usr/share/feren-storium/curated/" + i + "/data.json", 'r') as fp:            
-                self.sources_storage[i] = json.loads(fp.read())["peppermint-ice"]
+            self.sources_storage[i] = self.storeapi.getCuratedJSON(i)["peppermint-ice"] #TODO: Figure out what to do with this old idea
         
         self.memory_refreshing = False
         
@@ -107,7 +105,8 @@ class module():
                 subsources.append(browser)
         
         #Return complete sources value
-        return {"peppermint-ice": {"peppermint-ice": subsources}}
+        return {"peppermint-ice": {"subsources": subsources, "name": "peppermint-ice"}}
+        #TODO: Human-readable name
     
     
     def getAvailable(self, pkgid, sourceid):
@@ -116,8 +115,12 @@ class module():
         #0: Available
         #1: Unavailable
         #2: Repository requires being added first
-        
-        return 0 #of course Website Applications are available.
+
+        if pkgid in self.json_storage["package-info/peppermint-ice"]:
+            return 0 #of course Website Applications are available.
+        else:
+            return 1
+
     
         
     def pkgstorage_add(self, packagename):

@@ -70,7 +70,7 @@ class module():
         #Refresh package listings
         self.json_storage = {}
         for i in ["package-info/apt", "package-info/generic"]:
-            self.json_storage[i] = storeapi.getCuratedJSON(i)
+            self.json_storage[i] = self.storeapi.getCuratedJSON(i)
         
         self.memory_refreshing = False
     
@@ -89,12 +89,13 @@ class module():
     def getSources(self, pkgid):
         #Get a list of sources available for use via this module, for each pkgtype {pkgtype: [sources]}
         # sources = [subsources]
-        sourceslist = {"apt": {}}
+        sourceslist = {}
         for source in self.json_storage["package-info/apt"][pkgid]["sources-available"]:
             result = getAvailable(pkgid, source)
             if result == 0 or result == 2:
                 #Leave the subsources empty as apt has none
-                sourceslist["apt"][source] = []
+                sourceslist["apt?"+source] = {"subsources": [], "name": source}
+                #TODO: Human-readable name
             
         return sourceslist
     

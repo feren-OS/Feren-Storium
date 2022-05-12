@@ -361,10 +361,32 @@ class StoreBrain():
         pass #TODO: Move current code into here
 
     def APIgetAvailableSources(self, itemid):
-        #Get the sources for this package id {sourcename: subsources]}
-        pass #TODO: Move current code into here
+        #Get the sources for this package id {sourcename: subsources]}, split into "recommended", "normal", and "nonrecommended"
+        #TODO: Split into 3 types, listed on above line
+        result = {"recommended": {}, "normal": {}, "nonrecommended": {}}
 
-        
+        for module in self.modules:
+            if module.startswith("packagemgmt-"):
+                try:
+                    sources = self.modules[module].getSources(itemid)
+                    for source in sources:
+                        if self.modules[module].getAvailable(itemid, source) != 1:
+                            #Add to available sources return if available
+                            result["normal"][module+":"+source] = sources[source]
+                except:
+                    pass
+
+
+        #TODO: Iterate over them to check that no names match, and if so append their sourcesmodulename to them in brackets
+
+        return result
+
+    def APIgetCuratedJSON(self, jsonpath):
+        #Returns dict consisting of data from a JSON file in the curated folder
+        with open("/usr/share/feren-storium/curated/" + jsonpath + "/data.json", 'r') as fp:
+            return json.loads(fp.read())
+
+
     def APIcancelTask(self, taskid):
         #Cancels the task of that Task ID
         # If it isn't found or cannot be cancelled, throw an exception.
@@ -597,6 +619,7 @@ class StoreBrain():
         self.genericapi.getDefaultItemInformation = self.APIgetDefaultItemInformation
         self.genericapi.getSpecificItemInformation = self.APIgetSpecificItemInformation
         self.genericapi.getAvailableSources = self.APIgetAvailableSources
+        self.genericapi.getCuratedJSON = self.APIgetCuratedJSON
         self.genericapi.cancelTask = self.APIcancelTask
         self.genericapi.installApp = self.APIinstallApp
         self.genericapi.updateApp = self.APIupdateApp

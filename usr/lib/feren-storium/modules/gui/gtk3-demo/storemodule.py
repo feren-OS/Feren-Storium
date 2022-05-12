@@ -460,25 +460,27 @@ class PageArea(Gtk.Stack):
 
 
     def btn_goto_itempage(self, btn, itemid, sourceid=""):
-        self.gotoID(itemid, moduleid, sourceid)
+        self.gotoID(itemid, sourceid)
 
     def gotoID(self, itemid, sourceid=""): #API call
-        print(itemid, moduleid, sourceid)
+        print(itemid, sourceid)
 
         thread = Thread(target=self._gotoID,
-                            args=(itemid, moduleid, sourceid))
+                            args=(itemid, sourceid))
         thread.start()
 
     def _gotoID(self, itemid, sourceid=""):
         #Go to Item Page, with the loading screen for now
         GLib.idle_add(self.itempagestack.set_visible_child, self.itempageloading)
         GLib.idle_add(self.set_visible_child, self.itempage)
+        self.guimain.current_itemid = itemid
 
         #Get available sources
-        availablesources = None #TODO
+        availablesources = self.guimain.storeapi.getAvailableSources(itemid)
+        print(availablesources)
 
         #Feed the information to the header to get it loading
-        #TODO: self.guimain.detailsheader.load_data(availablesources, sourceid)
+        #TODO: self.guimain.detailsheader.load_data(itemid, availablesources, sourceid)
 
         #TODO: Move the below code to call made by Header from changing the source (and make said call change to loading again every time)
         #Get information from default source
@@ -497,10 +499,9 @@ class module(object):
         self.storeapi = storeapi
 
         #To determine whether or not to run refresh tasks and so on
-        self.current_itemid_viewed = ""
-        self.current_moduleid_viewed = ""
-        self.current_sourceid_viewed = ""
-        self.current_subsourceid_viewed = ""
+        self.current_itemid = ""
+        self.current_sourceid = ""
+        self.current_subsourceid = ""
         #TODO: Consider divulging this into module-source-subsource IDs?
 
 
