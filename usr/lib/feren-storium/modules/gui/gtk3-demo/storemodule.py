@@ -104,7 +104,7 @@ class AppDetailsHeader(Gtk.VBox):
         cell = Gtk.CellRendererText()
         self.app_source_dropdown.pack_start(cell, True)
         self.app_source_dropdown.add_attribute(cell, "text", 0)
-        #self.app_source_dropdown.connect("changed", self.on_source_dropdown_changed)
+        self.app_source_dropdown.connect("changed", self.on_source_dropdown_changed)
 
         self.app_subsource_dropdown = Gtk.ComboBox()
         cell2 = Gtk.CellRendererText()
@@ -149,6 +149,80 @@ class AppDetailsHeader(Gtk.VBox):
 
         pass
 
+
+    def load_sources(self, availablesources, itemid, sourceid=""):
+        if itemid != self.guimain.current_itemid:
+            return
+
+        self.source_ids = []
+
+        iface_list_store = Gtk.ListStore(GObject.TYPE_STRING)
+
+        for item in availablesources["recommended"]:
+            self.source_ids.append(availablesources["recommended"][item])
+            iface_list_store.append([availablesources["recommended"][item]['name']])
+        #TODO: Stop here on Simple Mode
+        for item in availablesources["normal"]:
+            self.source_ids.append(availablesources["normal"][item])
+            iface_list_store.append([availablesources["normal"][item]['name']])
+        for item in availablesources["nonrecommended"]:
+            self.source_ids.append(availablesources["nonrecommended"][item])
+            iface_list_store.append([availablesources["nonrecommended"][item]['name']])
+
+        GLib.idle_add(self.app_source_dropdown.set_model, iface_list_store)
+        GLib.idle_add(self.app_source_dropdown.set_active, 0)
+        if len(self.source_ids) == 0:
+            #If there are no sources, show the unavailable screen and stop
+            GLib.idle_add(self.guimain.pagearea.itempagestack.set_visible_child, self.guimain.pagearea.itempageunavailable)
+            GLib.idle_add(self.set_visible, False)
+            return
+        elif len(self.source_ids) <= 1:
+            GLib.idle_add(self.app_source_dropdown.set_sensitive, False)
+        else:
+            GLib.idle_add(self.app_source_dropdown.set_sensitive, True)
+
+
+        #If sourceid isn't "", switch source over automatically
+        thread = None
+        if sourceid != "":
+            #Find the appropriate source first, and then set it
+            n = 0
+            for item in self.source_ids:
+                if self.source_ids[item]["id"] == sourceid:
+                    thread = Thread(target=self.guimain.pagearea._sourceChange,
+                            args=(self.guimain.current_itemid, n))
+                    break
+                n += 1
+        if thread == None: #If the source doesn't exist, or sourceid == "", 'switch' to first source
+            thread = Thread(target=self.guimain.pagearea._sourceChange,
+                        args=(self.guimain.current_itemid, self.source_ids[self.app_source_dropdown.get_active()]))
+        thread.start()
+
+
+    def on_source_dropdown_changed(self, combobox):
+        if combobox.get_active() == -1:
+            return
+
+        thread = Thread(target=self.guimain.pagearea._sourceChange,
+                            args=(self.guimain.current_itemid, self.source_ids[combobox.get_active()]))
+        thread.start()
+
+    def load_data(self, itemid, pkginfo):
+        if self.guimain.current_itemid != itemid:
+            return
+
+        thread = Thread(target=self._load_data,
+                            args=(itemid, pkginfo))
+        thread.start()
+
+    def _load_data(self, itemid, pkginfo):
+        #Update icons and information according to the pkginfo
+
+
+
+
+        if self.guimain.current_itemid == itemid:
+            GLib.idle_add(self.set_visible, True)
 
 
 
@@ -348,6 +422,7 @@ class PageArea(Gtk.Stack):
         self.itempagestack = Gtk.Stack()
         self.itempagesub = Gtk.VBox(spacing=8)
         self.itempageloading = Gtk.Label(label=_("Loading..."))
+        self.itempageunavailable = Gtk.Label(label=_("This item is not available."))
 
 
         #Item's Page: Information container
@@ -430,6 +505,7 @@ class PageArea(Gtk.Stack):
         self.itempage.add(self.itempagestack)
         self.itempagestack.add_named(self.itempagesub, "page")
         self.itempagestack.add_named(self.itempageloading, "loading")
+        self.itempagestack.add_named(self.itempageunavailable, "unavailable")
 
 
         self.add_named(self.itempage, "itempage")
@@ -463,8 +539,6 @@ class PageArea(Gtk.Stack):
         self.gotoID(itemid, sourceid)
 
     def gotoID(self, itemid, sourceid=""): #API call
-        print(itemid, sourceid)
-
         thread = Thread(target=self._gotoID,
                             args=(itemid, sourceid))
         thread.start()
@@ -477,14 +551,24 @@ class PageArea(Gtk.Stack):
 
         #Get available sources
         availablesources = self.guimain.storeapi.getAvailableSources(itemid)
-        print(availablesources)
 
         #Feed the information to the header to get it loading
-        #TODO: self.guimain.detailsheader.load_data(itemid, availablesources, sourceid)
+        self.guimain.detailsheader.load_sources(availablesources, itemid, sourceid)
 
-        #TODO: Move the below code to call made by Header from changing the source (and make said call change to loading again every time)
+    def sourceChange(self, itemid, sourceid):
+        thread = Thread(target=self._sourceChange,
+                            args=(itemid, sourceid))
+        thread.start()
+
+    def _sourceChange(self, itemid, sourceid):
+        #Go to loading screen
+        GLib.idle_add(self.itempagestack.set_visible_child, self.itempageloading)
+
         #Get information from default source
         pkginfo = None #TODO
+
+        #Pass information to header to load into the information there
+        self.guimain.detailsheader.load_data(itemid, pkginfo)
 
         #Switch from loading screen to page now the loading's done
         GLib.idle_add(self.itempagestack.set_visible_child, self.itempagesub)

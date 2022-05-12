@@ -91,8 +91,8 @@ class module():
         # sources = [subsources]
         sourceslist = {}
         for source in self.json_storage["package-info/apt"][pkgid]["sources-available"]:
-            result = getAvailable(pkgid, source)
-            if result == 0 or result == 2:
+            result = self.getAvailable(pkgid, source)
+            if result != 1:
                 #Leave the subsources empty as apt has none
                 sourceslist["apt?"+source] = {"subsources": [], "name": source}
                 #TODO: Human-readable name

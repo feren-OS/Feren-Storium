@@ -373,6 +373,7 @@ class StoreBrain():
                         if self.modules[module].getAvailable(itemid, source) != 1:
                             #Add to available sources return if available
                             result["normal"][module+":"+source] = sources[source]
+                            result["normal"][module+":"+source]["id"] = module+":"+source
                 except:
                     pass
 
