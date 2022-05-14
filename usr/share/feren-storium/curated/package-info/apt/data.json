@@ -1,7 +1,7 @@
 {
   "feren-backgrounds-murdock": {
-    "sources-available": ["standard"],
-    "standard": {
+    "sources-available": ["apt?standard"],
+    "apt?standard": {
         "apt-name": "feren-backgrounds-murdock",
         "apt-source": "standard",
         "author": "Feren OS Team",
@@ -17,8 +17,8 @@
     }
   },
   "feren-store": {
-    "sources-available": ["standard"],
-    "standard": {
+    "sources-available": ["apt?standard"],
+    "apt?standard": {
         "apt-name": "feren-store",
         "apt-source": "standard",
         "author": "Feren OS Team",
@@ -34,8 +34,8 @@
     }
   },
   "obs-obs-studio": {
-    "sources-available": ["obsstudio"],
-    "obsstudio": {
+    "sources-available": ["apt?obsstudio"],
+    "apt?obsstudio": {
         "apt-name": "obs-studio",
         "apt-source": "obsstudio",
         "author": "OBS Project",

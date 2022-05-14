@@ -899,28 +899,21 @@ class module():
             except:
                 pass
         return packagejson
-      
-    
-    def getInfo(self, packagename, packagetype, sourcename=""):
+
+
+    def getInfo(self, itemid, sourceid, subsourceid):
         #Get information on a package using the JSON data
-        
-        if packagetype not in self.types_supported:
-            raise IceInfoModuleException(packagetype, _("is not supported by this information module. If you are getting an exception throw, it means you have not used a Try to respond to the module not supporting this type of package."))
-            return
-        
-        if sourcename == "":
-            return self.json_storage["package-info/" + packagetype][packagename]
-        else:
-            overallinfo = {}
-            try:
-                overallinfo = self.json_storage["package-info/" + packagetype][packagename]["all"]
-            except:
-                pass
-            try:
-                overallinfo = self.storebrain.dict_recurupdate(overallinfo, self.json_storage["package-info/" + packagetype][packagename][sourcename])
-            except:
-                pass
-            return overallinfo
+        #Get generic information first
+        result = self.json_storage["package-info/generic"][itemid]
+        #Then append to that the ice-specific data
+        try:
+            if "all" in self.storeapi.dict_recurupdate(result, self.json_storage["package-info/peppermint-ice"][itemid]):
+                result = self.storeapi.dict_recurupdate(result, self.json_storage["package-info/peppermint-ice"][itemid]["all"])
+            if sourceid in self.storeapi.dict_recurupdate(result, self.json_storage["package-info/peppermint-ice"][itemid]):
+                result = self.storeapi.dict_recurupdate(result, self.json_storage["package-info/peppermint-ice"][itemid][sourceid])
+        except:
+            raise IceInfoModuleException(packagename, _("'s information failed to be obtained - perhaps the item doesn't exist on this source?"))
+        return result
         
         
     def getSourceList(self, packagename, packagetype):

@@ -13,6 +13,7 @@ import collections.abc
 import copy
 import json
 from functools import partial
+import time
 
 import requests #Grabbing files from internet
 
@@ -358,7 +359,8 @@ class StoreBrain():
 
     def APIgetSpecificItemInformation(self, itemid, moduleid, sourceid, subsourceid):
         #Get information about an item from the specified source
-        pass #TODO: Move current code into here
+        result = self.modules[moduleid].getInfo(itemid, sourceid, subsourceid)
+        return result
 
     def APIgetAvailableSources(self, itemid):
         #Get the sources for this package id {sourcename: subsources]}, split into "recommended", "normal", and "nonrecommended"
@@ -538,13 +540,14 @@ class StoreBrain():
         else:
             try:
                 #Download the application icon
-                if not os.path.isfile(self.cachedir+"/icons/"+packagename):
+                if not os.path.isfile(self.cachedir+"/icons/"+itemid):
                     r=requests.get(iconuri, headers=self.reqHeaders)
-                    with open(self.cachedir+"/icons/"+packagename, "wb") as f:
+                    with open(self.cachedir+"/icons/"+itemid, "wb") as f:
                         f.write(r.content)
-                return self.cachedir+"/icons/"+packagename
+                    time.sleep(0.1) #Can return too early and cause an exception, thus sleep
+                return self.cachedir+"/icons/"+itemid
             except Exception as e:
-                print(_("Failed to retrieve the icon of "+packagename+" because: %s") % e)
+                print(_("Failed to retrieve the icon of "+itemid+" because: %s") % e)
                 return None
 
 
@@ -638,6 +641,9 @@ class StoreBrain():
         self.genericapi.getAutoUpdateOn = self.APIgetAutoUpdateOn
         self.genericapi.getAutoUpdateBandwidthOn = self.APIgetAutoUpdateBandwidthOn
         self.genericapi.getItemIDs = self.APIgetItemIDs
+
+        self.genericapi.getFallbackIconLocation = self.APIgetFallbackIconLocation
+        self.genericapi.dict_recurupdate = self.dict_recurupdate
 
         # Tasks
         self.tasksapi = StoreTasksAPI()
