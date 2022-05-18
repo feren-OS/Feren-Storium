@@ -539,6 +539,8 @@ class StoreBrain():
             return iconlocal
         else:
             try:
+                if iconuri == "":
+                    raise
                 #Download the application icon
                 if not os.path.isfile(self.cachedir+"/icons/"+itemid):
                     r=requests.get(iconuri, headers=self.reqHeaders)

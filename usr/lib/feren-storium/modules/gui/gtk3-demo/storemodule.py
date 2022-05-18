@@ -51,22 +51,26 @@ class AppItemIcon(Gtk.Stack):
         GLib.idle_add(self.set_visible_child, self.app_iconimg_loading_box)
         GLib.idle_add(self.app_iconimg_loading.start,)
 
+        iconlocat = None
         #TODO: Try to get from icon set first
         try:
             raise
         except: #Get it from fallback location
             try: #TODO: Try to get from icon set
-                iconurilocat = self.storeapi.getFallbackIconLocation(iconlocal, iconuri, itemid)
+                iconlocat = self.storeapi.getFallbackIconLocation(iconlocal, iconuri, itemid)
             except:
-                #TODO: Change to store-missing-icon
-                #TODO: iconurilocat = "icon:store-missing-icon"
-                iconurilocat = "/usr/share/icons/Inspire/256/apps/feren-store.png"
+                pass
 
-        if iconurilocat.startswith("icon:"):
+        if iconlocat == None:
+            #TODO: Change to store-missing-icon
+            #TODO: iconurilocat = "icon:store-missing-icon"
+            iconlocat = "/usr/share/icons/Inspire/256/apps/feren-store.png"
+
+        if iconlocat.startswith("icon:"):
             #TODO
             pass
         else:
-            icon_pixbuf = GdkPixbuf.Pixbuf.new_from_file(iconurilocat)
+            icon_pixbuf = GdkPixbuf.Pixbuf.new_from_file(iconlocat)
             icon_pixbuf = icon_pixbuf.scale_simple(self.desired_size, self.desired_size, GdkPixbuf.InterpType.BILINEAR)
 
 
@@ -217,7 +221,7 @@ class AppDetailsHeader(Gtk.VBox):
 
     def _load_data(self, itemid, pkginfo):
         #Update icons and information according to the pkginfo
-        self.app_icon.set_icon(pkginfo["iconname"], "", pkginfo["iconuri"], itemid) #TODO: Add 'iconlocal' to pkgdatas
+        self.app_icon.set_icon(pkginfo["iconname"], pkginfo["iconlocal"], pkginfo["iconuri"], itemid) #TODO: Add 'iconlocal' to pkgdatas
         self.app_title.set_label(pkginfo["realname"])
         self.app_shortdesc.set_label(pkginfo["shortdescription"])
 
@@ -433,69 +437,6 @@ class PageArea(Gtk.Stack):
 
         self.itempagesub.pack_start(self.itempagecontents, True, True, 8)
 
-        #Images list; NOTE: Boxes are used to left-align the labels
-        images_box = Gtk.Box()
-        self.pkgpage_images = Gtk.Label(label="Images: ")
-        images_box.pack_start(self.pkgpage_images, False, False, 0)
-
-        self.itempagecontents.insert(images_box, -1)
-
-        #Description
-        description_box = Gtk.Box()
-        self.pkgpage_description = Gtk.Label(label="Description: ")
-        description_box.pack_start(self.pkgpage_description, False, False, 0)
-
-        self.itempagecontents.insert(description_box, -1)
-
-        #Category
-        category_box = Gtk.Box()
-        self.pkgpage_category = Gtk.Label(label="Category: ")
-        category_box.pack_start(self.pkgpage_category, False, False, 0)
-
-        self.itempagecontents.insert(category_box, -1)
-
-        #Website
-        website_box = Gtk.Box()
-        self.pkgpage_website = Gtk.Label(label="Website: ")
-        website_box.pack_start(self.pkgpage_website, False, False, 0)
-
-        self.itempagecontents.insert(website_box, -1)
-
-        #Author
-        author_box = Gtk.Box()
-        self.pkgpage_author = Gtk.Label(label="Author: ")
-        author_box.pack_start(self.pkgpage_author, False, False, 0)
-
-        self.itempagecontents.insert(author_box, -1)
-
-        #URL for Donations
-        donateurl_box = Gtk.Box()
-        self.pkgpage_donateurl = Gtk.Label(label="Donate URL: ")
-        donateurl_box.pack_start(self.pkgpage_donateurl, False, False, 0)
-
-        self.itempagecontents.insert(donateurl_box, -1)
-
-        #URL for Bugs
-        bugsurl_box = Gtk.Box()
-        self.pkgpage_bugsurl = Gtk.Label(label="Bugs URL: ")
-        bugsurl_box.pack_start(self.pkgpage_bugsurl, False, False, 0)
-
-        self.itempagecontents.insert(bugsurl_box, -1)
-
-        #URL for Terms of Service
-        tosurl_box = Gtk.Box()
-        self.pkgpage_tosurl = Gtk.Label(label="TOS URL: ")
-        tosurl_box.pack_start(self.pkgpage_tosurl, False, False, 0)
-
-        self.itempagecontents.insert(tosurl_box, -1)
-
-        #URL for Privacy Policy
-        privpolurl_box = Gtk.Box()
-        self.pkgpage_privpolurl = Gtk.Label(label="Privacy Policy URL: ")
-        privpolurl_box.pack_start(self.pkgpage_privpolurl, False, False, 0)
-
-        self.itempagecontents.insert(privpolurl_box, -1)
-
         # build another scrolled window widget and add our package view
 
         self.itempagesub.set_margin_bottom(8)
@@ -556,6 +497,8 @@ class PageArea(Gtk.Stack):
         #Feed the information to the header to get it loading
         self.guimain.detailsheader.load_sources(availablesources, itemid, sourceid)
 
+
+    #### ITEM INFORMATION ####
     def sourceChange(self, itemid, sourceid):
         thread = Thread(target=self._sourceChange,
                             args=(itemid, sourceid))
@@ -569,12 +512,102 @@ class PageArea(Gtk.Stack):
         pkginfo = self.guimain.storeapi.getSpecificItemInformation(itemid, sourceid["id"].split(":")[0], sourceid["id"].split(":")[1], "") #TODO: subsourceid, and make this trigger when subsource is changed instead, with this call here only serving to change source and subsource and then call subsource changed
 
         #Pass information to header to load into the information there
-        self.guimain.detailsheader.load_data(itemid, pkginfo)
+        self.guimain.detailsheader._load_data(itemid, pkginfo)
+
+        self._loadItemInformation(pkginfo, itemid)
 
         #Switch from loading screen to page now the loading's done
         GLib.idle_add(self.itempagestack.set_visible_child, self.itempagesub)
         pass #TODO
 
+    def loadItemInformation(self, pkginfo, itemid):
+        thread = Thread(target=self._loadItemInformation,
+                            args=(pkginfo, itemid))
+        thread.start()
+
+    def _loadItemInformation(self, pkginfo, itemid):
+        itemstoadd = []
+
+        #Now provide the information: NOTE Boxes are used to left-align the labels
+        #Warnings
+        #TODO: Retrieve warnings outta pkginfo
+
+
+        #Images
+        images_box = Gtk.Box()
+        self.pkgpage_images = Gtk.Label(label=_("Images: %s") % pkginfo["images"])
+        GLib.idle_add(images_box.pack_start, self.pkgpage_images, False, False, 0)
+        itemstoadd.append(images_box)
+
+        #Description
+        description_box = Gtk.Box()
+        self.pkgpage_description = Gtk.Label(label=_("Description: %s") % pkginfo["description"])
+        GLib.idle_add(description_box.pack_start, self.pkgpage_description, False, False, 0)
+        itemstoadd.append(description_box)
+
+        #Category
+        category_box = Gtk.Box()
+        self.pkgpage_category = Gtk.Label(label=_("Category: %s") % pkginfo["category"])
+        GLib.idle_add(category_box.pack_start, self.pkgpage_category, False, False, 0)
+
+        itemstoadd.append(category_box)
+
+        #Website
+        website_box = Gtk.Box()
+        self.pkgpage_website = Gtk.Label(label=_("Website: %s") % pkginfo["website"])
+        GLib.idle_add(website_box.pack_start, self.pkgpage_website, False, False, 0)
+
+        itemstoadd.append(website_box)
+
+        #Author
+        author_box = Gtk.Box()
+        self.pkgpage_author = Gtk.Label(label=_("Author: %s") % pkginfo["author"])
+        GLib.idle_add(author_box.pack_start, self.pkgpage_author, False, False, 0)
+
+        itemstoadd.append(author_box)
+
+        #URL for Donations
+        donateurl_box = Gtk.Box()
+        self.pkgpage_donateurl = Gtk.Label(label=_("Donate URL: %s") % pkginfo["donateurl"])
+        GLib.idle_add(donateurl_box.pack_start, self.pkgpage_donateurl, False, False, 0)
+
+        itemstoadd.append(donateurl_box)
+
+        #URL for Bugs
+        bugsurl_box = Gtk.Box()
+        self.pkgpage_bugsurl = Gtk.Label(label=_("Bugs URL: %s") % pkginfo["bugreporturl"])
+        GLib.idle_add(bugsurl_box.pack_start, self.pkgpage_bugsurl, False, False, 0)
+
+        itemstoadd.append(bugsurl_box)
+
+        #URL for Terms of Service
+        tosurl_box = Gtk.Box()
+        self.pkgpage_tosurl = Gtk.Label(label=_("Terms of Service URL: %s") % pkginfo["tosurl"])
+        GLib.idle_add(tosurl_box.pack_start, self.pkgpage_tosurl, False, False, 0)
+
+        itemstoadd.append(tosurl_box)
+
+        #URL for Privacy Policy
+        privpolurl_box = Gtk.Box()
+        self.pkgpage_privpolurl = Gtk.Label(label=_("Privacy Policy URL: %s") % pkginfo["privpolurl"])
+        GLib.idle_add(privpolurl_box.pack_start, self.pkgpage_privpolurl, False, False, 0)
+
+        itemstoadd.append(privpolurl_box)
+
+        GLib.idle_add(self.placeItemInformation, itemid, itemstoadd)
+
+
+    def placeItemInformation(self, itemid, itemstoadd):
+        #First, delete all children on the item information page
+        for child in self.itempagecontents.get_children():
+            GLib.idle_add(child.destroy)
+
+        #Now add the new children to the item information page in order
+        for item in itemstoadd:
+            self.itempagecontents.insert(item, -1)
+
+        #Finally, show them all
+        self.itempagecontents.show_all()
 
 
 
