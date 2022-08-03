@@ -29,9 +29,9 @@ class module():
 
         #Name to be used in Debugging output
         self.title = _("APT Packages Module")
-        #Name to be shown in the GUI
+        #Name to be shown in the modules manager
         self.humanreadabletitle = _("Standard Applications")
-        #Name to be shown in sources
+        #Name to be shown in sources manager
         self.sourcesmodulename = _("Standard Install")
         
         #Package Storage will store the data of opened packages this instance, to make future loads faster
@@ -94,7 +94,7 @@ class module():
             result = self.getAvailable(pkgid, source)
             if result != 1:
                 #Leave the subsources empty as apt has none
-                sourceslist[source] = {"subsources": [], "name": source}
+                sourceslist[source] = {"subsources": {}, "name": source}
                 #TODO: Human-readable name
             
         return sourceslist

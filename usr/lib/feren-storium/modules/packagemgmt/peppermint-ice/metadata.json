@@ -1,0 +1,21 @@
+{
+    "Authors": [
+        {
+            "Email": "ferenosdev@outlook.com",
+            "Name": "Dominic Hayes",
+            "Name[en_GB]": "Dominic Hayes"
+        },
+        {
+            "Email": "",
+            "Name": "Mark Greaves",
+            "Name[en_GB]": "Mark Greaves"
+        }
+    ],
+    "Description": "Allows management of Website Applications through the Ice project by Peppermint OS",
+    "Description[en_GB]": "Allows management of Website Applications through the Ice project by Peppermint OS",
+    "Name": "Ice Website Applications Management",
+    "Name[en_GB]": "Ice Website Applications Management",
+    "NameInSources": "",
+    "SourcesIndividuallyToggle": false,
+    "Storium-API": "1.0",
+}

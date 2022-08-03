@@ -221,10 +221,9 @@ class AppDetailsHeader(Gtk.VBox):
 
     def _load_data(self, itemid, pkginfo):
         #Update icons and information according to the pkginfo
-        self.app_icon.set_icon(pkginfo["iconname"], pkginfo["iconlocal"], pkginfo["iconuri"], itemid) #TODO: Add 'iconlocal' to pkgdatas
+        self.app_icon.set_icon(pkginfo["iconname"], pkginfo["iconlocal"], pkginfo["iconuri"], itemid)
         self.app_title.set_label(pkginfo["realname"])
         self.app_shortdesc.set_label(pkginfo["shortdescription"])
-
 
         if self.guimain.current_itemid == itemid:
             GLib.idle_add(self.set_visible, True)
@@ -509,7 +508,7 @@ class PageArea(Gtk.Stack):
         GLib.idle_add(self.itempagestack.set_visible_child, self.itempageloading)
 
         #Get information from default source
-        pkginfo = self.guimain.storeapi.getSpecificItemInformation(itemid, sourceid["id"].split(":")[0], sourceid["id"].split(":")[1], "") #TODO: subsourceid, and make this trigger when subsource is changed instead, with this call here only serving to change source and subsource and then call subsource changed
+        pkginfo = self.guimain.storeapi.getItemInformation(itemid, sourceid["id"].split(":")[0], sourceid["id"].split(":")[1], "") #TODO: subsourceid, and make this trigger when subsource is changed instead, with this call here only serving to change source and subsource and then call subsource changed
 
         #Pass information to header to load into the information there
         self.guimain.detailsheader._load_data(itemid, pkginfo)

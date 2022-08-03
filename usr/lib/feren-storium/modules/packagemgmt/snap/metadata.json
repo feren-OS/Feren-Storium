@@ -1,0 +1,19 @@
+{
+    "Authors": [
+        {
+            "Email": "ferenosdev@outlook.com",
+            "Name": "Dominic Hayes",
+            "Name[en_GB]": "Dominic Hayes"
+        }
+    ],
+    "Description": "Allows management of sandboxed applications that use the
+Snap Daemon Package Manager",
+    "Description[en_GB]": "Allows management of sandboxed applications that use the
+Snap Daemon Package Manager",
+    "Name": "Snap Applications Management",
+    "Name[en_GB]": "Snap Applications Management",
+    "NameInSources": "Snap Applications",
+    "NameInSources[en_GB]": "Snap Applications",
+    "SourcesIndividuallyToggle": false,
+    "Storium-API": "1.0",
+}

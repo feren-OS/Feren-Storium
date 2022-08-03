@@ -1,0 +1,17 @@
+{
+    "Authors": [
+        {
+            "Email": "ferenosdev@outlook.com",
+            "Name": "Dominic Hayes",
+            "Name[en_GB]": "Dominic Hayes"
+        }
+    ],
+    "Description": "Allows management of native applications, themes, and more that use the System's Package Manager",
+    "Description[en_GB]": "Allows management of native applications, themes, and more that use the System's Package Manager",
+    "Name": "Standard Items Management (APT)",
+    "Name[en_GB]": "Standard Items Management (APT)",
+    "NameInSources": "Standard Applications",
+    "NameInSources[en_GB]": "Standard Applications",
+    "SourcesIndividuallyToggle": true,
+    "Storium-API": "1.0",
+}

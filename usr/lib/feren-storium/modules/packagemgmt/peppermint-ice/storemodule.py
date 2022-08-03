@@ -26,7 +26,7 @@ class module():
 
     def __init__(self, storeapi):
         #Gettext Translator
-        gettext.install("feren-storium", "/usr/share/locale", names="ngettext")
+        gettext.install("feren-storium-module-ice", "/usr/share/locale", names="ngettext")
         
         #Store APIs
         self.storeapi = storeapi
@@ -76,11 +76,8 @@ class module():
 
         for i in ["package-info/peppermint-ice", "package-info/generic"]:
             self.json_storage[i] = self.storeapi.getCuratedJSON(i)
-        
-        self.sources_storage = {}
             
-        for i in ["package-sources-info/generic"]:
-            self.sources_storage[i] = self.storeapi.getCuratedJSON(i)["peppermint-ice"] #TODO: Figure out what to do with this old idea
+        self.sources_storage = self.storeapi.getCuratedJSON("package-sources-info/peppermint-ice")
         
         self.memory_refreshing = False
         
@@ -97,16 +94,18 @@ class module():
 
     def getSources(self, pkgid):
         #TODO: Check package even has a Website Application source in the first place
-        
+
+
         #Construct subsources for the only source
-        subsources = []
-        for browser in self.sources_storage["package-sources-info/generic"]["sources"]:
-            if os.path.isfile(self.sources_storage["package-sources-info/generic"]["sources"][browser]["repository-file"]):
-                subsources.append(browser)
+        subsources = {}
+        for browser in self.sources_storage["browsers"]:
+            for candidate in self.sources_storage["browsers"][browser]["required-file"]:
+                if os.path.isfile(candidate):
+                    subsources[browser] = {"name": self.sources_storage["browsers"][browser]["name"]}
+                    break #Don't need to check more candidates
         
         #Return complete sources value
-        return {"peppermint-ice": {"subsources": subsources, "name": "peppermint-ice"}}
-        #TODO: Human-readable name
+        return {"peppermint-ice": {"subsources": subsources, "name": _("Website Application")}}
     
     
     def getAvailable(self, pkgid, sourceid):

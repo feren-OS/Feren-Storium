@@ -41,8 +41,8 @@ class StoreBrainException(Exception): # Name this according to the module to all
 #Generic (for all modules)
 class StoreGenericAPI():
     def __init__(self):
-        #self.getDefaultItemInformation = Store.getDefaultItemInformation
-        #self.getSpecificItemInformation = Store.getSpecificItemInformation
+        #self.getDefaultSource = Store.getDefaultSource
+        #self.getItemInformation = Store.getItemInformation
         #self.getAvailableSources = Store.getAvailableSources
         #self.canceltask = Tasks.cancelTask
         #self.installApp = Store.installApp
@@ -352,12 +352,11 @@ class StoreBrain():
                     
     # API functions passed from Store into StoreAPI
     ##############################################
-    def APIgetDefaultItemInformation(self, itemid):
-        #Get full information about an item from the most recommended source it is available in
-        pass #TODO: Move current code into here
-        #Also TODO: Check item availability first, then go by source order of what is available to find the information
+    def APIgetDefaultSource(self, itemid):
+        #Get the most recommended source itemid is available in, and return the sourceid
+        pass #TODO: Check item availability first, then go by source order of what is available to find the information
 
-    def APIgetSpecificItemInformation(self, itemid, moduleid, sourceid, subsourceid):
+    def APIgetItemInformation(self, itemid, moduleid, sourceid, subsourceid):
         #Get information about an item from the specified source
         result = self.modules[moduleid].getInfo(itemid, sourceid, subsourceid)
         return result
@@ -376,8 +375,8 @@ class StoreBrain():
                             #Add to available sources return if available
                             result["normal"][module+":"+source] = sources[source]
                             result["normal"][module+":"+source]["id"] = module+":"+source
-                except:
-                    pass
+                except Exception as e:
+                    print("TEMPDEBUG APIGETAVAILABLESOURCES: " + module + " " + str(e))
 
 
         #TODO: Iterate over them to check that no names match, and if so append their sourcesmodulename to them in brackets
@@ -442,7 +441,7 @@ class StoreBrain():
 
     def APIreloadStore(self):
         #Straight up restarts Store
-        pass #TODO
+        pass #TODO: Revisit this once we have a means of safely exiting the Store
 
     def APIreloadPages(self):
         #Reloads every single Store GUI page that's loaded right now
@@ -453,7 +452,7 @@ class StoreBrain():
         #moduleids: List of all module IDs to affect
         #packageids: Optional - List of all package IDs to affect
 
-        #Refresh install status of all packageids from all the sources belonging managed the moduleids
+        #Refresh install status of all packageids from all the sources managed by the moduleids
         #Also uncache any install statuses for them that are cached
 
         if moduleids == "all":
@@ -467,14 +466,16 @@ class StoreBrain():
     def APIfullUpdate(self):
         #Run updateApp on every single updatable item
         #TODO: Consolidate all changes into big confirmation
+        #TODO: Revisit this when we've figured out how we want to store updates lists
         pass #TODO
 
     def APIitemSearch(self, searchstring):
-        #For each Search module, do a search with searchstring as the search term
+        #1. For each Search module, do a search with searchstring as the search term
+        #2. Get the package information of each one by querying APIgetDefaultSource
         # Then, sort by numeralphabetical based on the human-readable names, though prior
         #Finally, return the itemids in a sorted dictionary with the priorities
-        #TODO: Priority levels: ID match, Exact, ID starts with, Starts with, Ends with, ID ends with
-        results = {"idmatch": [], "exact": [], "idstarts": [], "starts": [], "ends": [], "idends": []}
+        #TODO: Priority levels: Exact, ID match, ID starts with, Starts with, Contains, Ends with, ID ends with
+        results = {"idmatch": [], "exact": [], "idstarts": [], "starts": [], "contains": [], "ends": [], "idends": []}
 
         for module in self.search_modules:
             moduletemp = self.search_modules[module].getResults(searchterm)
@@ -509,11 +510,11 @@ class StoreBrain():
 
     def APIgetAutoUpdateOn(self, moduleid):
         #Module returns true/false for if automatic updates are on
-        pass #TODO
+        return self.modules[moduleid].getAutoUpdateOn()
 
     def APIgetAutoUpdateBandwidthOn(self, moduleid):
-        #Module returns float for automatic updates bandwidth
-        pass #TODO
+        #Module returns true/false for automatic updates bandwidth
+        return self.modules[moduleid].getAutoUpdateOn()
 
 
     def APIgetItemIDs(self, categories):
@@ -590,23 +591,29 @@ class StoreBrain():
     ##############################################
     def APIchangeAutoUpdateOn(self, moduleid, newvalue):
         #Module changes automatic updates value to newvalue (bool)
-        pass #TODO
+        self.modules[moduleid].changeAutoUpdateOn(newvalue)
 
-    def APIchangeAutoUpdateBandwidthOn(self, moduleid, newfloat):
-        #Module changes automatic updates bandwidth to newfloat (float)
-        pass #TODO
+    def APIchangeAutoUpdateBandwidthOn(self, moduleid, newvalue):
+        #Module changes automatic updates disabling on metered connections to newvalue (bool)
+        self.modules[moduleid].changeAutoUpdateBandwidthOn(newvalue)
 
     def APIgetAutoUpdateSupported(self, moduleid):
         #Get module's value for autoUpdateSupported
-        pass #TODO
+        return self.modules[moduleid].getAutoUpdateSupported()
 
     def APIgetAutoUpdateBandwidthSupported(self, moduleid):
         #Get module's value for autoUpdateBandwidthSupported
-        pass #TODO
+        return self.modules[moduleid].getAutoUpdateBandwidthSupported()
 
-    def APIgetPackageMgmtModulesInfo(self, moduleid="all"):
-        #Gets dictionary of information about the package module matching moduleid, or if all then all the package modules
-        pass #TODO
+    def APIgetPackageMgmtModulesInfo(self, moduleid=["all"]):
+        #Gets dictionary of information about the package modules in moduleid, or if all then all the package modules
+        result = {}
+
+        for module in moduleids:
+            result[module] = {"title": self.modules[module].humanreadabletitle, "sourcestitle": self.modules[module].sourcesmodulename}
+            #TODO: More values maybe needed in the future?
+
+        return result
 
 
     # Main functionality of Store Brain
@@ -622,8 +629,8 @@ class StoreBrain():
         #Prepare the APIs and map the calls:
         # Generic
         self.genericapi = StoreGenericAPI()
-        self.genericapi.getDefaultItemInformation = self.APIgetDefaultItemInformation
-        self.genericapi.getSpecificItemInformation = self.APIgetSpecificItemInformation
+        self.genericapi.getDefaultSource = self.APIgetDefaultSource
+        self.genericapi.getItemInformation = self.APIgetItemInformation
         self.genericapi.getAvailableSources = self.APIgetAvailableSources
         self.genericapi.getCuratedJSON = self.APIgetCuratedJSON
         self.genericapi.cancelTask = self.APIcancelTask
