@@ -93,8 +93,6 @@ class AppDetailsHeader(Gtk.VBox):
 
 
 
-
-
         self.app_icon = AppItemIcon(guimain.storeapi)
 
         self.app_title = Gtk.Label()
@@ -114,7 +112,7 @@ class AppDetailsHeader(Gtk.VBox):
         cell2 = Gtk.CellRendererText()
         self.app_subsource_dropdown.pack_start(cell2, True)
         self.app_subsource_dropdown.add_attribute(cell2, "text", 0)
-        #self.app_subsource_dropdown.connect("changed", self.on_subsource_dropdown_changed)
+        self.app_subsource_dropdown.connect("changed", self.on_subsource_dropdown_changed)
 
         self.app_mgmt_progress = Gtk.ProgressBar()
 
@@ -148,8 +146,10 @@ class AppDetailsHeader(Gtk.VBox):
         #self.cancelapp_btn.connect("clicked", self.cancelapp_pressed)
 
         #For sources
-        self.source_ids = []
-        self.subsource_ids = []
+        self.current_sourcelist = {}
+        self.current_subsources = [] #Makes accessing them way easier
+        self.current_source = ""
+        self.current_subsource = ""
 
         pass
 
@@ -158,58 +158,97 @@ class AppDetailsHeader(Gtk.VBox):
         if itemid != self.guimain.current_itemid:
             return
 
-        self.source_ids = []
+        self.current_sourcelist = {} #Reset
 
         iface_list_store = Gtk.ListStore(GObject.TYPE_STRING)
 
         for item in availablesources["recommended"]:
-            self.source_ids.append(availablesources["recommended"][item])
             iface_list_store.append([availablesources["recommended"][item]['name']])
+            self.current_sourcelist[item] = availablesources["recommended"][item]
         #TODO: Stop here on Simple Mode
         for item in availablesources["normal"]:
-            self.source_ids.append(availablesources["normal"][item])
             iface_list_store.append([availablesources["normal"][item]['name']])
+            self.current_sourcelist[item] = availablesources["normal"][item]
         for item in availablesources["nonrecommended"]:
-            self.source_ids.append(availablesources["nonrecommended"][item])
             iface_list_store.append([availablesources["nonrecommended"][item]['name']])
+            self.current_sourcelist[item] = availablesources["nonrecommended"][item]
 
         GLib.idle_add(self.app_source_dropdown.set_model, iface_list_store)
         GLib.idle_add(self.app_source_dropdown.set_active, 0)
-        if len(self.source_ids) == 0:
+        if len(iface_list_store) == 0:
             #If there are no sources, show the unavailable screen and stop
             GLib.idle_add(self.guimain.pagearea.itempagestack.set_visible_child, self.guimain.pagearea.itempageunavailable)
             GLib.idle_add(self.set_visible, False)
             return
-        elif len(self.source_ids) <= 1:
+        elif len(iface_list_store) <= 1:
             GLib.idle_add(self.app_source_dropdown.set_sensitive, False)
         else:
             GLib.idle_add(self.app_source_dropdown.set_sensitive, True)
 
 
-        #If sourceid isn't "", switch source over automatically
         thread = None
+        #If sourceid isn't "", switch source over automatically
         if sourceid != "":
             #Find the appropriate source first, and then set it
             n = 0
-            for item in self.source_ids:
-                if self.source_ids[item]["id"] == sourceid:
+            for item in self.current_sourcelist:
+                if item == sourceid:
                     thread = Thread(target=self.guimain.pagearea._sourceChange,
-                            args=(self.guimain.current_itemid, n))
+                            args=( self.guimain.current_itemid, list(self.current_sourcelist.keys())[n] ) )
+                    thread.start()
                     break
                 n += 1
-        if thread == None: #If the source doesn't exist, or sourceid == "", 'switch' to first source
-            thread = Thread(target=self.guimain.pagearea._sourceChange,
-                        args=(self.guimain.current_itemid, self.source_ids[self.app_source_dropdown.get_active()]))
-        thread.start()
 
 
     def on_source_dropdown_changed(self, combobox):
         if combobox.get_active() == -1:
             return
 
+        self.current_source = list(self.current_sourcelist.keys())[combobox.get_active()] #Convert to list of keys, so we can use the combobox.get_active() index on it to get the currently selected source's ID
+
         thread = Thread(target=self.guimain.pagearea._sourceChange,
-                            args=(self.guimain.current_itemid, self.source_ids[combobox.get_active()]))
+                            args=( self.guimain.current_itemid, self.current_sourcelist[self.current_source] ) )
         thread.start()
+
+        print("TEMPDEBUG SOURCE_DROPDOWN_CHANGED - source changed to " + self.current_source)
+
+        thread = Thread(target=self.load_subsources,
+                            args=(self.current_source, self.guimain.current_itemid) )
+        thread.start()
+
+
+    def load_subsources(self, sourceid, itemid):
+        if itemid != self.guimain.current_itemid:
+            return
+
+        self.current_subsources = [] #Reset
+
+        iface_list_store = Gtk.ListStore(GObject.TYPE_STRING)
+
+        if "subsources" in self.current_sourcelist[sourceid]:
+            #Add subsources if there are actually subsources
+            for item in self.current_sourcelist[sourceid]["subsources"]:
+                iface_list_store.append([self.current_sourcelist[sourceid]["subsources"][item]["name"]])
+                self.current_subsources.append(item) #Add the subsource IDs to a list so we
+                    #have an easier time accessing them than the chaotic code that'd
+                    #otherwise be needed to access them
+
+        GLib.idle_add(self.app_subsource_dropdown.set_model, iface_list_store)
+        GLib.idle_add(self.app_subsource_dropdown.set_active, 0)
+        if len(iface_list_store) <= 1:
+            GLib.idle_add(self.app_subsource_dropdown.set_sensitive, False)
+        else:
+            GLib.idle_add(self.app_subsource_dropdown.set_sensitive, True)
+
+
+    def on_subsource_dropdown_changed(self, combobox):
+        if combobox.get_active() == -1:
+            self.current_subsource = ""
+        else:
+            self.current_subsource = self.current_subsources[combobox.get_active()] #This code would be chaos if it wasn't for self.current_subsources
+
+        print("TEMPDEBUG SUBSOURCE_DROPDOWN_CHANGED - subsource changed to " + self.current_subsource)
+
 
     def load_data(self, itemid, pkginfo):
         if self.guimain.current_itemid != itemid:
@@ -518,6 +557,7 @@ class PageArea(Gtk.Stack):
         #Switch from loading screen to page now the loading's done
         GLib.idle_add(self.itempagestack.set_visible_child, self.itempagesub)
         pass #TODO
+
 
     def loadItemInformation(self, pkginfo, itemid):
         thread = Thread(target=self._loadItemInformation,

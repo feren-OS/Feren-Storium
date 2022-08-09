@@ -124,7 +124,7 @@
         "privpolurl": "",
         "icenohistory": true,
         "icecolor": "#FFFFFF",
-        "icecolordark": "#000000",
+        "icecolordark": "#1F1F1F",
         "icecolorhighlight": "#0096FA",
         "icelastupdated": "20211210"
     }
