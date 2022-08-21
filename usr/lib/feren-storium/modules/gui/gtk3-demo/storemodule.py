@@ -139,7 +139,7 @@ class AppDetailsHeader(Gtk.VBox):
         self.pack_start(buttonsbox, True, False, 4)
 
 
-        #self.installapp_btn.connect("clicked", self.installapp_pressed)
+        self.installapp_btn.connect("clicked", self.installapp_pressed)
         #self.installappnosource_btn.connect("clicked", self.installappnosource_pressed)
         #self.updateapp_btn.connect("clicked", self.updateapp_pressed)
         #self.removeapp_btn.connect("clicked", self.removeapp_pressed)
@@ -148,8 +148,6 @@ class AppDetailsHeader(Gtk.VBox):
         #For sources
         self.current_sourcelist = {}
         self.current_subsources = [] #Makes accessing them way easier
-        self.current_source = ""
-        self.current_subsource = ""
 
         pass
 
@@ -204,16 +202,16 @@ class AppDetailsHeader(Gtk.VBox):
         if combobox.get_active() == -1:
             return
 
-        self.current_source = list(self.current_sourcelist.keys())[combobox.get_active()] #Convert to list of keys, so we can use the combobox.get_active() index on it to get the currently selected source's ID
+        self.guimain.current_sourceid = list(self.current_sourcelist.keys())[combobox.get_active()] #Convert to list of keys, so we can use the combobox.get_active() index on it to get the currently selected source's ID
 
         thread = Thread(target=self.guimain.pagearea._sourceChange,
-                            args=( self.guimain.current_itemid, self.current_sourcelist[self.current_source] ) )
+                            args=( self.guimain.current_itemid, self.current_sourcelist[self.guimain.current_sourceid] ) )
         thread.start()
 
-        print("TEMPDEBUG SOURCE_DROPDOWN_CHANGED - source changed to " + self.current_source)
+        print("TEMPDEBUG SOURCE_DROPDOWN_CHANGED - source changed to " + self.guimain.current_sourceid)
 
         thread = Thread(target=self.load_subsources,
-                            args=(self.current_source, self.guimain.current_itemid) )
+                            args=(self.guimain.current_sourceid, self.guimain.current_itemid) )
         thread.start()
 
 
@@ -243,11 +241,11 @@ class AppDetailsHeader(Gtk.VBox):
 
     def on_subsource_dropdown_changed(self, combobox):
         if combobox.get_active() == -1:
-            self.current_subsource = ""
+            self.guimain.current_subsourceid = ""
         else:
-            self.current_subsource = self.current_subsources[combobox.get_active()] #This code would be chaos if it wasn't for self.current_subsources
+            self.guimain.current_subsourceid = self.current_subsources[combobox.get_active()] #This code would be chaos if it wasn't for self.current_subsources
 
-        print("TEMPDEBUG SUBSOURCE_DROPDOWN_CHANGED - subsource changed to " + self.current_subsource)
+        print("TEMPDEBUG SUBSOURCE_DROPDOWN_CHANGED - subsource changed to " + self.guimain.current_subsourceid)
 
 
     def load_data(self, itemid, pkginfo):
@@ -266,6 +264,12 @@ class AppDetailsHeader(Gtk.VBox):
 
         if self.guimain.current_itemid == itemid:
             GLib.idle_add(self.set_visible, True)
+
+
+
+    def installapp_pressed(self, btn):
+        self.guimain.storeapi.installApp(self.guimain.current_itemid, self.guimain.current_sourceid, self.guimain.current_subsourceid)
+
 
 
 
@@ -659,7 +663,6 @@ class module(object):
         self.current_itemid = ""
         self.current_sourceid = ""
         self.current_subsourceid = ""
-        #TODO: Consider divulging this into module-source-subsource IDs?
 
 
     def _gohome_pressed(self, gtk_widget):
