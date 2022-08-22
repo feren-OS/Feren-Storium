@@ -98,23 +98,21 @@ class StoreModuleContainer():
     
 #Tasks body for Tasks storage
 class TaskBody():
-    def __init__(self, itemid, moduleid, operation, sourceid, subsourceid, becauseof="", dependson="", directto=""):
-        self.itemid = itemid #ID of item, e.g.: mozilla-firefox
+    def __init__(self, itemid, moduleid, operation, sourceid, subsourceid, becauseof="", depends=""):
         self.moduleid = moduleid #ID of module, e.g.: packagemgmt-apt
+        self.itemid = itemid #ID of item, e.g.: mozilla-firefox
         self.operation = operation #0 for install/add, 1 for remove, 2 for update
         self.sourceid = sourceid #ID of source to obtain from
         self.subsourceid = subsourceid #ID of subsource to obtain from, if appropriate
+
         self.becauseof = becauseof #(optional) Task was because of - status matches said task's, and completes with that task
-        self.dependson = dependson #(optional) Task depends on said task - if said task cancels or fails, this does too
-        self.directto = directto #Item ID to direct users to the page for upon clicking
+        self.depends = depends #(optional) Task depends on said task - if said task cancels or fails, this does too
         
         self.cancellable = True #Can be cancelled?
-        self.pendingconfirm = True #Task won't run until confirmation is made
-        self.cancelling = False #Task is in process of being cancelled?
+        self.cancelling = False #Is the task currently being cancelled?
         self.bonusids = [] #These get appended to by confirmation dialog
         
         self.progress = 0 #Progress percent
-        self.status = 0 #Status type (0 = Unconfirmed, 1 = Pending, 2 = Staged (post-logout), 3 = Staging (to be done next Store instance), 4 = In Progress)
         
         
 class TaskManager():    
