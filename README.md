@@ -59,9 +59,12 @@ API and Modules:
 - [x] Make modules able to declare if they should be loaded or not
 - [x] Allow modules to determine whether or not to allow being used (aka having runtime checks)
 - [ ] Figure out how we want to go about adding a task for adding an application source when installing something that needs one
+- [ ] Add ability to refresh task progress
+- [ ] Add ability to invalidate package install status cache
 
 Package Management Modules:
 
+- [ ] Add call that lists package changes, and available bonuses, so they can be fed to the Confirm? dialog
 - [ ] Merge Package File Management modules code into Package Management modules
 - [ ] Add in a 'drivers' section to the available updates data returned to the API
 - [ ] APT: Off-set tasks execution to systemland process (and send language too)

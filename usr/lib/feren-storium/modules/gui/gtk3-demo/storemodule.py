@@ -821,3 +821,22 @@ class module(object):
     # API CALLS FOR CLASSES
     def gotoID(self, itemid):
         self.pagearea.gotoID(itemid)
+
+    def showTaskConfirmation(self, taskbody, idsadded, idsupdated, idsremoved, bonusavailability):
+        import ast
+
+        #TODO: Make an actual GUI for this
+        print("Confirm pending operation " + str(taskbody.operation) + " to " + taskbody.itemid + " of module" + taskbody.moduleid + " in source " + taskbody.sourceid + ", " + taskbody.subsourceid + "?")
+
+        print("The following bonuses are available:")
+        for bonus in bonusavailability:
+            print("- " + bonus)
+
+        print("")
+        answer = input("Answer: ")
+        if not answer == "yes":
+            return False, []
+
+        print("")
+        bonuses = ast.literal_eval(input("Choose bonuses: "))
+        return True, bonuses
