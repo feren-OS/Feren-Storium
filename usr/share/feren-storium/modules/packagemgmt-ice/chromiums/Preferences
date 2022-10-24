@@ -209,10 +209,9 @@
                 "render_in_dropdown": true
             },
             "search": { "display": 2 },
-            "show_profile": false,
-            "show_qr_generator": false,
-            "visible": false
+            "show_qr_generator": false
         },
+        "appearance": { "css_ui_mods_directory": "/usr/share/feren-storium/modules/packagemgmt-ice/vivaldicss" },
         "autofill": { "server_assist": false },
         "bookmarks": { "version": "17" },
         "panels": {
@@ -235,6 +234,7 @@
             "window": { "single_click_opens": true }
         },
         "downloads": { "start_automatically": true, "notify_on_complete": false, "use_popout": true },
+        "experiments": ["css_mods"],
         "homepage": "",
         "homepage_cache": "",
         "menu": { "icon_type": 1 },
@@ -356,7 +356,7 @@
                 }
             ]
         },
-        "toolbars": { "navigation": ["Back", "Forward", "Reload", "CaptureImages"] },
+        "toolbars": { "navigation": ["Back", "Reload", "AddressField", "DownloadButton", "Extensions", "UpdateButton"] },
         "windows": { "show_window_close_confirmation_dialog": false, "use_native_decoration": false }
     },
     "webkit": {

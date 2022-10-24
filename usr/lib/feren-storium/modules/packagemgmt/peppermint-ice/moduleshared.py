@@ -92,6 +92,8 @@ class main():
                 result["icenohistory"] = False
             if not "icegoogleinteg" in result:
                 result["icegoogleinteg"] = False
+            if not "icegooglehangouts" in result:
+                result["icegooglehangouts"] = False
             if not "iceaccentwindow" in result:
                 result["iceaccentwindow"] = True
             return result
@@ -151,21 +153,21 @@ class main():
         
         if amount < 0.0: #Negative means darkening
             if multiply == True:
-                lumi = lumi * (1.0 + amount) #Conversion to make the 'lumi * amount' darken instead of brightening
+                lumi = lumi * (1.0 + amount) #1.0 + -amount, amount is negative, thus it darkens it during multiplication
             else:
                 if (lumi + amount) < 0.0:
                     lumi = 0.0
                 else:
-                    lumi -= amount
+                    lumi += amount
         else: #Positive means lightening, and 0.0 means no change
             if multiply == True:
-                lumi = lumi * (1.0 + amount) #Add 1.0 to the amount to lighten it instead of darkening it
+                lumi = lumi * (1.0 + amount) #Add 1.0 to the amount to lighten it instead of darkening it during multiplication
             else:
                 if (lumi + amount) > 255.0:
                     lumi = 255.0
                 else:
                     lumi += amount
-            
+
         redc, greenc, bluec = colorsys.hls_to_rgb(hue, lumi, sat) #Convert to RGB
         redc, greenc, bluec = int(redc), int(greenc), int(bluec) #Convert back to integers
         return '#%02x%02x%02x' % (redc, greenc, bluec) #Returns conversion to hexcode
@@ -219,7 +221,7 @@ class main():
                 raise ICEModuleException(_("{1} was encountered when trying to create the profile's folder")).format(exceptionstr)
 
 
-    def create_appsmenu_shortcuts(self, itemid, browser, package_information):
+    def create_appsmenu_shortcuts(self, itemid, browser, package_information, bonusids):
         #string, string, dict
 
         windowclassid = itemid
@@ -272,9 +274,13 @@ class main():
             fp.write("\n")
             fp.write("X-FerenIce-BrowserType=%s\n" % self.sources_storage["browsers"][browser]["type"])
             fp.write("X-FerenIce-Browser=%s\n" % browser)
-            fp.write("X-FerenIce-Website=%s\n" % package_information["website"])
+            fp.write("X-FerenIce-ID=%s\n" % itemid)
+            fp.write("X-FerenIce-Website=%s\n" % package_information["icewebsite"])
+            fp.write("X-FerenIce-ExtraIDs=%s\n" % package_information["extrasids"])
             fp.write("X-FerenIce-NoHistory=%s\n" % self.boolean_to_jsonbool(package_information["icenohistory"]))
             fp.write("X-FerenIce-Google=%s\n" % self.boolean_to_jsonbool(package_information["icegoogleinteg"]))
+            fp.write("X-FerenIce-GoogleHangouts=%s\n" % self.boolean_to_jsonbool(package_information["icegooglehangouts"]))
+            fp.write("X-FerenIce-BonusIDs=%s\n" % str(bonusids))
             fp.write("X-FerenIce-BG=%s\n" % package_information["icebackground"])
             fp.write("X-FerenIce-BG-Dark=%s\n" % package_information["icebackground-dark"])
             fp.write("X-FerenIce-Accent=%s\n" % package_information["iceaccent"])
@@ -286,6 +292,66 @@ class main():
 
         #Finally, make it executable so it launches fine from the Applications Menu:
         os.system("chmod +x " + applications_directory + "/{0}.desktop".format(windowclassid))
+
+        #Now repeat for the rest of them
+        for extraid in package_information["extrasids"]:
+            targetid = itemid + "-" + extraid #for reference
+            targetidinfo = self.getInfo(targetid, "", "") #no source is given in here, and Ice is 'source-agnostic'
+
+            windowclassid = targetid
+            if browser == "vivaldi": #FIXME: Temporary until Vivaldi adds proper shadows support
+                windowclassid = icevivaldiprefix + windowclassid
+
+            with open(applications_directory + "/{0}.desktop".format(windowclassid), 'w') as fp:
+                # I mean, this needs no explanation, it's a .desktop file
+                fp.write("[Desktop Entry]\n")
+                fp.write("Version=1.0\n")
+                fp.write("Name={0}\n".format(targetidinfo["realname"]))
+                fp.write("Comment={0}\n".format(targetidinfo["shortdescription"]))
+                if "iconname" in targetidinfo:
+                    fp.write("Icon={0}\n".format(targetidinfo["iconname"]))
+                else:
+                    fp.write("Icon=ice\n")
+
+                fp.write("Exec=/usr/bin/feren-storium-ice {0}\n".format('"' + applications_directory + "/{0}.desktop".format(windowclassid) + '"'))
+
+                #Ice stuff will have their own categories to allow for easier sectioning of items in Store overall
+                if targetidinfo["category"] == "ice-accessories":
+                    location = "Utility;"
+                elif targetidinfo["category"] == "ice-games":
+                    location = "Game;"
+                elif targetidinfo["category"] == "ice-graphics":
+                    location = "Graphics;"
+                elif targetidinfo["category"] == "ice-internet":
+                    location = "Network;"
+                elif targetidinfo["category"] == "ice-office":
+                    location = "Office;"
+                elif targetidinfo["category"] == "ice-programming":
+                    location = "Development;"
+                elif targetidinfo["category"] == "ice-multimedia":
+                    location = "AudioVideo;"
+                elif targetidinfo["category"] == "ice-system":
+                    location = "System;"
+                fp.write("Categories=GTK;Qt;{0}\n".format(location))
+
+                #fp.write("MimeType=text/html;text/xml;application/xhtml_xml;\n")
+
+                fp.write("Keywords=%s\n" % targetidinfo["keywords"])
+
+                fp.write("Terminal=false\n")
+                fp.write("X-MultipleArgs=false\n")
+                fp.write("Type=Application\n")
+                fp.write("StartupWMClass=%s\n" % windowclassid)
+                fp.write("StartupNotify=true\n")
+
+                #Now to write the information for ICE to use
+                fp.write("\n")
+                fp.write("X-FerenIce-ParentID=%s\n" % targetidinfo["parentitemid"])
+                fp.write("X-FerenIce-Website=%s\n" % targetidinfo["icewebsite"])
+
+
+            #Finally, make it executable so it launches fine from the Applications Menu:
+            os.system("chmod +x " + applications_directory + "/{0}.desktop".format(windowclassid))
 
 
 
@@ -335,25 +401,36 @@ class main():
             result["session"]["startup_urls"] = [iteminfo["website"]]
             result["download"]["default_directory"] = GLib.get_user_special_dir(GLib.UserDirectory.DIRECTORY_DOWNLOAD) + "/" + _("{0} Downloads").format(iteminfo["name"])
             result["profile"]["name"] = iteminfo["name"]
-            result["ntp"]["custom_background_dict"]["attribution_line_1"] = _("Website Application - {0}").format(iteminfo["name"])
+            #result["ntp"]["custom_background_dict"]["attribution_line_1"] = _("Website Application - {0}").format(iteminfo["name"])
             #result["vivaldi"]["tabs"]["new_page"]["custom_url"] = "https://feren-os.github.io/start-page/ice?ice-text="+(_("Website Application - {0}").format(iteminfo["name"]))+"&home-url={0}".format(parse.quote(iteminfo["website"], safe=""))+"&home-icon={0}".format(parse.quote(iconuri, safe=""))
             #TODO: Change ^ to extension
             result["vivaldi"]["homepage"] = iteminfo["website"]
             result["vivaldi"]["homepage_cache"] = iteminfo["website"]
 
-            #Set permissions for the initial website TODO: Move to update_permission_profile_settings
-            shortenedurl = self.get_shortened_url(iteminfo["website"])
-            for permtype in ["ar", "autoplay", "automatic_downloads", "background_sync", "clipboard", "file_handling", "font_access", "midi_sysex", "notifications", "payment_handler", "sensors", "sound", "sleeping-tabs", "window_placement", "vr"]:
-                result["profile"]["content_settings"]["exceptions"][permtype] = {}
-                result["profile"]["content_settings"]["exceptions"][permtype]["[*.]"+shortenedurl+",*"] = {"expiration": "0", "model": 0, "setting": 1}
-                result["profile"]["content_settings"]["exceptions"][permtype][shortenedurl+",*"] = {"expiration": "0", "model": 0, "setting": 1}
+            #Set permissions for the initial website
+            result = self.chromi_set_sitepermissions(result, iteminfo["id"], iteminfo["website"], iteminfo["extraids"])
 
-            #Save to the Preferences file
+            #Toggle features for the SSB
+            result = self.chromi_set_privacyfeatures(result, iteminfo["nohistory"], iteminfo["googleinteg"], iteminfo["googlehangouts"])
+
+            #Add bonuses to SSB
+            result = self.chromi_set_bonuses(result, iteminfo["bonusids"])
+
+            #Add theme colours to SSB (Vivaldi)
+            result = self.chromi_set_colors(result, iteminfo["bg"], iteminfo["bgdark"], iteminfo["accent"], iteminfo["accentdark"], iteminfo["color"], iteminfo["accentonwindow"])
+
+            #Save to the Preferences fileonusIDs
             try:
                 with open(PreferencesFile, 'w') as fp:
-                    fp.write(json.dumps(profiletomake, separators=(',', ':'))) # This dumps minified json (how convenient), which is EXACTLY what Chrome uses for Preferences, so it's literally pre-readied
+                    fp.write(json.dumps(result, separators=(',', ':'))) # This dumps minified json (how convenient), which is EXACTLY what Chrome uses for Preferences, so it's literally pre-readied
             except Exception as exceptionstr:
-                raise ICESharedModuleException(_("TEMP Failed to write to Preferences"))
+                raise ICESharedModuleException(_("Failed to write to Preferences"))
+
+            #Finally, configure Local State
+            self.chromi_update_local_state(iteminfo["id"], profileid, darkmode)
+
+            #and finish off with this:
+            self.chromi_finishing_touches(iteminfo["id"], profileid)
 
         elif iteminfo["browsertype"] == "firefox": #Firefox-specific configs
             targetfolder = "{0}/{1}/{2}/".format(default_ice_directory, iteminfo["id"], profileid)
@@ -400,13 +477,19 @@ class main():
             except Exception as exceptionstr:
                 raise ICESharedModuleException(_("Failed to write to prefs.js"))
 
+            #Values for user.js: preparation
+            if iteminfo["nohistory"] == True:
+                nohistory = "true"
+            else:
+                nohistory = "false"
+
             #Repeat for user.js, too
             try:
                 with open(targetfolder + "user.js", 'r') as fp:
                     result = fp.read().splitlines()
                 linescounted = 0
                 for line in result:
-                    result[linescounted] = result[linescounted].replace("WEBSITEHERE", iteminfo["website"]).replace("NAMEHERE", iteminfo["name"])
+                    result[linescounted] = result[linescounted].replace("WEBSITEHERE", iteminfo["website"]).replace("NAMEHERE", iteminfo["name"]).replace("CLEARHISTORY", nohistory)
                     linescounted += 1
 
                 with open(targetfolder + "user.js", 'w') as fp:
@@ -434,6 +517,7 @@ class main():
             with open(targetfolder + "chrome/ice.css", 'w') as fp:
                 fp.write('\n'.join(result))
 
+            #Grant Flatpak Firefox access to the profile's directory
             os.system("/usr/bin/flatpak override --user org.mozilla.firefox --filesystem={0}/{1}/{2}".format(default_ice_directory, iteminfo["id"], profileid))
 
 
@@ -450,82 +534,50 @@ class main():
 
     #### CHROMIUM PROFILE CREATION
     #Default Settings
-    def set_default_settings_chromi(self, preferencesfile, website, realname, iconuri):
-        #dict, string, string, string
-        
-        newpreferences = preferencesfile #For patching, return later
-        
-        with open("/usr/share/feren-storium/modules/packagemgmt-ice/chromiums/Preferences", 'r') as fp:
-            defaultpreferences = json.loads(fp.read())
-        newpreferences = self.dict_recurupdate(newpreferences, defaultpreferences)
-        
-        #Set important settings unique to each SSB
-        newpreferences["homepage"] = website
-        newpreferences["custom_links"]["list"][0]["title"] = realname
-        newpreferences["custom_links"]["list"][0]["url"] = website
-        newpreferences["session"]["startup_urls"] = [website]
-        newpreferences["download"]["default_directory"] = GLib.get_user_special_dir(GLib.UserDirectory.DIRECTORY_DOWNLOAD) + "/" + _("{0} Downloads").format(realname)
-        newpreferences["profile"]["name"] = realname
-        newpreferences["ntp"]["custom_background_dict"]["attribution_line_1"] = _("Website Application - {0}").format(realname)
-        newpreferences["vivaldi"]["tabs"]["new_page"]["custom_url"] = "https://feren-os.github.io/start-page/ice?ice-text="+(_("Website Application - {0}").format(realname))+"&home-url={0}".format(parse.quote(website, safe=""))+"&home-icon={0}".format(parse.quote(iconuri, safe=""))
-        newpreferences["vivaldi"]["homepage"] = website
-        newpreferences["vivaldi"]["homepage_cache"] = website
-        
-        #Set the permissions for websites in this SSB
-        shortenedurl = self.get_shortened_url(website)
+    def chromi_set_sitepermissions(self, preferencedict, itemid, ogwebsite, extraids):
+        #dict, string, list
+
+        #Set the permissions for default website in this SSB
+        shortenedurl = self.get_shortened_url(ogwebsite)
         for permtype in ["ar", "autoplay", "automatic_downloads", "background_sync", "clipboard", "file_handling", "font_access", "midi_sysex", "notifications", "payment_handler", "sensors", "sound", "sleeping-tabs", "window_placement", "vr"]:
-            newpreferences["profile"]["content_settings"]["exceptions"][permtype] = {}
-            newpreferences["profile"]["content_settings"]["exceptions"][permtype]["[*.]"+shortenedurl+",*"] = {"expiration": "0", "model": 0, "setting": 1}
-            newpreferences["profile"]["content_settings"]["exceptions"][permtype][shortenedurl+",*"] = {"expiration": "0", "model": 0, "setting": 1}
+            preferencedict["profile"]["content_settings"]["exceptions"][permtype] = {}
+            preferencedict["profile"]["content_settings"]["exceptions"][permtype]["[*.]"+shortenedurl+",*"] = {"expiration": "0", "model": 0, "setting": 1}
+            preferencedict["profile"]["content_settings"]["exceptions"][permtype][shortenedurl+",*"] = {"expiration": "0", "model": 0, "setting": 1}
+
+        #Set the permissions for extra websites in this SSB
+        for extraid in extraids:
+            targetid = itemid + "-" + extraid #for reference
+            targetidinfo = self.getInfo(targetid, "", "") #no source is given in here, and Ice is 'source-agnostic'
+
+            shortenedurl = self.get_shortened_url(targetidinfo["icewebsite"])
+            try:
+                shortenedurl = shortenedurl.split("/")[0]
+            except:
+                pass
+            for permtype in ["ar", "autoplay", "automatic_downloads", "background_sync", "clipboard", "file_handling", "font_access", "midi_sysex", "notifications", "payment_handler", "sensors", "sound", "sleeping-tabs", "window_placement", "vr"]:
+                preferencedict["profile"]["content_settings"]["exceptions"][permtype]["[*.]"+shortenedurl+",*"] = {"expiration": "0", "model": 0, "setting": 1}
+                preferencedict["profile"]["content_settings"]["exceptions"][permtype][shortenedurl+",*"] = {"expiration": "0", "model": 0, "setting": 1}
             
-        #Return the new Preferences
-        return newpreferences
-    
-    #Default Settings for extra shortcuts
-    def append_default_extras_settings_chromi(self, preferencesfile, extraids=[], extrawebsites=[], extrarealnames=[]):
-        #dict, list, list, list
-        
-        newpreferences = preferencesfile #For patching, return later
-        
-        shortenedurl = self.get_shortened_url(website)
-        for permtype in ["ar", "autoplay", "automatic_downloads", "background_sync", "clipboard", "file_handling", "font_access", "midi_sysex", "notifications", "payment_handler", "sensors", "sound", "sleeping-tabs", "window_placement", "vr"]:
-            extrascount = 0
-            for extraid in extraids:
-                shortenedurl = self.get_shortened_url(extrawebsites[extrascount])
-                try:
-                    shortenedurl = shortenedurl.split("/")[0]
-                except:
-                    pass
-                newpreferences["profile"]["content_settings"]["exceptions"][permtype]["[*.]"+shortenedurl+",*"] = {"expiration": "0", "model": 0, "setting": 1}
-                newpreferences["profile"]["content_settings"]["exceptions"][permtype][shortenedurl+",*"] = {"expiration": "0", "model": 0, "setting": 1}
-                extrascount += 1
-        
-        #Return the new Preferences
-        return newpreferences
-    
-    def set_default_settings_gecko(self, prefsjs, userjs, website, realname, iconuri, needsreset=True):
-        #list, list, string, string, string, bool
-        
-        pass #TODO
+        #Return the modified Preferences
+        return preferencedict
     
     #Vivaldi and Brave settings
-    def set_ice_privacy_chromi(self, preferencesfile, allowhistory=True, allowgooglesignon=False, allowgooglehangouts=False):
+    def chromi_set_privacyfeatures(self, preferencedict, nohistory=False, allowgooglesignon=False, allowgooglehangouts=False):
         #dict, bool, bool, bool
         
-        newpreferences = preferencesfile #For patching, return later
         #First, open the Preferences file
         with open("/usr/share/feren-storium/modules/packagemgmt-ice/chromiums/preferences.json", 'r') as fp:
             preferencesjson = json.loads(fp.read())
                 
         if not allowgooglesignon: #Disable Google sign-on if unneeded
-            newpreferences = self.dict_recurupdate(newpreferences, preferencesjson["disable-googlesignon"])
+            preferencedict = self.dict_recurupdate(preferencedict, preferencesjson["disable-googlesignon"])
         if not allowgooglehangouts: #Disable Google Hangouts if unneeded
-            newpreferences = self.dict_recurupdate(newpreferences, preferencesjson["disable-googlehangouts"])
-        if not allowhistory: #Disable History if the SSB provides History itself
-            newpreferences = self.dict_recurupdate(newpreferences, preferencesjson["disable-history"])
+            preferencedict = self.dict_recurupdate(preferencedict, preferencesjson["disable-googlehangouts"])
+        if nohistory: #Disable History if the SSB provides History itself
+            preferencedict = self.dict_recurupdate(preferencedict, preferencesjson["disable-history"])
             
-        #Return the new Preferences
-        return newpreferences
+        #Return the modified Preferences
+        return preferencedict
             
     #Firefox settings
     def set_ice_privacy_gecko(self, prefsjs, userjs, allowhistory=True):
@@ -534,221 +586,97 @@ class main():
         pass #TODO
     
     #Bonuses
-    def append_ice_extras_chromi(self, preferencesfile, extras=[]):
+    def chromi_set_bonuses(self, preferencedict, bonuses=[]):
         #dict, list
         
-        newpreferences = preferencesfile #For patching, return later
         #First, open the Extras file
         with open("/usr/share/feren-storium/modules/packagemgmt-ice/chromiums/extras.json", 'r') as fp:
-            extrasjson = json.loads(fp.read())
+            bonusesjson = json.loads(fp.read())
         
-        #First, add the extras that are supplied
-        for item in extras:
-            if item in extrasjson:
+        #First, add the bonuses that were chosen
+        for item in bonuses:
+            if item in bonusesjson:
                 #Check that the extension isn't already installed
-                for extensionid in extrasjson[item]["extensions"]["settings"]:
-                    if extensionid in newpreferences["extensions"]["settings"]:
+                for extensionid in bonusesjson[item]["extensions"]["settings"]:
+                    if extensionid in preferencedict["extensions"]["settings"]:
                         #If it is, clear out stuff that would uninstall the extra if installed
-                        extrasjson[item]["extensions"]["settings"][extensionid].pop("path", None)
-                        extrasjson[item]["extensions"]["settings"][extensionid]["manifest"].pop("name", None)
-                        extrasjson[item]["extensions"]["settings"][extensionid]["manifest"].pop("version", None)
+                        bonusesjson[item]["extensions"]["settings"][extensionid].pop("path", None)
+                        bonusesjson[item]["extensions"]["settings"][extensionid]["manifest"].pop("name", None)
+                        bonusesjson[item]["extensions"]["settings"][extensionid]["manifest"].pop("version", None)
                 #Now that is done, install extra to profile
-                newpreferences = self.dict_recurupdate(newpreferences, extrasjson[item])
-        #Second, we remove extras no longer selected
-        for item in extrasjson:
-            if not item in extras:
-                for extensionid in extrasjson[item]["extensions"]["settings"]:
-                    newpreferences["extensions"]["settings"].pop(extensionid, None)
-        #Now, return the new Preferences
-        return newpreferences
+                preferencedict = self.dict_recurupdate(preferencedict, bonusesjson[item])
+        #Second, we remove bonuses no longer selected
+        for item in bonusesjson:
+            if not item in bonuses:
+                for extensionid in bonusesjson[item]["extensions"]["settings"]:
+                    preferencedict["extensions"]["settings"].pop(extensionid, None)
+
+        #Now, return the modified Preferences
+        return preferencedict
     
     
     #Theme colouring
-    def append_theme_colours(self, preferencesfile, icecolor, icehighlightcolor, icecolordark):
-        #dict, string, string, string
-        
-        newpreferences = preferencesfile #For patching, return later
+    def chromi_set_colors(self, preferencedict, bg, bgdark, accent, accentdark, color, accentonwindow):
+        #dict, string, string, string, string, string, bool
         
         #TODO: Figure out doing themes for Chrome to colour the windows by their website colours
-        vivaldihighlightcol = icehighlightcolor
-        if self.get_colours_different(icecolor, icehighlightcolor): #Suitable background colour used
-            vivaldiaccentcol = icehighlightcolor
-            vivaldiaccentcoldark = icehighlightcolor
-            vivaldiwinbgcol = icecolor
-            vivaldiwinbgcoldark = icecolordark
-            vivaldiaccentinchrome = False
-        else: #Otherwise use fallback colours
-            vivaldiaccentcol = icecolor
-            vivaldiaccentcoldark = icecolordark
-            vivaldiwinbgcol = ""
-            vivaldiwinbgcoldark = ""
-            vivaldiaccentinchrome = True 
-        vivaldiaccentcolprivate = self.color_filter(icehighlightcolor, -46.0)
-        vivaldiwinbgcolprivate = self.color_filter(icehighlightcolor, -70.0)
-        
-        #Now apply all the values for the themes in Vivaldi
-        newpreferences["vivaldi"]["themes"]["system"][0]["accentOnWindow"] = vivaldiaccentinchrome
-        newpreferences["vivaldi"]["themes"]["system"][1]["accentOnWindow"] = vivaldiaccentinchrome
-        newpreferences["vivaldi"]["themes"]["system"][2]["accentOnWindow"] = False
-        newpreferences["vivaldi"]["themes"]["system"][0]["colorAccentBg"] = vivaldiaccentcol
-        newpreferences["vivaldi"]["themes"]["system"][1]["colorAccentBg"] = vivaldiaccentcoldark
-        newpreferences["vivaldi"]["themes"]["system"][2]["colorAccentBg"] = vivaldiaccentcolprivate
-        newpreferences["vivaldi"]["themes"]["system"][0]["colorHighlightBg"] = vivaldihighlightcol
-        newpreferences["vivaldi"]["themes"]["system"][1]["colorHighlightBg"] = vivaldihighlightcol
-        newpreferences["vivaldi"]["themes"]["system"][2]["colorHighlightBg"] = vivaldihighlightcol
+
+        #Vivaldi
+        bgprivate = self.color_filter(color, -70.0)
+        preferencedict["vivaldi"]["themes"]["system"][0]["accentOnWindow"] = accentonwindow
+        preferencedict["vivaldi"]["themes"]["system"][1]["accentOnWindow"] = accentonwindow
+        preferencedict["vivaldi"]["themes"]["system"][2]["accentOnWindow"] = False
+        preferencedict["vivaldi"]["themes"]["system"][0]["colorAccentBg"] = accent
+        preferencedict["vivaldi"]["themes"]["system"][1]["colorAccentBg"] = accentdark
+        preferencedict["vivaldi"]["themes"]["system"][2]["colorAccentBg"] = self.color_filter(color, -46.0)
+        preferencedict["vivaldi"]["themes"]["system"][0]["colorBg"] = bg
+        preferencedict["vivaldi"]["themes"]["system"][1]["colorBg"] = bgdark
+        preferencedict["vivaldi"]["themes"]["system"][2]["colorBg"] = bgprivate
+        preferencedict["vivaldi"]["themes"]["system"][0]["colorHighlightBg"] = color
+        preferencedict["vivaldi"]["themes"]["system"][1]["colorHighlightBg"] = color
+        preferencedict["vivaldi"]["themes"]["system"][2]["colorHighlightBg"] = color
         #Now set text colours where appropriate
         # Normal foregrounds
-        if vivaldiwinbgcol != "":
-            if self.get_is_light(vivaldiwinbgcol) == False: #Dark BG (in-Preferences default is Light, so no need for Light BG else)
-                newpreferences["vivaldi"]["themes"]["system"][0]["colorFg"] = "#FFFFFF"
-            newpreferences["vivaldi"]["themes"]["system"][0]["colorBg"] = vivaldiwinbgcol
-        if vivaldiwinbgcoldark != "":
-            if self.get_is_light(vivaldiwinbgcoldark) == True: #Light BG (in-Preferences default is Dark, so no need for Dark BG else)
-                newpreferences["vivaldi"]["themes"]["system"][1]["colorFg"] = "#000000"
-            newpreferences["vivaldi"]["themes"]["system"][1]["colorBg"] = vivaldiwinbgcoldark
+        if self.get_is_light(bg) == False: #Dark BG (predefined colour is black so no else)
+            preferencedict["vivaldi"]["themes"]["system"][0]["colorFg"] = "#FFFFFF"
+        if self.get_is_light(bgdark) == True: #Light BG (predefined colour is white so no else)
+            preferencedict["vivaldi"]["themes"]["system"][1]["colorFg"] = "#000000"
         # Private foregrounds
-        if self.get_is_light(vivaldiwinbgcolprivate) == True: #Light BG (in-Preferences default is Dark, so no need for Dark BG else)
-            newpreferences["vivaldi"]["themes"]["system"][2]["colorFg"] = "#000000"
-        newpreferences["vivaldi"]["themes"]["system"][2]["colorBg"] = vivaldiwinbgcolprivate
+        if self.get_is_light(bgprivate) == True: #Light BG (predefined colour is white so no else)
+            preferencedict["vivaldi"]["themes"]["system"][2]["colorFg"] = "#000000"
         
-        #Return the new Preferences
-        return newpreferences
+        #Return the modified Preferences
+        return preferencedict
     
-    def set_local_state(self, localstatefile):
-        #dict
+    def chromi_update_local_state(self, itemid, profileid, darkmode):
+        #string, string, bool
         
-        newpreferences = localstatefile #For patching, return later
-        
-        with open("/usr/share/feren-storium/modules/packagemgmt-ice/chromiums/Local State", 'r') as fp:
-            defaultpreferences = json.loads(fp.read())
-        newpreferences = self.dict_recurupdate(newpreferences, defaultpreferences)
-        
-        #Return the new Local State
-        return newpreferences
+        LocalStateFile = "{0}/{1}/{2}/Local State".format(default_ice_directory, itemid, profileid)
+
+        result = {}
+        if os.path.isfile(LocalStateFile): #Load old Preferences into variable if one exists
+            with open(LocalStateFile, 'r') as fp:
+                result = json.loads(fp.read())
+        with open("/usr/share/feren-storium/modules/packagemgmt-ice/chromiums/Local State", 'r') as fp: #Also load default local state, so we can patch
+            result = self.dict_recurupdate(result, json.loads(fp.read()))
+
+        #Enable dark mode if on
+        if darkmode == True and not "enable-force-dark@1" in result["browser"]["enabled_labs_experiments"] and not "enable-force-dark@2" in result["browser"]["enabled_labs_experiments"] and not "enable-force-dark@3" in result["browser"]["enabled_labs_experiments"] and not "enable-force-dark@4" in result["browser"]["enabled_labs_experiments"] and not "enable-force-dark@5" in result["browser"]["enabled_labs_experiments"] and not "enable-force-dark@6" in result["browser"]["enabled_labs_experiments"] and not "enable-force-dark@7" in result["browser"]["enabled_labs_experiments"]:
+            result["browser"]["enabled_labs_experiments"].append("enable-force-dark@1")
+
+        #Save to the Preferences fileonusIDs
+        try:
+            with open(LocalStateFile, 'w') as fp:
+                fp.write(json.dumps(result, separators=(',', ':'))) # Also a minified json
+        except Exception as exceptionstr:
+            raise ICESharedModuleException(_("Failed to write to Local State"))
+
     
     #Finishing touches
-    def profile_finishing_touches(self, profilepath, source, allowhistory=True, extras=[]):
-        #string, string, bool, list
+    def chromi_finishing_touches(self, itemid, profileid):
+        #string, string
         
-        #Load defaults first for Local State
-        with open("%s/.storium-extra-ids" % profilepath, 'w') as fp:
-            fp.write(str(extras)) # This means that Store can manage extras later on in time
-        if not allowhistory:
-            with open("%s/.storium-nohistory" % profilepath, 'w') as fp:
-                pass
-        with open("%s/.storium-last-updated" % profilepath, 'w') as fp:
-            fp.write(datetime.today().strftime('%Y%m%d'))
-        with open("%s/.storium-default-browser" % profilepath, 'w') as fp:
-            fp.write(source) # Used by module during updating to determine your browser
-        with open("%s/First Run" % profilepath, 'w') as fp:
+        with open("{0}/{1}/{2}/First Run".format(default_ice_directory, itemid, profileid), 'w') as fp:
             pass #Skips the initial Welcome to Google Chrome dialog
-        with open("%s/Default/Bookmarks" % profilepath, 'w') as fp:
-            pass #Skips the initial Welcome to Google Chrome dialog
-    
-
-    ####SHORTCUT CREATION
-    def create_shortcuts(self, realname, packagename, useicon, source, website, category, keywords, windowclass):
-        #string, string, bool, string, string, string, string, string
-        
-        with open(self.applications_directory + "/%s.desktop" % windowclass, 'w') as fp:
-            # I mean, this needs no explanation, it's a .desktop file
-            fp.write("[Desktop Entry]\n")
-            fp.write("Version=1.0\n")
-            fp.write("Name={0}\n".format(realname))
-            fp.write("Comment={0}\n".format(_("Website (obtained from Store)")))
-            
-            fp.write("Exec=/usr/bin/feren-storium-icelaunch {0} {1} {2} {3}\n".format(self.default_ice_directory + "/%s" % packagename, source, '"' + website + '"', windowclass))
-
-            fp.write("Terminal=false\n")
-            fp.write("X-MultipleArgs=false\n")
-            fp.write("Type=Application\n")
-            
-            if useicon:
-                fp.write("Icon={0}\n".format(self.default_ice_directory + "/%s/icon" % packagename))
-            else:
-                fp.write("Icon=text-html\n")
-
-            #Ice stuff will have their own categories to allow for easier sectioning of items in Store overall
-            if package_information["category"] == "ice-accessories":
-                location = "Utility;"
-            elif package_information["category"] == "ice-games":
-                location = "Game;"
-            elif package_information["category"] == "ice-graphics":
-                location = "Graphics;"
-            elif package_information["category"] == "ice-internet":
-                location = "Network;"
-            elif package_information["category"] == "ice-office":
-                location = "Office;"
-            elif package_information["category"] == "ice-programming":
-                location = "Development;"
-            elif package_information["category"] == "ice-multimedia":
-                location = "AudioVideo;"
-            elif package_information["category"] == "ice-system":
-                location = "System;"
-            
-            fp.write("Categories=GTK;Qt;{0}\n".format(location))
-            fp.write("MimeType=text/html;text/xml;application/xhtml_xml;\n")
-
-            fp.write("Keywords=%s\n" % keywords)
-
-            fp.write("StartupWMClass=%s\n" % windowclass)
-            fp.write("StartupNotify=true\n")
-        
-        os.system("chmod +x " + self.applications_directory + "/%s.desktop" % windowclass)
-        #Otherwise it will refuse to launch from the Applications Menu
-    
-    def create_extra_shortcuts(self, realname, packagename, source, category, windowclass, extraids=[], extrawebsites=[], extrarealnames=[], extraiconuris=[], extrakeywords=[]):
-        #string, string, string, string, string, list, list, list, list, list
-        
-        extrascount = 0 #Classic strat for iteration
-        if extraids != []:
-            import urllib.request #Grabbing files from internet
-            import urllib.error
-        for extraid in extraids:
-            try:
-                with open(self.applications_directory + "/{0}-{1}.desktop".format(packagename, extraid), 'w') as fp:
-                    # I mean, this needs no explanation, it's a .desktop file
-                    fp.write("[Desktop Entry]\n")
-                    fp.write("Version=1.0\n")
-                    fp.write("Name={0}\n".format(extrarealnames[extrascount]))
-                    fp.write("Comment={0}\n".format(_("Website (part of %s)" % realname)))
-                    
-                    fp.write("Exec=/usr/bin/feren-storium-icelaunch {0} {1} {2} {3}\n".format(self.default_ice_directory + "/%s" % packagename, source, '"' + extrawebsites[extrascount] + '"', windowclass))
-
-                    fp.write("Terminal=false\n")
-                    fp.write("X-MultipleArgs=false\n")
-                    fp.write("Type=Application\n")
-                    
-                    try:
-                        urllib.request.urlretrieve(extraiconuris[extrascount], (self.default_ice_directory + "/{0}/icon-{1}".format(packagename, extraid)))
-                        fp.write("Icon=%s\n" % (self.default_ice_directory + "/{0}/icon-{1}".format(packagename, extraid)))
-                    except:
-                        fp.write("Icon=text-html\n")
-
-                    if package_information["category"] == "ice-accessories":
-                        location = "Utility;"
-                    elif package_information["category"] == "ice-games":
-                        location = "Game;"
-                    elif package_information["category"] == "ice-graphics":
-                        location = "Graphics;"
-                    elif package_information["category"] == "ice-internet":
-                        location = "Network;"
-                    elif package_information["category"] == "ice-office":
-                        location = "Office;"
-                    elif package_information["category"] == "ice-programming":
-                        location = "Development;"
-                    elif package_information["category"] == "ice-multimedia":
-                        location = "AudioVideo;"
-                    elif package_information["category"] == "ice-system":
-                        location = "System;"
-                    
-                    fp.write("Categories=GTK;Qt;{0}\n".format(location))
-                    fp.write("MimeType=text/html;text/xml;application/xhtml_xml;\n")
-
-                    fp.write("Keywords=%s\n" % package_information["keywordsextras"][extrascount])
-
-                    fp.write("StartupNotify=true\n")
-            except Exception as exceptionstr:
-                raise ICEModuleException(_("Failed to update {0}: {1} was encountered when updating extra shortcuts in the Applications Menu").format(packagename, exceptionstr))
-            os.system("chmod +x " + self.applications_directory + "/{0}-{1}.desktop".format(packagename, extraid))
-            extrascount += 1
+        with open("{0}/{1}/{2}/Default/Bookmarks".format(default_ice_directory, itemid, profileid), 'w') as fp:
+            pass #Empties Bookmarks?

@@ -4,6 +4,7 @@ import sys
 import subprocess
 import time
 import shutil
+import ast
 
 from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
@@ -39,8 +40,11 @@ def getDesktopFileInformation(path):
     desktopfileinformation["browsertype"] = entry.get("X-FerenIce-BrowserType")
     desktopfileinformation["id"] = entry.get("X-FerenIce-ID")
     desktopfileinformation["website"] = entry.get("X-FerenIce-Website")
+    desktopfileinformation["extraids"] = ast.literal_eval(entry.get("X-FerenIce-ExtraIDs"))
     desktopfileinformation["nohistory"] = strToBool(entry.get("X-FerenIce-NoHistory"))
     desktopfileinformation["googleinteg"] = strToBool(entry.get("X-FerenIce-Google"))
+    desktopfileinformation["googlehangouts"] = strToBool(entry.get("X-FerenIce-GoogleHangouts"))
+    desktopfileinformation["bonusids"] = ast.literal_eval(entry.get("X-FerenIce-BonusIDs"))
     desktopfileinformation["bg"] = entry.get("X-FerenIce-BG")
     desktopfileinformation["bgdark"] = entry.get("X-FerenIce-BG-Dark")
     desktopfileinformation["accent"] = entry.get("X-FerenIce-Accent")
@@ -71,7 +75,8 @@ def onCreateProfile():
     IceShared.create_profile_folder(desktopfileinformation["id"], desiredname, desktopfileinformation["browsertype"])
     #Then add in the initial settings
     IceShared.update_profile_settings(desktopfileinformation, desiredname, darkmode)
-    #TODO: Add non-hardcoded profile name (prf1)
+
+    #TODO: Add handlers for failure to create profile, invalid name, etc.
 
 
 

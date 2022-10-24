@@ -178,122 +178,13 @@ class module():
         #First remove the files just in case there's a partial installation
         #TODO self.task_remove_package(taskdata, None, True)
 
-        self.moduleshared.create_profiles_folder(taskdata.itemid)
-
-        self.moduleshared.create_appsmenu_shortcuts(taskdata.itemid, taskdata.subsourceid, package_information)
+        self.moduleshared.create_appsmenu_shortcuts(taskdata.itemid, taskdata.subsourceid, package_information, taskdata.bonusids)
+        progress_callback(50)
 
         #TODO: Save icon to hicolor
-
-        return True
-
-
-
-
-
-
-
-
         
-        #TODO: Refactor this after Tasks are refactored
-        icepackageinfo = taskdata["pkginfo"]
-        if "extrasids" in icepackageinfo:
-            iceextrasids = icepackageinfo["extrasids"]
-        else:
-            iceextrasids = []
-        if "bonuses" in taskdata:
-            icebonuses = taskdata["bonuses"]
-        else:
-            icebonuses = []
-        
-
-        
-        #Create the .desktop file's home if it doesn't exist
-        if not os.path.isdir(os.path.expanduser("~") + "/.local/share/applications"):
-            try:
-                os.mkdir(os.path.expanduser("~") + "/.local/share/applications")
-            except Exception as exceptionstr:
-                raise ICEModuleException(_("Failed to install {0}: {1} was encountered when trying to create the shortcut's location").format(taskdata["packagename"], exceptionstr))
-            
-            
-        progress_callback(12)        
-        #Titlebar branding
-        #if "icecolor" in icepackageinfo:
-            #TODO
-            #os.system("qdbus org.kde.KWin /KWin reconfigure")
-            
-            
-        #Create the Chromium profile
-
-            
-            
-        progress_callback(24)
-            
-        
-        try:
-            os.mkdir(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/Default" % taskdata["packagename"])
-        except Exception as exceptionstr:
-            self.task_remove_package(taskdata, None, True) #Remove profile's files/folders on failure
-            raise ICEModuleException(_("Failed to install {0}: {1} was encountered when making the Chromium-based profile").format(taskdata["packagename"], exceptionstr))
-        
-        
-        progress_callback(36)
-            
-        
-        usefallbackicon = False
-        #Copy icon for package
-        try:
-            shutil.copy(self.storebrain.tempdir + "/icons/" + taskdata["packagename"], os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/icon" % taskdata["packagename"])
-        except Exception as exceptionstr:
-            usefallbackicon = True
-            
-            
-        progress_callback(48)
-            
-        
-        
-        #Now to make the JSON file
-        profiletomake = self.moduleshared.set_default_settings_chromi({}, icepackageinfo["website"], icepackageinfo["realname"], icepackageinfo["iconuri"])
-        
-        profiletomake = self.moduleshared.append_default_extras_settings_chromi(profiletomake, iceextrasids, icepackageinfo["websiteextras"], icepackageinfo["realnameextras"])
-            
-        profiletomake = self.moduleshared.set_ice_privacy_chromi(profiletomake, not icepackageinfo["icenohistory"], icepackageinfo["icegoogleinteg"], icepackageinfo["icegooglehangouts"])
-        
-        profiletomake = self.moduleshared.append_ice_extras_chromi(profiletomake, taskdata["bonuses"])
-        
-        profiletomake = self.moduleshared.append_theme_colours(profiletomake, not icepackageinfo["icecolor"], icepackageinfo["icecolorhighlight"], icepackageinfo["icecolordark"])
-        
-        progress_callback(60)
-        
-        #Write profile
-        try:
-            with open(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/Default/Preferences" % taskdata["packagename"], 'w') as fp:
-                fp.write(json.dumps(profiletomake, separators=(',', ':'))) # This dumps minified json (how convenient), which is EXACTLY what Chrome uses for Preferences, so it's literally pre-readied
-        except Exception as exceptionstr:
-            self.task_remove_package(taskdata, None, True) #Remove profile's files/folders on failure
-            raise ICEModuleException(_("Failed to install {0}: {1} was encountered when writing the Chromium-based profile").format(taskdata["packagename"], exceptionstr))
-        
-        
-        profiletomake = self.moduleshared.set_local_state({})
-        
-        #Write Local State
-        try:
-            with open(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/Local State" % taskdata["packagename"], 'w') as fp:
-                fp.write(json.dumps(profiletomake, separators=(',', ':'))) # This dumps minified json (how convenient), which is EXACTLY what Chrome uses for Preferences, so it's literally pre-readied
-        except Exception as exceptionstr:
-            self.task_remove_package(taskdata, None, True) #Remove profile's files/folders on failure
-            raise ICEModuleException(_("Failed to install {0}: {1} was encountered when writing the Chromium-based profile").format(taskdata["packagename"], exceptionstr))
-        
-        
-        self.moduleshared.profile_finishing_touches(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s" % taskdata["packagename"], taskdata["source"], not icepackageinfo["icenohistory"], taskdata["bonuses"])
-            
-        progress_callback(72)
-        
-        
-        self.moduleshared.create_shortcuts(icepackageinfo["realname"], taskdata["packagename"], True, taskdata["source"], icepackageinfo["website"], icepackageinfo["category"], icepackageinfo["keywords"], windowclassid)
-        self.moduleshared.create_extra_shortcuts(icepackageinfo["realname"], taskdata["packagename"], taskdata["source"], icepackageinfo["category"], iceextrasids, icepackageinfo["websiteextras"], icepackageinfo["realnameextras"], icepackageinfo["iconuriextras"], icepackageinfo["keywordsextras"], windowclassid)
-            
         progress_callback(100)
-        
+
         return True
     
     

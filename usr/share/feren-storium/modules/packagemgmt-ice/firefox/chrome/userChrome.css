@@ -1,0 +1,144 @@
+@import url("ferenChrome.css");
+@import url("ice.css");
+
+@-moz-document url('chrome://browser/content/browser.xhtml') {
+
+    :root {
+        --toolbar-btn-width: calc((var(--toolbar-start-end-padding) * 2) +
+            (16px * 3) +
+            (var(--toolbarbutton-outer-padding) * 2 * 3) +
+            (var(--toolbarbutton-inner-padding) * 2 * 3));
+    }
+
+    window,
+    #main-window,
+    #TabsToolbar,
+    #sidebar-box,
+    #nav-bar {
+
+        -moz-appearance: none !important;
+
+        border: none !important;
+        box-shadow: none !important;
+        background: none !important;
+
+    }
+
+    #forward-button,
+    #nav-bar-overflow-button,
+    #urlbar[breakout],
+    #toolbar-menubar,
+    #PersonalToolbar,
+    #customization-palette-container,
+    #customization-panel-container,
+    #customization-titlebar-visibility-checkbox,
+    #customization-toolbar-visibility-button,
+    #customization-reset-button,
+    #customization-uidensity-menuitem-touch,
+    #customization-lwtheme-link,
+    #wrapper-back-button,
+    #wrapper-stop-reload-button,
+    #wrapper-new-tab-button,
+    #wrapper-alltabs-button,
+    #wrapper-downloads-button {
+        display: none !important;
+    }
+    #urlbar-container {
+        max-width: 0px !important;
+        min-width: 0px !important;
+    }
+    #customization-content-container {
+        background: #212121 !important;
+        color: #FFFFFF !important;
+    }
+    #customization-footer {
+        background: #383838 !important;
+    }
+    .customizationmode-button {
+        background-color: rgba(255, 255, 255, 0.16) !important;
+        color: #FFFFFF !important;
+    }
+    .customizationmode-button:hover {
+        background-color: rgba(255, 255, 255, 0.32) !important;
+        color: #FFFFFF !important;
+    }
+    .customizationmode-button:active {
+        background-color: rgba(255, 255, 255, 0.46) !important;
+        color: #FFFFFF !important;
+    }
+    #customization-uidensity-menuitem-compact {
+        list-style-image: url("chrome://browser/skin/customizableui/density-normal.svg") !important;
+    }
+    #customization-uidensity-menuitem-normal {
+        list-style-image: url("chrome://browser/skin/customizableui/density-touch.svg") !important;
+    }
+    #customization-content-container::before {
+        margin: auto;
+        content: "🧊";
+        font-size: 800%;
+    }
+    #nav-bar-customization-target {
+        max-width: calc((16px * 2) +
+            (var(--toolbarbutton-outer-padding) * 2 * 2) +
+            (var(--toolbarbutton-inner-padding) * 2 * 2) +
+            var(--toolbarbutton-outer-padding) + var(--toolbarbutton-inner-padding)) !important;
+            /* NOTE: Extra padding to make the menu button properly positioned */
+        min-width: calc((16px * 2) +
+            (var(--toolbarbutton-outer-padding) * 2 * 2) +
+            (var(--toolbarbutton-inner-padding) * 2 * 2) +
+            var(--toolbarbutton-inner-padding)) !important;
+    }
+
+    .titlebar-spacer { display: none !important; }
+    .titlebar-buttonbox-container { display: -moz-inline-box !important; }
+
+    /* move tabs bar over */
+    #TabsToolbar {
+        margin-left: var(--toolbar-btn-width) !important;
+    }
+
+    /* move entire nav bar  */
+    #nav-bar {
+        margin: calc((var(--urlbar-min-height) * -1) - 8px) calc(100vw - var(--toolbar-btn-width) + var(--toolbar-start-end-padding)) 0 0 !important;
+    }
+    toolbarbutton {
+        fill: var(--lwt-text-color) !important; /* use titlebar text colour */
+    }
+
+    /* Hide menu items */
+    #appMenu-new-private-window-button2,
+    #appMenu-bookmarks-button,
+    #appMenu-downloads-button,
+    #appMenu-passwords-button,
+    #appMenu-more-button2,
+    #appmenu-customizetoolbar,
+    #appmenu-moreTools-button,
+    #appMenu_feedbackPage,
+    #appMenu_helpSafeMode,
+    #appMenu_troubleShooting,
+    #downloadsFooterButtons {
+        display: none !important;
+    }
+
+    @supports -moz-bool-pref("privacy.clearOnShutdown.history") {
+        #appMenu-history-button {
+            display: none !important;
+        }
+        #back-button,
+        #reload-button,
+        #stop-button {
+            display: none !important;
+        }
+        :root {
+            --toolbar-btn-width: calc((var(--toolbar-start-end-padding) * 2) +
+                16px +
+                (var(--toolbarbutton-outer-padding) * 2) +
+                (var(--toolbarbutton-inner-padding) * 2));
+        }
+        #nav-bar-customization-target {
+            max-width: var(--toolbarbutton-inner-padding) !important;
+            min-width: var(--toolbarbutton-inner-padding) !important;
+        }
+    }
+
+}

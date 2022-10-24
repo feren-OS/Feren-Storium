@@ -1,0 +1,18 @@
+@-moz-document url('chrome://browser/content/browser.xhtml') {
+
+    /* LIGHT THEME */
+    @media (prefers-color-scheme: light) {
+        :not(:-moz-lwtheme) {
+            --lwt-selected-tab-background-color: ACCENTBG !important;
+            --lwt-tab-text: ACCENTFG !important;
+        }
+    }
+
+    /* DARK THEME */
+    @media (prefers-color-scheme: dark) {
+        :not(:-moz-lwtheme) {
+            --lwt-selected-tab-background-color: ACCENTBG !important;
+            --lwt-tab-text: ACCENTFG !important;
+        }
+    }
+}
