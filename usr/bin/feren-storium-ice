@@ -1,0 +1,226 @@
+#!/usr/bin/python3
+import os
+import sys
+import subprocess
+import time
+import shutil
+
+from PyQt5.QtCore import *
+from PyQt5.QtWidgets import *
+from PyQt5.QtQml import * #Needs python3-pyqt5.qtquick
+
+from xdg.DesktopEntry import DesktopEntry
+
+sys.path.insert(0, "/usr/lib/feren-storium/modules/packagemgmt/peppermint-ice")
+import moduleshared as IceModuleShared #TODO: Move these into their own importable module
+IceShared = IceModuleShared.main()
+
+#######################################################################################
+# Ice Launcher Interface - Feren Storium                                              #
+#                                                                                     #
+# Rest in Peace, Mark Greaves.                                                        #
+#######################################################################################
+
+## Code to initialise/refresh the desktop file information used for profile creation and launching
+def getDesktopFileInformation(path):
+    global desktopfileinformation
+    entry=DesktopEntry()
+    try:
+        entry.parse(path)
+    except:
+        return #TODO: Error handling
+
+    desktopfileinformation = {}
+    #Add basic information for GUI
+    desktopfileinformation["name"] = entry.getName()
+    desktopfileinformation["wmclass"] = entry.getStartupWMClass()
+    #Add custom settings
+    desktopfileinformation["browser"] = entry.get("X-FerenIce-Browser")
+    desktopfileinformation["browsertype"] = entry.get("X-FerenIce-BrowserType")
+    desktopfileinformation["id"] = entry.get("X-FerenIce-ID")
+    desktopfileinformation["website"] = entry.get("X-FerenIce-Website")
+    desktopfileinformation["nohistory"] = strToBool(entry.get("X-FerenIce-NoHistory"))
+    desktopfileinformation["googleinteg"] = strToBool(entry.get("X-FerenIce-Google"))
+    desktopfileinformation["bg"] = entry.get("X-FerenIce-BG")
+    desktopfileinformation["bgdark"] = entry.get("X-FerenIce-BG-Dark")
+    desktopfileinformation["accent"] = entry.get("X-FerenIce-Accent")
+    desktopfileinformation["accentdark"] = entry.get("X-FerenIce-Accent-Dark")
+    desktopfileinformation["color"] = entry.get("X-FerenIce-Color")
+    desktopfileinformation["accentonwindow"] = strToBool(entry.get("X-FerenIce-AccentWindow"))
+    desktopfileinformation["lastupdated"] = entry.get("X-FerenIce-LastUpdate")
+
+def strToBool(string):
+    if string == "true":
+        return True
+    else:
+        return False
+
+
+## CREATE PROFILE
+def onCreateProfile():
+    if mainwnd.findChild(QObject, "editProfileName").property('text') == "":
+        mainwnd.findChild(QObject, "editProfileNameEmpty").setProperty('visible', True)
+        return
+    else:
+        mainwnd.findChild(QObject, "editProfileNameEmpty").setProperty('visible', False)
+
+    desiredname = mainwnd.findChild(QObject, "editProfileName").property('text')
+    darkmode = mainwnd.findChild(QObject, "forceDarkMode").property('checked')
+
+    #Now generate the profile's folder
+    IceShared.create_profile_folder(desktopfileinformation["id"], desiredname, desktopfileinformation["browsertype"])
+    #Then add in the initial settings
+    IceShared.update_profile_settings(desktopfileinformation, desiredname, darkmode)
+    #TODO: Add non-hardcoded profile name (prf1)
+
+
+
+
+
+
+
+
+#[1]: .desktop file
+desktopfileinformation = {} #First initialise the desktop file information variable
+getDesktopFileInformation(str(sys.argv[1]))
+
+print(desktopfileinformation)
+
+#Opera: Removed because Preferences location is incorrect and no application mode
+#Yandex: Removed because it didn't install Extensions
+#Epiphany: Scrapped (for now) because way too janky to make it work
+
+#TODO: Store if application has been configured to be single profile before, and if so skip the GUI entirely unless an argument's specified
+app = QApplication(sys.argv)
+
+app.setDesktopFileName(desktopfileinformation["wmclass"])
+app.setApplicationName(desktopfileinformation["wmclass"])
+
+engine = QQmlApplicationEngine()
+engine.quit.connect(app.quit)
+engine.load('/usr/share/feren-storium/modules/packagemgmt-ice/icegui.qml')
+
+mainwnd = engine.rootObjects()[0]
+mainwnd.createProfile.connect(onCreateProfile)
+
+mainwnd.setProperty('title', desktopfileinformation["name"])
+mainwnd.findChild(QObject, "profilesHeader").setProperty('text', "Who's using %s?" % desktopfileinformation["name"])
+mainwnd.findChild(QObject, "browsersHeader").setProperty('text', "Choose a browser to launch %s" % desktopfileinformation["name"])
+mainwnd.findChild(QObject, "manageHeader").setProperty('text', "Manage %s Profiles" % desktopfileinformation["name"])
+
+#TODO: Add in label changing to translate the labels
+
+
+
+
+
+
+#If profiles folder doesn't exist, create it.
+profilesdir = IceShared.get_profiles_folder(desktopfileinformation["id"])
+if not os.path.isdir(profilesdir):
+    IceShared.create_profiles_folder(desktopfileinformation["id"])
+
+#Now get all the profiles
+profiles = []
+for folder in os.listdir(profilesdir):
+    if os.path.isdir(folder):
+        if os.path.isfile(folder + "\Local State"):
+            profiles.add(folder)
+print(profiles)
+
+#If there's no profiles, go into the profile creator
+if profiles == []:
+    mainwnd.findChild(QObject, "pages").setProperty('currentIndex', 4)
+
+
+sys.exit(app.exec())
+
+
+
+
+
+#if sys.argv[2] != "epiphany":
+if os.path.isfile(sys.argv[1]):
+    print("A file exists here. Feren Store Ice cannot continue.")
+    exit(1)
+if not os.path.isdir(sys.argv[1]):
+    mkprofile(sys.argv[1])
+#else:
+    ##Special case for Epiphany
+    #if os.path.isfile(sys.argv[1] + '/org.gnome.Epiphany.WebApp-FerenStoreIce'):
+        #print("A file exists here. Feren Store Ice cannot continue.")
+        #exit(1)
+    #if not os.path.isdir(sys.argv[1] + '/org.gnome.Epiphany.WebApp-FerenStoreIce'):
+        #mkprofile(sys.argv[1] + '/org.gnome.Epiphany.WebApp-FerenStoreIce')
+    
+
+if os.path.isfile(sys.argv[1] + "/.storium-nohistory"):
+    if os.path.isfile(sys.argv[1] + "/Default/History"):
+        os.remove(sys.argv[1] + "/Default/History")
+    if os.path.isfile(sys.argv[1] + "/Default/History-journal"):
+        os.remove(sys.argv[1] + "/Default/History-journal")
+    if os.path.isdir(sys.argv[1] + "/Default/Sessions"):
+        shutil.rmtree(sys.argv[1] + "/Default/Sessions")
+    
+
+
+    
+#TODO: If browser doesn't exist, launch Store command to make it change browser
+if sys.argv[2] == "chrome":
+    if os.path.isfile("/usr/bin/google-chrome"):
+        ssbproc = subprocess.Popen(['/usr/bin/google-chrome', '--app=' + sys.argv[3], '--class=' + sys.argv[4], '--user-data-dir=' + sys.argv[1]], close_fds=True)
+    else:
+        pass
+elif sys.argv[2] == "vivaldi":
+    if os.path.isfile("/usr/bin/vivaldi"):
+        ssbproc = subprocess.Popen(['/usr/bin/vivaldi', sys.argv[3], '--class=' + sys.argv[4], '--user-data-dir=' + sys.argv[1]], close_fds=True)
+    else:
+        pass
+elif sys.argv[2] == "brave":
+    if os.path.isfile("/usr/bin/brave-browser"):
+        ssbproc = subprocess.Popen(['/usr/bin/brave-browser', '--app=' + sys.argv[3], '--class=' + sys.argv[4], '--user-data-dir=' + sys.argv[1]], close_fds=True)
+    else:
+        pass
+elif sys.argv[2] == "msedge":
+    if os.path.isfile("/usr/bin/microsoft-edge"):
+        ssbproc = subprocess.Popen(['/usr/bin/microsoft-edge', '--app=' + sys.argv[3], '--class=' + sys.argv[4], '--user-data-dir=' + sys.argv[1]], close_fds=True)
+    else:
+        pass
+#elif sys.argv[2] == "epiphany":
+    ##TODO: Better way to detect Flatpaks, and, well, Flatpak itself
+    #ssbproc = subprocess.Popen(['/usr/bin/flatpak', 'override', '--user', 'org.gnome.Epiphany', '--filesystem=' + sys.argv[1] + '/org.gnome.Epiphany.WebApp-FerenStoreIce']).wait() # Make sure profile's accessible
+    
+    #if os.path.isfile("/var/lib/flatpak/app/org.gnome.Epiphany/current/active/files/bin/epiphany"):
+        #subprocess.Popen(['/usr/bin/flatpak', 'run', 'org.gnome.Epiphany', '--application-mode', '--profile=' + sys.argv[1] + '/org.gnome.Epiphany.WebApp-FerenStoreIce', sys.argv[3]], close_fds=True)
+    #else:
+        #pass
+else:
+    print("This browser is either not supported or doesn't exist. Feren Store Ice cannot continue.")
+    exit(1)
+    
+if os.path.isfile(sys.argv[1] + "/.storium-active-pid"):
+    with open(sys.argv[1] + "/.storium-active-pid", 'r') as pidfile:
+        lastpid = pidfile.readline()
+    try:
+        lastpid = int(lastpid)
+        try:
+            os.kill(lastpid, 0) #Send a You There? to the PID identified
+        except:
+            os.remove(sys.argv[1] + "/.storium-active-pid") #The PID doesn't exist
+    except:
+        os.remove(sys.argv[1] + "/.storium-active-pid")
+if not os.path.isfile(sys.argv[1] + "/.storium-active-pid"):
+    with open(sys.argv[1] + "/.storium-active-pid", 'w') as pidfile:
+        pidfile.write(str(ssbproc.pid))
+        
+
+
+if os.path.isfile(sys.argv[1] + "/.storium-nohistory"):
+    #FIXME: We need a better way of doing this.
+    time.sleep(16)
+    if os.path.isfile(sys.argv[1] + "/Default/History"):
+        os.remove(sys.argv[1] + "/Default/History")
+    if os.path.isfile(sys.argv[1] + "/Default/History-journal"):
+        os.remove(sys.argv[1] + "/Default/History-journal")
+    if os.path.isdir(sys.argv[1] + "/Default/Sessions"):
+        shutil.rmtree(sys.argv[1] + "/Default/Sessions")

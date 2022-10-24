@@ -26,7 +26,7 @@ class module():
 
     def __init__(self, storeapi):
         #Gettext Translator
-        gettext.install("feren-storium-module-ice", "/usr/share/locale", names="ngettext")
+        gettext.install("feren-storium-ice", "/usr/share/locale", names="ngettext")
         
         #Store APIs
         self.storeapi = storeapi
@@ -72,12 +72,7 @@ class module():
     def refresh_memory(self): # Function to refresh some memory values
         self.memory_refreshing = True
 
-        self.json_storage = {}
-
-        for i in ["package-info/peppermint-ice", "package-info/generic"]:
-            self.json_storage[i] = self.storeapi.getCuratedJSON(i)
-            
-        self.sources_storage = self.storeapi.getCuratedJSON("package-sources-info/peppermint-ice")
+        self.moduleshared.refresh_memory()
         
         self.memory_refreshing = False
         
@@ -86,8 +81,8 @@ class module():
     def getCategoryIDs(self, categoryid):
         #Get list of itemids in the category of categoryid and return that list
         result = []
-        for itemid in self.json_storage["package-info/peppermint-ice"]:
-            if self.json_storage["package-info/generic"][itemid]["category"] == categoryid or "all" == categoryid:
+        for itemid in self.moduleshared.json_storage["package-info/peppermint-ice"]:
+            if self.moduleshared.json_storage["package-info/peppermint-ice"][itemid]["category"] == categoryid or "all" == categoryid:
                 result.append(itemid)
         return result
 
@@ -98,10 +93,10 @@ class module():
 
         #Construct subsources for the only source
         subsources = {}
-        for browser in self.sources_storage["browsers"]:
-            for candidate in self.sources_storage["browsers"][browser]["required-file"]:
+        for browser in self.moduleshared.sources_storage["browsers"]:
+            for candidate in self.moduleshared.sources_storage["browsers"][browser]["required-file"]:
                 if os.path.isfile(candidate):
-                    subsources[browser] = {"name": self.sources_storage["browsers"][browser]["name"]}
+                    subsources[browser] = {"name": self.moduleshared.sources_storage["browsers"][browser]["name"]}
                     break #Don't need to check more candidates
         
         #Return complete sources value
@@ -115,7 +110,7 @@ class module():
         #1: Unavailable
         #2: Repository requires being added first
 
-        if pkgid in self.json_storage["package-info/peppermint-ice"]:
+        if pkgid in self.moduleshared.json_storage["package-info/peppermint-ice"]:
             return 0 #of course Website Applications are available.
         else:
             return 1
@@ -172,11 +167,32 @@ class module():
     def task_install_package(self, taskdata, progress_callback):
         #Install package and return exit code
         self.packagemgmtbusy = True
-        self.currentpackagename = taskdata["packagename"]
-        
-        windowclassid = taskdata["packagename"]
-        if taskdata["source"] == "vivaldi": #FIXME: Temporary until Vivaldi adds proper shadows support
-            windowclassid = "vivaldi-" + taskdata["packagename"]
+        self.currentpackagename = taskdata.itemid #FIXME: Do we need this?
+
+
+        #Take note of package information so we can reuse its information
+        package_information = self.getInfo(taskdata.itemid, taskdata.sourceid, taskdata.subsourceid)
+
+        #{'type-importance': ['peppermint-ice'], 'realname': 'BBC News', 'iconname': 'bbc-news', 'iconlocal': '', 'iconuri': 'http://m.files.bbci.co.uk/modules/bbc-morph-news-waf-page-meta/5.2.0/apple-touch-icon.png', 'shortdescription': '', 'description': 'TODO', 'website': 'https://www.bbc.co.uk/news', 'donateurl': '', 'category': 'ice-internet', 'images': [''], 'sources-available': ['all'], 'all': {'keywords': 'BBC;News;UK;World;Africa;Asia;Australia;Europe;America;Canada;', 'author': 'BBC', 'bugreporturl': '', 'tosurl': '', 'privpolurl': '', 'icecolor': '#FFFFFF', 'icecolordark': '#000000', 'icecolorhighlight': '#bb1919', 'icelastupdated': '20211210'}, 'keywords': 'BBC;News;UK;World;Africa;Asia;Australia;Europe;America;Canada;', 'author': 'BBC', 'bugreporturl': '', 'tosurl': '', 'privpolurl': '', 'icecolor': '#FFFFFF', 'icecolordark': '#000000', 'icecolorhighlight': '#bb1919', 'icelastupdated': '20211210'}
+
+        #First remove the files just in case there's a partial installation
+        #TODO self.task_remove_package(taskdata, None, True)
+
+        self.moduleshared.create_profiles_folder(taskdata.itemid)
+
+        self.moduleshared.create_appsmenu_shortcuts(taskdata.itemid, taskdata.subsourceid, package_information)
+
+        #TODO: Save icon to hicolor
+
+        return True
+
+
+
+
+
+
+
+
         
         #TODO: Refactor this after Tasks are refactored
         icepackageinfo = taskdata["pkginfo"]
@@ -189,8 +205,7 @@ class module():
         else:
             icebonuses = []
         
-        #First remove the files just in case there's a partial installation
-        self.task_remove_package(taskdata, None, True)
+
         
         #Create the .desktop file's home if it doesn't exist
         if not os.path.isdir(os.path.expanduser("~") + "/.local/share/applications"):
@@ -208,16 +223,7 @@ class module():
             
             
         #Create the Chromium profile
-        if not os.path.isdir(os.path.expanduser("~") + "/.local/share/feren-storium-ice"):
-            try:
-                os.mkdir(os.path.expanduser("~") + "/.local/share/feren-storium-ice")
-            except Exception as exceptionstr:
-                raise ICEModuleException(_("Failed to install {0}: {1} was encountered when trying to create the profiles location").format(taskdata["packagename"], exceptionstr))
-        if not os.path.isdir(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s" % taskdata["packagename"]):
-            try:
-                os.mkdir(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s" % taskdata["packagename"])
-            except Exception as exceptionstr:
-                raise ICEModuleException(_("Failed to install {0}: {1} was encountered when trying to create the profile's folder").format(taskdata["packagename"], exceptionstr))
+
             
             
         progress_callback(24)
@@ -876,7 +882,7 @@ class module():
     #////Package Information////
     def build_ids_list(self): #Build list of package IDs
         self.pkg_ids = []
-        for i in [self.json_storage["package-info/peppermint-ice"]]:
+        for i in [self.moduleshared.json_storage["package-info/peppermint-ice"]]:
             try:
                 for package in i:
                     if package not in self.pkg_ids:
@@ -892,7 +898,7 @@ class module():
     def getPackageJSON(self):
         #Return a json of all package names
         packagejson = {}
-        for i in [self.json_storage["package-info/peppermint-ice"]]:
+        for i in [self.moduleshared.json_storage["package-info/peppermint-ice"]]:
             try:
                 packagejson.update(i)
             except:
@@ -902,17 +908,7 @@ class module():
 
     def getInfo(self, itemid, sourceid, subsourceid):
         #Get information on a package using the JSON data
-        #Get generic information first
-        result = self.json_storage["package-info/generic"][itemid]
-        #Then append to that the ice-specific data
-        try:
-            if "all" in self.storeapi.dict_recurupdate(result, self.json_storage["package-info/peppermint-ice"][itemid]):
-                result = self.storeapi.dict_recurupdate(result, self.json_storage["package-info/peppermint-ice"][itemid]["all"])
-            if sourceid in self.storeapi.dict_recurupdate(result, self.json_storage["package-info/peppermint-ice"][itemid]):
-                result = self.storeapi.dict_recurupdate(result, self.json_storage["package-info/peppermint-ice"][itemid][sourceid])
-        except:
-            raise IceInfoModuleException(packagename, _("'s information failed to be obtained - perhaps the item doesn't exist on this source?"))
-        return result
+        return self.moduleshared.getInfo(itemid, sourceid, subsourceid)
         
         
     def getSourceList(self, packagename, packagetype):
@@ -923,19 +919,19 @@ class module():
             #raise GenericInfoModuleException(packagetype, _("is not supported by this information module. If you are getting an exception throw, it means you have not used a Try to respond to the module not supporting this type of package."))
             #return
             
-        return self.json_storage["package-info/" + packagetype][packagename]["sources-available"]
+        return self.moduleshared.json_storage["package-info/" + packagetype][packagename]["sources-available"]
         
 
     def getShortDescription(self, packagename):
         try:
-            shortdescription = self.json_storage["package-info/peppermint-ice"][packagename]["shortdescription"]
+            shortdescription = self.moduleshared.json_storage["package-info/peppermint-ice"][packagename]["shortdescription"]
         except:
             shortdescription = _("Website Application")
         return shortdescription
     
     def getKeywords(self, packagename):
         try:
-            keywords = self.json_storage["package-info/peppermint-ice"][packagename]["keywords"]
+            keywords = self.moduleshared.json_storage["package-info/peppermint-ice"][packagename]["keywords"]
         except:
             raise IceInfoModuleException(packagename, _("has no keywords value in the package metadata. Websites MUST have keywords values when curated."))
             return
@@ -943,63 +939,63 @@ class module():
     
     def getAuthor(self, packagename):
         try:
-            author = self.json_storage["package-info/peppermint-ice"][packagename]["author"]
+            author = self.moduleshared.json_storage["package-info/peppermint-ice"][packagename]["author"]
         except:
             author = _("Unknown Author")
         return author
       
     def getBugsURL(self, packagename):
         try:
-            bugsurl = self.json_storage["package-info/peppermint-ice"][packagename]["bugreporturl"]
+            bugsurl = self.moduleshared.json_storage["package-info/peppermint-ice"][packagename]["bugreporturl"]
         except:
             bugsurl = ""
         return bugsurl
       
     def getTOSURL(self, packagename):
         try:
-            tosurl = self.json_storage["package-info/peppermint-ice"][packagename]["tos"]
+            tosurl = self.moduleshared.json_storage["package-info/peppermint-ice"][packagename]["tos"]
         except:
             tosurl = ""
         return tosurl
       
     def getPrivPolURL(self, packagename):
         try:
-            privpolurl = self.json_storage["package-info/peppermint-ice"][packagename]["privpol"]
+            privpolurl = self.moduleshared.json_storage["package-info/peppermint-ice"][packagename]["privpol"]
         except:
             privpolurl = ""
         return privpolurl
       
     def getExtrasIDs(self, packagename):
         try:
-            extrasids = self.json_storage["package-info/peppermint-ice"][packagename]["extrasids"]
+            extrasids = self.moduleshared.json_storage["package-info/peppermint-ice"][packagename]["extrasids"]
         except:
             extrasids = []
         return extrasids
       
     def getExtraRealNames(self, packagename):
         try:
-            realnameextras = self.json_storage["package-info/peppermint-ice"][packagename]["realnameextras"]
+            realnameextras = self.moduleshared.json_storage["package-info/peppermint-ice"][packagename]["realnameextras"]
         except:
             realnameextras = []
         return realnameextras
       
     def getIconURIExtras(self, packagename):
         try:
-            iconuriextras = self.json_storage["package-info/peppermint-ice"][packagename]["iconuriextras"]
+            iconuriextras = self.moduleshared.json_storage["package-info/peppermint-ice"][packagename]["iconuriextras"]
         except:
             iconuriextras = []
         return iconuriextras
       
     def getWebsiteExtras(self, packagename):
         try:
-            websiteextras = self.json_storage["package-info/peppermint-ice"][packagename]["websiteextras"]
+            websiteextras = self.moduleshared.json_storage["package-info/peppermint-ice"][packagename]["websiteextras"]
         except:
             websiteextras = []
         return websiteextras
       
     def getKeywordsExtras(self, packagename):
         try:
-            keywordsextras = self.json_storage["package-info/peppermint-ice"][packagename]["keywordsextras"]
+            keywordsextras = self.moduleshared.json_storage["package-info/peppermint-ice"][packagename]["keywordsextras"]
         except:
             keywordsextras = []
         return keywordsextras
@@ -1017,7 +1013,7 @@ class module():
         
         canusethemes = 1 #Disable warning for Website Applications      
         try:
-            if self.json_storage["package-info/peppermint-ice"][packagename]["hasownthemes"] == True:
+            if self.moduleshared.json_storage["package-info/peppermint-ice"][packagename]["hasownthemes"] == True:
                 canusethemes = 4 #...unless a website has themes of its own
         except:
             pass
@@ -1035,7 +1031,7 @@ class module():
     
     def getCanUseAccessibility(self, packagename, packagetype):
         try:
-            canuseaccessibility = self.json_storage["package-info/peppermint-ice"][packagename]["canuseaccessibility"]
+            canuseaccessibility = self.moduleshared.json_storage["package-info/peppermint-ice"][packagename]["canuseaccessibility"]
         except:
             canuseaccessibility = True # Use fallback of True when unknown to hide the message
         return canuseaccessibility
@@ -1047,7 +1043,7 @@ class module():
     
     def getCanUseOnPhone(self, packagename, packagetype):
         try:
-            canuseonphone = self.json_storage["package-info/peppermint-ice"][packagename]["canuseonphone"]
+            canuseonphone = self.moduleshared.json_storage["package-info/peppermint-ice"][packagename]["canuseonphone"]
         except:
             canuseonphone = True # Use fallback of True when unknown to hide the message
         return canuseonphone

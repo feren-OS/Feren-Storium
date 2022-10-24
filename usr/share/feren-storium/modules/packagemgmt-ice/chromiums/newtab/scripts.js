@@ -7,9 +7,6 @@ var eng = {},
 var iceText = "YouTube",
     homeURL = "https://www.youtube.com/?feature=ytca",
     homeIcon = "https://www.gstatic.com/youtube/img/branding/favicon/favicon_192x192.png",
-    iceBG = "https://images.unsplash.com/photo-1611162616475-46b635cb6868",
-    iceBGCredit = "",
-    iceBGURL = "";
 
 
 //Flavour text
@@ -20,9 +17,3 @@ document.getElementById('icehomeicon').src=homeIcon;
 
 document.getElementById('title').innerHTML=iceText;
 document.getElementById('pageicon').href=homeIcon;
-
-if (!iceBGCredit) document.getElementById('bgurl').innerHTML=null;
-
-document.getElementById('bgparallax').style.backgroundImage="url("+iceBG+")";
-document.getElementById('bgcredit').innerHTML=iceBGCredit;
-document.getElementById('bgurl').href=iceBGURL;

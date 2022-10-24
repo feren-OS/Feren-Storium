@@ -12,6 +12,7 @@ import getpass
 import collections.abc
 import copy
 import json
+import locale
 from functools import partial
 import time
 
@@ -212,7 +213,8 @@ class TaskManager():
                 response, bonusids = self.storeAPI.showTaskConfirmation(self.tasks["pending"][moduleid][item], itemsadded, itemsupdated, itemsremoved, bonusoptions)
 
                 if response == False:
-                    self.storeAPI.cancelTask(item, moduleid) #Cancel if No
+                    self.tasks["pending"][moduleid].pop(item)
+                    self.tasks["pending"]["order"].pop(item)
                     continue #Skip to next loop item
 
                 self.tasks["pending"][moduleid][item].bonusids = bonusids #Set tasks's bonuses
@@ -270,10 +272,10 @@ class TaskManager():
 
                 print("TASKS DEBUG: " + moduleid + " is working on " + item)
 
-                try:
-                    self.storeTasksAPI.runTask(self.tasks["queue"][moduleid][item])
-                except Exception as exceptionstr:
-                    self.storeTasksAPI.showFailure(self.tasks["queue"][moduleid][item], exceptionstr)
+                #try:
+                self.storeTasksAPI.runTask(item, self.tasks["queue"][moduleid][item])
+                #except Exception as exceptionstr:
+                    #self.storeTasksAPI.showFailure(self.tasks["queue"][moduleid][item], exceptionstr)
 
                 #Perform cleanup upon completion
                 self.storeTasksAPI.cleanupModule(self.tasks["queue"][moduleid][item].moduleid)
@@ -296,6 +298,18 @@ class TaskManager():
     def task_progress_callback(self, progressint):
         #TODO
         pass
+
+
+
+    def task_set_progress(self, itemid, moduleid, progressint):
+        if not itemid in self.tasks["queue"][moduleid]: #Only queue tasks can have progress, not pending nor staged
+            return
+
+        self.tasks["queue"][moduleid][itemid].progress = progressint
+
+        print(itemid + " progress is now " + str(self.tasks["queue"][moduleid][itemid].progress))
+
+        #TODO tell gui to refresh progress
 
 
 class StoreBrain():
@@ -412,9 +426,16 @@ class StoreBrain():
         return result
 
     def APIgetCuratedJSON(self, jsonpath):
+        result = {}
+
         #Returns dict consisting of data from a JSON file in the curated folder
         with open("/usr/share/feren-storium/curated/" + jsonpath + "/data.json", 'r') as fp:
-            return json.loads(fp.read())
+            result = json.loads(fp.read())
+        if os.path.isfile("/usr/share/feren-storium/curated/" + locale.getlocale()[0] + "/" + jsonpath + "/data.json"):
+            with open("/usr/share/feren-storium/curated/" + locale.getlocale()[0] + "/" + jsonpath + "/data.json", 'r') as fp: #Also overwrite with language-specifics if they exist
+                result = self.dict_recurupdate(result, json.loads(fp.read()))
+
+        return result
 
 
     def APIcancelTask(self, taskid):
@@ -613,14 +634,14 @@ class StoreBrain():
         #TODO: Now reload Tasks in the GUI
         #self.storeAPI.reloadPkgStates([moduleid], [itemid])
 
-    def APIrunTask(self, taskbody):
+    def APIrunTask(self, taskid, taskbody):
         #Run a task, matching taskbody
         if taskbody.operation == 0: #Install/Add
-            self.modules[taskbody.moduleid].task_install_package(taskbody)
+            self.modules[taskbody.moduleid].task_install_package(taskbody, partial(self.taskManager.task_set_progress, taskid, taskbody.moduleid))
         elif taskbody.operation == 1: #Remove
-            self.modules[taskbody.moduleid].task_remove_package(taskbody)
+            self.modules[taskbody.moduleid].task_remove_package(taskbody, partial(self.taskManager.task_set_progress, taskid, taskbody.moduleid))
         elif taskbody.operation == 2: #Update
-            self.modules[taskbodymoduleid].task_update_package(taskbody)
+            self.modules[taskbodymoduleid].task_update_package(taskbody, partial(self.taskManager.task_set_progress, taskid, taskbody.moduleid))
 
     def APIshowFailure(self, taskbody, exceptionstr):
         #Show a failure dialog in the GUI to indicate that an item failed to install/remove/update/etc. and indicate the why
@@ -1098,11 +1119,6 @@ class StoreBrain():
                 else:
                     return self.sourceinfo_modules[module]
         raise StoreBrainException(_("No source info module was found for %s") % sourcetype)
-    
-    
-    
-    def set_progress(self, packagename, packagetype, value): #TODO: Change into being part of Tasks management
-        self.gui_module.set_progress(packagename, packagetype, value)
 
         
     def run(self):

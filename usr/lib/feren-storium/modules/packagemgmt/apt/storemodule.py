@@ -185,6 +185,12 @@ class module():
         self.packagemgmtbusy = True
         
         self.progress_callback = progress_callback
+
+        #Take note of package information so we can reuse its information
+        package_information = self.getInfo(taskdata.itemid, taskdata.sourceid, taskdata.subsourceid)
+
+
+
         
         #Remove package and return exit code
         self.currentpackagename = taskdata["pkginfo"]["apt-name"]

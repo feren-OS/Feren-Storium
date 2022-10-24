@@ -9,35 +9,45 @@
             "command": ["/usr/bin/vivaldi", "%WEBSITEURL%", "--class=%WINCLASS%", "--user-data-dir=%PROFILEDIR%"],
             "required-file": ["/usr/bin/vivaldi"],
             "pkgidlink": ["vivaldi-vivaldi-webbrowser"],
-            "classprefix": "vivaldi-ice-"
+            "classprefix": "vivaldistoriumice?",
+            "type": "chromium",
+            "flatpak": ""
         },
         "chrome": {
             "name": "Google Chrome",
             "command": ["/usr/bin/google-chrome", "--app=%WEBSITEURL%", "--class=%WINCLASS%", "--user-data-dir=%PROFILEDIR%"],
             "required-file": ["/usr/bin/google-chrome"],
             "pkgidlink": ["google-chrome-webbrowser"],
-            "classprefix": ""
+            "classprefix": "",
+            "type": "chromium",
+            "flatpak": ""
         },
         "msedge": {
             "name": "Microsoft Edge",
             "command": ["/usr/bin/microsoft-edge", "--app=%WEBSITEURL%", "--class=%WINCLASS%", "--user-data-dir=%PROFILEDIR%"],
             "required-file": ["/usr/bin/microsoft-edge"],
             "pkgidlink": ["microsoft-edge-webbrowser"],
-            "classprefix": ""
+            "classprefix": "",
+            "type": "chromium",
+            "flatpak": ""
         },
         "brave": {
             "name": "Brave",
             "command": ["/usr/bin/brave-browser", "--app=%WEBSITEURL%", "--class=%WINCLASS%", "--user-data-dir=%PROFILEDIR%"],
             "required-file": ["/usr/bin/brave-browser"],
             "pkgidlink": ["brave-brave-webbrowser"],
-            "classprefix": ""
+            "classprefix": "",
+            "type": "chromium",
+            "flatpak": ""
         },
         "ungoogled-chromium": {
             "name": "Ungoogled Chromium",
             "command": ["flatpak run com.github.Eloston.UngoogledChromium", "--app=%WEBSITEURL%", "--class=%WINCLASS%", "--user-data-dir=%PROFILEDIR%"],
             "required-file": ["/var/lib/flatpak/app/com.github.Eloston.UngoogledChromium/current/active/export/bin/com.github.Eloston.UngoogledChromium"],
             "pkgidlink": ["ungoogled-chromium-webbrowser"],
-            "classprefix": ""
+            "classprefix": "",
+            "type": "chromium",
+            "flatpak": "com.github.Eloston.UngoogledChromium"
         }
     }
 }

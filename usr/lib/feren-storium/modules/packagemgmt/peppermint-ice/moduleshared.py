@@ -7,6 +7,7 @@ import gi
 
 #Dependencies
 import json
+import locale
 import shutil
 from datetime import datetime
 import ast
@@ -16,6 +17,13 @@ from gi.repository import GLib
 import colorsys
 from urllib import parse
 import collections.abc
+gettext.install("feren-storium-ice-shared", "/usr/share/locale", names="ngettext")
+
+
+#Developer options
+applications_directory = os.path.expanduser("~") + "/.local/share/applications"
+default_ice_directory = os.path.expanduser("~") + "/.local/share/feren-storium-ice"
+icevivaldiprefix = "vivaldistoriumice:"
 
 
 class ICEModuleSharedException(Exception): # Name this according to the module to allow easier debugging
@@ -23,6 +31,7 @@ class ICEModuleSharedException(Exception): # Name this according to the module t
 
 
 class main():
+    #### Useful callbacks
     def dict_recurupdate(self, d, u): # I'm sure it's a recursive dictionary updater function, from what I can read of this function
         for k, v in u.items():
             if isinstance(v, collections.abc.Mapping):
@@ -39,13 +48,57 @@ class main():
         except:
             pass
         return shortenedurl
-    
 
+    def boolean_to_jsonbool(self, boole):
+        if boole == True:
+            return "true"
+        else:
+            return "false"
+    
+    #### Initialisation and memory refreshing
     def __init__(self):
         gettext.install("feren-storium-ice", "/usr/share/locale", names="ngettext")
-        self.applications_directory = os.path.expanduser("~") + "/.local/share/applications"
-        self.default_ice_directory = os.path.expanduser("~") + "/.local/share/feren-storium-ice"
-        
+        self.refresh_memory()
+
+    def refresh_memory(self): # Function to refresh some memory values
+        self.json_storage = {}
+
+        for i in ["package-info/peppermint-ice"]:
+            with open("/usr/share/feren-storium/curated/" + i + "/data.json", 'r') as fp:
+                self.json_storage[i] = json.loads(fp.read())
+            if os.path.isfile("/usr/share/feren-storium/curated/" + locale.getlocale()[0] + "/" + i + "/data.json"):
+                with open("/usr/share/feren-storium/curated/" + locale.getlocale()[0] + "/" + i + "/data.json", 'r') as fp: #Also overwrite with language-specifics if they exist
+                    self.json_storage[i] = self.dict_recurupdate(self.json_storage[i], json.loads(fp.read()))
+
+
+        with open("/usr/share/feren-storium/curated/package-sources-info/peppermint-ice/data.json", 'r') as fp:
+            self.sources_storage = json.loads(fp.read())
+        if os.path.isfile("/usr/share/feren-storium/curated/" + locale.getlocale()[0] + "/package-sources-info/peppermint-ice/data.json"):
+            with open("/usr/share/feren-storium/curated/" + locale.getlocale()[0] + "/package-sources-info/peppermint-ice/data.json", 'r') as fp: #Also overwrite with language-specifics if they exist
+                self.json_storage[i] = self.dict_recurupdate(self.json_storage[i], json.loads(fp.read()))
+
+
+    #### ITEM INFORMATION
+    def getInfo(self, itemid, sourceid, subsourceid):
+        result = {}
+        #Get information on a package using the JSON data
+        try:
+            result = self.json_storage["package-info/peppermint-ice"][itemid]
+            result["iconlocal"] = ""
+            if not "shortdescription" in result:
+                result["shortdescription"] = _("Website Application")
+            #Fallback defaults for browser options
+            if not "icenohistory" in result:
+                result["icenohistory"] = False
+            if not "icegoogleinteg" in result:
+                result["icegoogleinteg"] = False
+            if not "iceaccentwindow" in result:
+                result["iceaccentwindow"] = True
+            return result
+        except:
+            pass
+        raise ICEModuleSharedException(_("%s's information failed to be obtained - perhaps the item doesn't exist on this source?") % itemid)
+
         
     #### INSPIRE TITLEBAR THEME ADDITIONS
     def inspire_tbar_iding(self, hexcode, windowclass, hexcodehighlight="#006aff"):
@@ -71,7 +124,7 @@ class main():
         pass
         
         
-    ####COLOR CHECKS
+    #### COLOUR CHECKS
     #Is the color light or dark?
     def get_is_light(self, hexcode):
         #string
@@ -144,6 +197,255 @@ class main():
             return False
         else:
             return True
+
+
+    #### INITIAL INSTALLATION
+    def get_profiles_folder(self, itemid): #string
+        return default_ice_directory + "/%s" % itemid
+
+
+    def create_profiles_folder(self, itemid):
+        #string
+
+        if not os.path.isdir(default_ice_directory): #Make sure the profiles directory even exists
+            try:
+                os.mkdir(default_ice_directory)
+            except Exception as exceptionstr:
+                raise ICEModuleException(_("{1} was encountered when trying to create the profiles location")).format(exceptionstr)
+        if not os.path.isdir(default_ice_directory + "/%s" % itemid): #Now create the directory for this website application's profiles to go
+            try:
+                os.mkdir(default_ice_directory + "/%s" % itemid)
+            except Exception as exceptionstr:
+                raise ICEModuleException(_("{1} was encountered when trying to create the profile's folder")).format(exceptionstr)
+
+
+    def create_appsmenu_shortcuts(self, itemid, browser, package_information):
+        #string, string, dict
+
+        windowclassid = itemid
+        if browser == "vivaldi": #FIXME: Temporary until Vivaldi adds proper shadows support
+            windowclassid = icevivaldiprefix + windowclassid
+
+        with open(applications_directory + "/{0}.desktop".format(windowclassid), 'w') as fp:
+            # I mean, this needs no explanation, it's a .desktop file
+            fp.write("[Desktop Entry]\n")
+            fp.write("Version=1.0\n")
+            fp.write("Name={0}\n".format(package_information["realname"]))
+            fp.write("Comment={0}\n".format(package_information["shortdescription"]))
+            if "iconname" in package_information:
+                fp.write("Icon={0}\n".format(package_information["iconname"]))
+            else:
+                fp.write("Icon=ice\n")
+
+            fp.write("Exec=/usr/bin/feren-storium-ice {0}\n".format('"' + applications_directory + "/{0}.desktop".format(windowclassid) + '"'))
+
+            #Ice stuff will have their own categories to allow for easier sectioning of items in Store overall
+            if package_information["category"] == "ice-accessories":
+                location = "Utility;"
+            elif package_information["category"] == "ice-games":
+                location = "Game;"
+            elif package_information["category"] == "ice-graphics":
+                location = "Graphics;"
+            elif package_information["category"] == "ice-internet":
+                location = "Network;"
+            elif package_information["category"] == "ice-office":
+                location = "Office;"
+            elif package_information["category"] == "ice-programming":
+                location = "Development;"
+            elif package_information["category"] == "ice-multimedia":
+                location = "AudioVideo;"
+            elif package_information["category"] == "ice-system":
+                location = "System;"
+            fp.write("Categories=GTK;Qt;{0}\n".format(location))
+
+            #fp.write("MimeType=text/html;text/xml;application/xhtml_xml;\n")
+
+            fp.write("Keywords=%s\n" % package_information["keywords"])
+
+            fp.write("Terminal=false\n")
+            fp.write("X-MultipleArgs=false\n")
+            fp.write("Type=Application\n")
+            fp.write("StartupWMClass=%s\n" % windowclassid)
+            fp.write("StartupNotify=true\n")
+
+            #Now to write the information for ICE to use
+            fp.write("\n")
+            fp.write("X-FerenIce-BrowserType=%s\n" % self.sources_storage["browsers"][browser]["type"])
+            fp.write("X-FerenIce-Browser=%s\n" % browser)
+            fp.write("X-FerenIce-Website=%s\n" % package_information["website"])
+            fp.write("X-FerenIce-NoHistory=%s\n" % self.boolean_to_jsonbool(package_information["icenohistory"]))
+            fp.write("X-FerenIce-Google=%s\n" % self.boolean_to_jsonbool(package_information["icegoogleinteg"]))
+            fp.write("X-FerenIce-BG=%s\n" % package_information["icebackground"])
+            fp.write("X-FerenIce-BG-Dark=%s\n" % package_information["icebackground-dark"])
+            fp.write("X-FerenIce-Accent=%s\n" % package_information["iceaccent"])
+            fp.write("X-FerenIce-Accent-Dark=%s\n" % package_information["iceaccent-dark"])
+            fp.write("X-FerenIce-Color=%s\n" % package_information["icecolor"])
+            fp.write("X-FerenIce-AccentWindow=%s\n" % self.boolean_to_jsonbool(package_information["iceaccentwindow"]))
+            fp.write("X-FerenIce-LastUpdate=%s\n" % package_information["icelastupdated"])
+
+
+        #Finally, make it executable so it launches fine from the Applications Menu:
+        os.system("chmod +x " + applications_directory + "/{0}.desktop".format(windowclassid))
+
+
+
+    ####PROFILE CREATION
+    def create_profile_folder(self, itemid, profileid, browsertype):
+        if not os.path.isdir(default_ice_directory + "/%s" % itemid): #Make sure profiles directory exists beforehand
+            self.create_profiles_folder(itemid)
+
+        if os.path.isdir("{0}/{1}/{2}".format(default_ice_directory, itemid, profileid)): #Fail if profile exists
+            raise ICEModuleSharedException(_("Cannot create new profile as %s already exists") % profileid)
+        else:
+            os.mkdir("{0}/{1}/{2}".format(default_ice_directory, itemid, profileid))
+
+        if browsertype == "chromium": #Chromium-specific profile structure
+            os.mkdir("{0}/{1}/{2}/Default".format(default_ice_directory, itemid, profileid))
+        elif browsertype == "firefox": #Firefox-specific profile structure
+            os.mkdir("{0}/{1}/{2}/chrome".format(default_ice_directory, itemid, profileid))
+
+        #The rest is left up to self.update_profile_settings to do.
+
+
+    def update_profile_settings(self, iteminfo, profileid, darkmode):
+        if not os.path.isdir(default_ice_directory + "/%s" % iteminfo["id"]): #Make sure profiles directory exists beforehand
+            self.create_profiles_folder(iteminfo["id"])
+        if iteminfo["browsertype"] == "chromium":
+            expectedfolder = "Default"
+        elif iteminfo["browsertype"] == "firefox":
+            expectedfolder = "chrome"
+        if not os.path.isdir("{0}/{1}/{2}/{3}".format(default_ice_directory, iteminfo["id"], profileid, expectedfolder)): #Make sure this profile's directory exists beforehand
+            self.create_profile_folder(iteminfo["id"], profileid, iteminfo["browsertype"])
+        #TODO: Make this one big function to do all the configuring
+
+        if iteminfo["browsertype"] == "chromium": #Chromium-specific configs
+            PreferencesFile = "{0}/{1}/{2}/Default/Preferences".format(default_ice_directory, iteminfo["id"], profileid)
+
+            result = {}
+            if os.path.isfile(PreferencesFile): #Load old Preferences into variable if one exists
+                with open(PreferencesFile, 'r') as fp:
+                    result = json.loads(fp.read())
+            with open("/usr/share/feren-storium/modules/packagemgmt-ice/chromiums/Preferences", 'r') as fp: #Also load default preferences, so we can patch
+                result = self.dict_recurupdate(result, json.loads(fp.read()))
+
+            #Set important settings unique to each SSB
+            result["homepage"] = iteminfo["website"]
+            result["custom_links"]["list"][0]["title"] = iteminfo["name"]
+            result["custom_links"]["list"][0]["url"] = iteminfo["website"]
+            result["session"]["startup_urls"] = [iteminfo["website"]]
+            result["download"]["default_directory"] = GLib.get_user_special_dir(GLib.UserDirectory.DIRECTORY_DOWNLOAD) + "/" + _("{0} Downloads").format(iteminfo["name"])
+            result["profile"]["name"] = iteminfo["name"]
+            result["ntp"]["custom_background_dict"]["attribution_line_1"] = _("Website Application - {0}").format(iteminfo["name"])
+            #result["vivaldi"]["tabs"]["new_page"]["custom_url"] = "https://feren-os.github.io/start-page/ice?ice-text="+(_("Website Application - {0}").format(iteminfo["name"]))+"&home-url={0}".format(parse.quote(iteminfo["website"], safe=""))+"&home-icon={0}".format(parse.quote(iconuri, safe=""))
+            #TODO: Change ^ to extension
+            result["vivaldi"]["homepage"] = iteminfo["website"]
+            result["vivaldi"]["homepage_cache"] = iteminfo["website"]
+
+            #Set permissions for the initial website TODO: Move to update_permission_profile_settings
+            shortenedurl = self.get_shortened_url(iteminfo["website"])
+            for permtype in ["ar", "autoplay", "automatic_downloads", "background_sync", "clipboard", "file_handling", "font_access", "midi_sysex", "notifications", "payment_handler", "sensors", "sound", "sleeping-tabs", "window_placement", "vr"]:
+                result["profile"]["content_settings"]["exceptions"][permtype] = {}
+                result["profile"]["content_settings"]["exceptions"][permtype]["[*.]"+shortenedurl+",*"] = {"expiration": "0", "model": 0, "setting": 1}
+                result["profile"]["content_settings"]["exceptions"][permtype][shortenedurl+",*"] = {"expiration": "0", "model": 0, "setting": 1}
+
+            #Save to the Preferences file
+            try:
+                with open(PreferencesFile, 'w') as fp:
+                    fp.write(json.dumps(profiletomake, separators=(',', ':'))) # This dumps minified json (how convenient), which is EXACTLY what Chrome uses for Preferences, so it's literally pre-readied
+            except Exception as exceptionstr:
+                raise ICESharedModuleException(_("TEMP Failed to write to Preferences"))
+
+        elif iteminfo["browsertype"] == "firefox": #Firefox-specific configs
+            targetfolder = "{0}/{1}/{2}/".format(default_ice_directory, iteminfo["id"], profileid)
+            #First, copy config files over
+            for cfile in ["handlers.json", "user.js"]:
+                shutil.copy("/usr/share/feren-storium/modules/packagemgmt-ice/firefox/" + cfile, targetfolder + cfile)
+
+            #Depending on file existence, either direct-copy or update browser configs
+            try:
+                if not os.path.isfile(targetfolder + "prefs.js"):
+                    shutil.copy("/usr/share/feren-storium/modules/packagemgmt-ice/firefox/prefs.js", targetfolder + "prefs.js")
+
+                with open(targetfolder + "prefs.js", 'r') as fp:
+                    result = fp.read().splitlines()
+                # else:
+                #     with open(targetfolder + "prefs.js", 'r') as fp:
+                #         result = fp.read().splitlines()
+                #     with open("/usr/share/feren-storium/modules/packagemgmt-ice/firefox/prefs.js", 'r') as fp:
+                #         defaultprefs = fp.read().splitlines()
+                #     #Now update the prefs
+                #     for line in defaultprefs:
+                #         if line.startswith("user_pref"):
+                #             currentpref = line.split()[0]
+                #             prefpresent = False
+                #             linescounted = 0
+                #             for currline in result:
+                #                 if line.startswith(currentpref):
+                #                     result[linescounted] = line #Overwrite with default value
+                #                     prefpresent = True
+                #                     break
+                #                 linescounted += 1
+                #             if prefpresent == False:
+                #                 result.add(line) #Add preference if it isn't present
+
+                linescounted = 0
+                for line in result:
+                    #Replace certain keywords if they're present in the new configurations
+                    result[linescounted] = result[linescounted].replace("WEBSITEHERE", iteminfo["website"]).replace("NAMEHERE", iteminfo["name"])
+                    linescounted += 1
+
+                #(over)Write the new prefs.js
+                with open(targetfolder + "prefs.js", 'w') as fp:
+                    fp.write('\n'.join(result))
+            except Exception as exceptionstr:
+                raise ICESharedModuleException(_("Failed to write to prefs.js"))
+
+            #Repeat for user.js, too
+            try:
+                with open(targetfolder + "user.js", 'r') as fp:
+                    result = fp.read().splitlines()
+                linescounted = 0
+                for line in result:
+                    result[linescounted] = result[linescounted].replace("WEBSITEHERE", iteminfo["website"]).replace("NAMEHERE", iteminfo["name"])
+                    linescounted += 1
+
+                with open(targetfolder + "user.js", 'w') as fp:
+                    fp.write('\n'.join(result))
+            except Exception as exceptionstr:
+                raise ICESharedModuleException(_("Failed to write to user.js"))
+
+            #Finish it off by adding UI
+            for cfile in ["userContent.css", "userChrome.css", "ferenChrome.css", "ice.css"]:
+                shutil.copy("/usr/share/feren-storium/modules/packagemgmt-ice/firefox/chrome/" + cfile, targetfolder + "chrome/" + cfile)
+
+            #...and colourise the UI
+            if self.get_is_light(iteminfo["color"]) == True:
+                foreground = "black"
+            else:
+                foreground = "white"
+
+            with open(targetfolder + "chrome/ice.css", 'r') as fp:
+                result = fp.read().splitlines()
+            linescounted = 0
+            for line in result:
+                result[linescounted] = result[linescounted].replace("ACCENTBG", iteminfo["color"]).replace("ACCENTFG", foreground)
+                linescounted += 1
+
+            with open(targetfolder + "chrome/ice.css", 'w') as fp:
+                fp.write('\n'.join(result))
+
+            os.system("/usr/bin/flatpak override --user org.mozilla.firefox --filesystem={0}/{1}/{2}".format(default_ice_directory, iteminfo["id"], profileid))
+
+
+
+
+
+
+
+
+
+
+
 
 
     #### CHROMIUM PROFILE CREATION
@@ -367,21 +669,21 @@ class main():
                 fp.write("Icon=text-html\n")
 
             #Ice stuff will have their own categories to allow for easier sectioning of items in Store overall
-            if icepackageinfo["category"] == "ice-accessories":
+            if package_information["category"] == "ice-accessories":
                 location = "Utility;"
-            elif icepackageinfo["category"] == "ice-games":
+            elif package_information["category"] == "ice-games":
                 location = "Game;"
-            elif icepackageinfo["category"] == "ice-graphics":
+            elif package_information["category"] == "ice-graphics":
                 location = "Graphics;"
-            elif icepackageinfo["category"] == "ice-internet":
+            elif package_information["category"] == "ice-internet":
                 location = "Network;"
-            elif icepackageinfo["category"] == "ice-office":
+            elif package_information["category"] == "ice-office":
                 location = "Office;"
-            elif icepackageinfo["category"] == "ice-programming":
+            elif package_information["category"] == "ice-programming":
                 location = "Development;"
-            elif icepackageinfo["category"] == "ice-multimedia":
+            elif package_information["category"] == "ice-multimedia":
                 location = "AudioVideo;"
-            elif icepackageinfo["category"] == "ice-system":
+            elif package_information["category"] == "ice-system":
                 location = "System;"
             
             fp.write("Categories=GTK;Qt;{0}\n".format(location))
@@ -423,27 +725,27 @@ class main():
                     except:
                         fp.write("Icon=text-html\n")
 
-                    if icepackageinfo["category"] == "ice-accessories":
+                    if package_information["category"] == "ice-accessories":
                         location = "Utility;"
-                    elif icepackageinfo["category"] == "ice-games":
+                    elif package_information["category"] == "ice-games":
                         location = "Game;"
-                    elif icepackageinfo["category"] == "ice-graphics":
+                    elif package_information["category"] == "ice-graphics":
                         location = "Graphics;"
-                    elif icepackageinfo["category"] == "ice-internet":
+                    elif package_information["category"] == "ice-internet":
                         location = "Network;"
-                    elif icepackageinfo["category"] == "ice-office":
+                    elif package_information["category"] == "ice-office":
                         location = "Office;"
-                    elif icepackageinfo["category"] == "ice-programming":
+                    elif package_information["category"] == "ice-programming":
                         location = "Development;"
-                    elif icepackageinfo["category"] == "ice-multimedia":
+                    elif package_information["category"] == "ice-multimedia":
                         location = "AudioVideo;"
-                    elif icepackageinfo["category"] == "ice-system":
+                    elif package_information["category"] == "ice-system":
                         location = "System;"
                     
                     fp.write("Categories=GTK;Qt;{0}\n".format(location))
                     fp.write("MimeType=text/html;text/xml;application/xhtml_xml;\n")
 
-                    fp.write("Keywords=%s\n" % icepackageinfo["keywordsextras"][extrascount])
+                    fp.write("Keywords=%s\n" % package_information["keywordsextras"][extrascount])
 
                     fp.write("StartupNotify=true\n")
             except Exception as exceptionstr:
