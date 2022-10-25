@@ -16,6 +16,8 @@ sys.path.insert(0, "/usr/lib/feren-storium/modules/packagemgmt/peppermint-ice")
 import moduleshared as IceModuleShared #TODO: Move these into their own importable module
 IceShared = IceModuleShared.main()
 
+browserSources = IceShared.sources_storage["browsers"]
+
 #######################################################################################
 # Ice Launcher Interface - Feren Storium                                              #
 #                                                                                     #
@@ -26,10 +28,7 @@ IceShared = IceModuleShared.main()
 def getDesktopFileInformation(path):
     global desktopfileinformation
     entry=DesktopEntry()
-    try:
-        entry.parse(path)
-    except:
-        return #TODO: Error handling
+    entry.parse(path)
 
     desktopfileinformation = {}
     #Add basic information for GUI
@@ -78,22 +77,26 @@ def onCreateProfile():
 
     #TODO: Add handlers for failure to create profile, invalid name, etc.
 
+    IceShared.run_profile(desktopfileinformation["id"], desiredname, desktopfileinformation["browser"], desktopfileinformation["browsertype"], desktopfileinformation["website"], desktopfileinformation["wmclass"], desktopfileinformation["nohistory"], closeCallback)
+    app.quit()
 
 
-
-
-
+## LAUNCHING CALLBACKS
+def closeCallback(): #Close the window
+    mainwnd.close()
 
 
 #[1]: .desktop file
 desktopfileinformation = {} #First initialise the desktop file information variable
-getDesktopFileInformation(str(sys.argv[1]))
+try: #Then get the values from the .desktop file, and add them in
+    getDesktopFileInformation(str(sys.argv[1]))
+except:
+    sys.exit(1) #TODO: Show error indicating corrupted file
 
-print(desktopfileinformation)
+#Check the browser even has data for use in this
+if not desktopfileinformation["browser"] in IceShared.sources_storage["browsers"]:
+    sys.exit(1) #There is an invalid browser specification
 
-#Opera: Removed because Preferences location is incorrect and no application mode
-#Yandex: Removed because it didn't install Extensions
-#Epiphany: Scrapped (for now) because way too janky to make it work
 
 #TODO: Store if application has been configured to be single profile before, and if so skip the GUI entirely unless an argument's specified
 app = QApplication(sys.argv)
@@ -118,7 +121,13 @@ mainwnd.findChild(QObject, "manageHeader").setProperty('text', "Manage %s Profil
 
 
 
-
+#If browser isn't installed, react accordingly
+browserInstalled = False
+for browser in browserSources[desktopfileinformation["browser"]]["required-file"]:
+    if os.path.isfile(browser):
+        browserInstalled = True
+if browserInstalled == False:
+    pass #TODO: Screen for picking browser, and error if no browsers available to switch it to
 
 #If profiles folder doesn't exist, create it.
 profilesdir = IceShared.get_profiles_folder(desktopfileinformation["id"])
@@ -128,9 +137,9 @@ if not os.path.isdir(profilesdir):
 #Now get all the profiles
 profiles = []
 for folder in os.listdir(profilesdir):
-    if os.path.isdir(folder):
-        if os.path.isfile(folder + "\Local State"):
-            profiles.add(folder)
+    if os.path.isdir(profilesdir + "/" + folder):
+        if os.path.isfile(profilesdir + "/" + folder + browserSources[desktopfileinformation["browser"]]["expected-file"]):
+            profiles.append(folder)
 print(profiles)
 
 #If there's no profiles, go into the profile creator
@@ -139,93 +148,3 @@ if profiles == []:
 
 
 sys.exit(app.exec())
-
-
-
-
-
-#if sys.argv[2] != "epiphany":
-if os.path.isfile(sys.argv[1]):
-    print("A file exists here. Feren Store Ice cannot continue.")
-    exit(1)
-if not os.path.isdir(sys.argv[1]):
-    mkprofile(sys.argv[1])
-#else:
-    ##Special case for Epiphany
-    #if os.path.isfile(sys.argv[1] + '/org.gnome.Epiphany.WebApp-FerenStoreIce'):
-        #print("A file exists here. Feren Store Ice cannot continue.")
-        #exit(1)
-    #if not os.path.isdir(sys.argv[1] + '/org.gnome.Epiphany.WebApp-FerenStoreIce'):
-        #mkprofile(sys.argv[1] + '/org.gnome.Epiphany.WebApp-FerenStoreIce')
-    
-
-if os.path.isfile(sys.argv[1] + "/.storium-nohistory"):
-    if os.path.isfile(sys.argv[1] + "/Default/History"):
-        os.remove(sys.argv[1] + "/Default/History")
-    if os.path.isfile(sys.argv[1] + "/Default/History-journal"):
-        os.remove(sys.argv[1] + "/Default/History-journal")
-    if os.path.isdir(sys.argv[1] + "/Default/Sessions"):
-        shutil.rmtree(sys.argv[1] + "/Default/Sessions")
-    
-
-
-    
-#TODO: If browser doesn't exist, launch Store command to make it change browser
-if sys.argv[2] == "chrome":
-    if os.path.isfile("/usr/bin/google-chrome"):
-        ssbproc = subprocess.Popen(['/usr/bin/google-chrome', '--app=' + sys.argv[3], '--class=' + sys.argv[4], '--user-data-dir=' + sys.argv[1]], close_fds=True)
-    else:
-        pass
-elif sys.argv[2] == "vivaldi":
-    if os.path.isfile("/usr/bin/vivaldi"):
-        ssbproc = subprocess.Popen(['/usr/bin/vivaldi', sys.argv[3], '--class=' + sys.argv[4], '--user-data-dir=' + sys.argv[1]], close_fds=True)
-    else:
-        pass
-elif sys.argv[2] == "brave":
-    if os.path.isfile("/usr/bin/brave-browser"):
-        ssbproc = subprocess.Popen(['/usr/bin/brave-browser', '--app=' + sys.argv[3], '--class=' + sys.argv[4], '--user-data-dir=' + sys.argv[1]], close_fds=True)
-    else:
-        pass
-elif sys.argv[2] == "msedge":
-    if os.path.isfile("/usr/bin/microsoft-edge"):
-        ssbproc = subprocess.Popen(['/usr/bin/microsoft-edge', '--app=' + sys.argv[3], '--class=' + sys.argv[4], '--user-data-dir=' + sys.argv[1]], close_fds=True)
-    else:
-        pass
-#elif sys.argv[2] == "epiphany":
-    ##TODO: Better way to detect Flatpaks, and, well, Flatpak itself
-    #ssbproc = subprocess.Popen(['/usr/bin/flatpak', 'override', '--user', 'org.gnome.Epiphany', '--filesystem=' + sys.argv[1] + '/org.gnome.Epiphany.WebApp-FerenStoreIce']).wait() # Make sure profile's accessible
-    
-    #if os.path.isfile("/var/lib/flatpak/app/org.gnome.Epiphany/current/active/files/bin/epiphany"):
-        #subprocess.Popen(['/usr/bin/flatpak', 'run', 'org.gnome.Epiphany', '--application-mode', '--profile=' + sys.argv[1] + '/org.gnome.Epiphany.WebApp-FerenStoreIce', sys.argv[3]], close_fds=True)
-    #else:
-        #pass
-else:
-    print("This browser is either not supported or doesn't exist. Feren Store Ice cannot continue.")
-    exit(1)
-    
-if os.path.isfile(sys.argv[1] + "/.storium-active-pid"):
-    with open(sys.argv[1] + "/.storium-active-pid", 'r') as pidfile:
-        lastpid = pidfile.readline()
-    try:
-        lastpid = int(lastpid)
-        try:
-            os.kill(lastpid, 0) #Send a You There? to the PID identified
-        except:
-            os.remove(sys.argv[1] + "/.storium-active-pid") #The PID doesn't exist
-    except:
-        os.remove(sys.argv[1] + "/.storium-active-pid")
-if not os.path.isfile(sys.argv[1] + "/.storium-active-pid"):
-    with open(sys.argv[1] + "/.storium-active-pid", 'w') as pidfile:
-        pidfile.write(str(ssbproc.pid))
-        
-
-
-if os.path.isfile(sys.argv[1] + "/.storium-nohistory"):
-    #FIXME: We need a better way of doing this.
-    time.sleep(16)
-    if os.path.isfile(sys.argv[1] + "/Default/History"):
-        os.remove(sys.argv[1] + "/Default/History")
-    if os.path.isfile(sys.argv[1] + "/Default/History-journal"):
-        os.remove(sys.argv[1] + "/Default/History-journal")
-    if os.path.isdir(sys.argv[1] + "/Default/Sessions"):
-        shutil.rmtree(sys.argv[1] + "/Default/Sessions")

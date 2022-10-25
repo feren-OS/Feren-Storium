@@ -17,6 +17,7 @@ from gi.repository import GLib
 import colorsys
 from urllib import parse
 import collections.abc
+from threading import Thread
 gettext.install("feren-storium-ice-shared", "/usr/share/locale", names="ngettext")
 
 
@@ -75,7 +76,7 @@ class main():
             self.sources_storage = json.loads(fp.read())
         if os.path.isfile("/usr/share/feren-storium/curated/" + locale.getlocale()[0] + "/package-sources-info/peppermint-ice/data.json"):
             with open("/usr/share/feren-storium/curated/" + locale.getlocale()[0] + "/package-sources-info/peppermint-ice/data.json", 'r') as fp: #Also overwrite with language-specifics if they exist
-                self.json_storage[i] = self.dict_recurupdate(self.json_storage[i], json.loads(fp.read()))
+                self.sources_storage = self.dict_recurupdate(self.sources_storage, json.loads(fp.read()))
 
 
     #### ITEM INFORMATION
@@ -199,6 +200,61 @@ class main():
             return False
         else:
             return True
+
+
+    #### RUNNING PROFILE
+    def run_profile(self, itemid, profileid, browser, browsertype, website, wmclass, nohistory=False, closecallback=None):
+        #string, string, string, string, bool
+        profiledir = "{0}/{1}/{2}".format(default_ice_directory, itemid, profileid)
+
+        if browser in self.sources_storage["browsers"]:
+            commandtorun = self.sources_storage["browsers"][browser]["command"]
+            piececount = 0 #for loop right below
+            while piececount < len(commandtorun):
+                #Translate arguments
+                commandtorun[piececount] = commandtorun[piececount].replace(
+                    "%WEBSITEURL%", website).replace(
+                    "%WINCLASS%", wmclass).replace(
+                    "%PROFILEDIR%", profiledir)
+                piececount += 1
+
+            ssbproc = subprocess.Popen(commandtorun, close_fds=True)
+        else:
+            raise ICEModuleSharedException(_("Cannot find information about the specified browser to launch"))
+
+        #Check there's a note about a process having ran, and if so if the process is running
+        if os.path.isfile(profiledir + "/.storium-active-pid"):
+            with open(profiledir + "/.storium-active-pid", 'r') as pidfile:
+                lastpid = pidfile.readline()
+            try:
+                lastpid = int(lastpid)
+                try:
+                    os.kill(lastpid, 0) #Send a You There? to the PID identified
+                except:
+                    os.remove(profiledir + "/.storium-active-pid") #The PID doesn't exist
+            except:
+                os.remove(profiledir + "/.storium-active-pid")
+        #Tell Storium that the process's running (prevents updates while running, and prevents uninstallation leftovers with Storium module)
+        if not os.path.isfile(profiledir + "/.storium-active-pid"):
+            with open(profiledir + "/.storium-active-pid", 'w') as pidfile:
+                pidfile.write(str(ssbproc.pid))
+
+        if nohistory == True:
+            if not closecallback == None:
+                closecallback()
+
+            #FIXME: We need a better way of doing this.
+            time.sleep(16)
+            if browsertype == "chromium":
+                if os.path.isfile(profiledir + "/Default/History"):
+                    os.remove(profiledir + "/Default/History")
+                if os.path.isfile(profiledir + "/Default/History-journal"):
+                    os.remove(profiledir + "/Default/History-journal")
+                if os.path.isdir(profiledir + "/Default/Sessions"):
+                    shutil.rmtree(profiledir + "/Default/Sessions")
+            elif browsertype == "firefox":
+                pass #TODO
+
 
 
     #### INITIAL INSTALLATION

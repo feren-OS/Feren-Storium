@@ -10,6 +10,7 @@
             "required-file": ["/usr/bin/vivaldi"],
             "pkgidlink": ["vivaldi-vivaldi-webbrowser"],
             "classprefix": "vivaldistoriumice?",
+            "expected-file": "/Local State",
             "type": "chromium",
             "flatpak": ""
         },
@@ -19,6 +20,7 @@
             "required-file": ["/usr/bin/google-chrome"],
             "pkgidlink": ["google-chrome-webbrowser"],
             "classprefix": "",
+            "expected-file": "/Local State",
             "type": "chromium",
             "flatpak": ""
         },
@@ -28,6 +30,7 @@
             "required-file": ["/usr/bin/microsoft-edge"],
             "pkgidlink": ["microsoft-edge-webbrowser"],
             "classprefix": "",
+            "expected-file": "/Local State",
             "type": "chromium",
             "flatpak": ""
         },
@@ -37,6 +40,7 @@
             "required-file": ["/usr/bin/brave-browser"],
             "pkgidlink": ["brave-brave-webbrowser"],
             "classprefix": "",
+            "expected-file": "/Local State",
             "type": "chromium",
             "flatpak": ""
         },
@@ -46,8 +50,29 @@
             "required-file": ["/var/lib/flatpak/app/com.github.Eloston.UngoogledChromium/current/active/export/bin/com.github.Eloston.UngoogledChromium"],
             "pkgidlink": ["ungoogled-chromium-webbrowser"],
             "classprefix": "",
+            "expected-file": "/Local State",
             "type": "chromium",
             "flatpak": "com.github.Eloston.UngoogledChromium"
+        },
+        "firefox-flatpak": {
+            "name": "Mozilla Firefox (Flatpak)",
+            "command": ["/usr/bin/flatpak", "run", "org.mozilla.firefox", "%WEBSITEURL%", "--class", "%WINCLASS%", "--profile", "%PROFILEDIR%", "--no-remote"],
+            "required-file": ["/var/lib/flatpak/app/org.mozilla.firefox/current/active/files/bin/firefox"],
+            "pkgidlink": ["mozilla-firefox-webbrowser"],
+            "classprefix": "",
+            "expected-file": "/prefs.js",
+            "type": "firefox",
+            "flatpak": ""
+        },
+        "librewolf-flatpak": {
+            "name": "LibreWolf (Flatpak)",
+            "command": ["/usr/bin/flatpak", "run", "io.gitlab.librewolf-community", "%WEBSITEURL%", "--class", "%WINCLASS%", "--profile", "%PROFILEDIR%", "--no-remote"],
+            "required-file": ["/var/lib/flatpak/app/io.gitlab.librewolf-community/current/active/files/bin/io.gitlab.librewolf-community"],
+            "pkgidlink": ["librewolf-librewolf-webbrowser"],
+            "classprefix": "",
+            "expected-file": "/prefs.js",
+            "type": "firefox",
+            "flatpak": ""
         }
     }
 }
