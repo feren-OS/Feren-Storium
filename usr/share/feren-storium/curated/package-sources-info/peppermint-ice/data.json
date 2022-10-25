@@ -11,8 +11,7 @@
             "pkgidlink": ["vivaldi-vivaldi-webbrowser"],
             "classprefix": "vivaldistoriumice?",
             "expected-file": "/Local State",
-            "type": "chromium",
-            "flatpak": ""
+            "type": "chromium"
         },
         "chrome": {
             "name": "Google Chrome",
@@ -21,8 +20,7 @@
             "pkgidlink": ["google-chrome-webbrowser"],
             "classprefix": "",
             "expected-file": "/Local State",
-            "type": "chromium",
-            "flatpak": ""
+            "type": "chromium"
         },
         "msedge": {
             "name": "Microsoft Edge",
@@ -31,8 +29,7 @@
             "pkgidlink": ["microsoft-edge-webbrowser"],
             "classprefix": "",
             "expected-file": "/Local State",
-            "type": "chromium",
-            "flatpak": ""
+            "type": "chromium"
         },
         "brave": {
             "name": "Brave",
@@ -41,38 +38,40 @@
             "pkgidlink": ["brave-brave-webbrowser"],
             "classprefix": "",
             "expected-file": "/Local State",
-            "type": "chromium",
-            "flatpak": ""
+            "type": "chromium"
         },
         "ungoogled-chromium": {
             "name": "Ungoogled Chromium",
-            "command": ["flatpak run com.github.Eloston.UngoogledChromium", "--app=%WEBSITEURL%", "--class=%WINCLASS%", "--user-data-dir=%PROFILEDIR%"],
-            "required-file": ["/var/lib/flatpak/app/com.github.Eloston.UngoogledChromium/current/active/export/bin/com.github.Eloston.UngoogledChromium"],
+            "command": ["/usr/bin/flatpak", "run", "com.github.Eloston.UngoogledChromium", "--app=%WEBSITEURL%", "--class=%WINCLASS%", "--user-data-dir=%PROFILEDIR%"],
+            "required-file": ["/var/lib/flatpak/app/com.github.Eloston.UngoogledChromium/current/active/files/bin/chromium"],
             "pkgidlink": ["ungoogled-chromium-webbrowser"],
             "classprefix": "",
             "expected-file": "/Local State",
             "type": "chromium",
-            "flatpak": "com.github.Eloston.UngoogledChromium"
+            "flatpak": "com.github.Eloston.UngoogledChromium",
+            "nobonuses": true
         },
         "firefox-flatpak": {
-            "name": "Mozilla Firefox (Flatpak)",
+            "name": "Mozilla Firefox",
             "command": ["/usr/bin/flatpak", "run", "org.mozilla.firefox", "%WEBSITEURL%", "--class", "%WINCLASS%", "--profile", "%PROFILEDIR%", "--no-remote"],
             "required-file": ["/var/lib/flatpak/app/org.mozilla.firefox/current/active/files/bin/firefox"],
             "pkgidlink": ["mozilla-firefox-webbrowser"],
             "classprefix": "",
             "expected-file": "/prefs.js",
             "type": "firefox",
-            "flatpak": ""
+            "flatpak": "org.mozilla.firefox",
+            "nobonuses": true
         },
         "librewolf-flatpak": {
-            "name": "LibreWolf (Flatpak)",
+            "name": "LibreWolf",
             "command": ["/usr/bin/flatpak", "run", "io.gitlab.librewolf-community", "%WEBSITEURL%", "--class", "%WINCLASS%", "--profile", "%PROFILEDIR%", "--no-remote"],
-            "required-file": ["/var/lib/flatpak/app/io.gitlab.librewolf-community/current/active/files/bin/io.gitlab.librewolf-community"],
+            "required-file": ["/var/lib/flatpak/app/io.gitlab.librewolf-community/current/active/files/bin/librewolf"],
             "pkgidlink": ["librewolf-librewolf-webbrowser"],
             "classprefix": "",
             "expected-file": "/prefs.js",
             "type": "firefox",
-            "flatpak": ""
+            "flatpak": "io.gitlab.librewolf-community",
+            "nobonuses": true
         }
     }
 }

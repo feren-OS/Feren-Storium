@@ -573,8 +573,9 @@ class main():
             with open(targetfolder + "chrome/ice.css", 'w') as fp:
                 fp.write('\n'.join(result))
 
-            #Grant Flatpak Firefox access to the profile's directory
-            os.system("/usr/bin/flatpak override --user org.mozilla.firefox --filesystem={0}/{1}/{2}".format(default_ice_directory, iteminfo["id"], profileid))
+        #If Flatpak, grant access to the profile's directory
+        if "flatpak" in self.sources_storage["browsers"][iteminfo["browser"]]:
+            os.system("/usr/bin/flatpak override --user {0} --filesystem={1}/{2}/{3}".format(self.sources_storage["browsers"][iteminfo["browser"]]["flatpak"], default_ice_directory, iteminfo["id"], profileid))
 
 
 

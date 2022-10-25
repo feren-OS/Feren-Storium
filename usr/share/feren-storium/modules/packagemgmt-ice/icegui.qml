@@ -13,6 +13,7 @@ ApplicationWindow {
 
     //SIGNALS
     signal createProfile()
+    signal openProfile(var profileid)
 
 
     Kirigami.Theme.inherit: true
@@ -70,11 +71,14 @@ ApplicationWindow {
                     }
 
 
-                    Button {
-                        text: "dummy button"
-                    }
-                    Button {
-                        text: "dummy button"
+                    Repeater {
+                        objectName: "profilesRepeater"
+                        model: ProfilesModel
+                        delegate: Button {
+                            text: name
+                            onClicked: window.openProfile(profileid)
+                            visible: true
+                        }
                     }
 
 

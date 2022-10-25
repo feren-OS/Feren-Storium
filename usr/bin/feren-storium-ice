@@ -24,6 +24,34 @@ browserSources = IceShared.sources_storage["browsers"]
 # Rest in Peace, Mark Greaves.                                                        #
 #######################################################################################
 
+## Model for profile selector
+class ProfilesModel(QAbstractListModel):
+    NameRole = Qt.UserRole + 1
+    IDRole = Qt.UserRole + 2
+    profilesChanged = pyqtSignal()
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.profiles = []
+
+    def data(self, index, role=Qt.DisplayRole):
+        row = index.row()
+        if role == ProfilesModel.NameRole:
+            return self.profiles[row]["name"]
+        if role == ProfilesModel.IDRole:
+            return self.profiles[row]["profileid"]
+
+    def rowCount(self, parent=QModelIndex()):
+        return len(self.profiles)
+
+    def roleNames(self):
+        return {ProfilesModel.NameRole: b'name', ProfilesModel.IDRole: b'profileid'}
+
+    def setData(self, data):
+        self.profiles = data
+        self.layoutChanged.emit()
+
+
 ## Code to initialise/refresh the desktop file information used for profile creation and launching
 def getDesktopFileInformation(path):
     global desktopfileinformation
@@ -77,13 +105,31 @@ def onCreateProfile():
 
     #TODO: Add handlers for failure to create profile, invalid name, etc.
 
-    IceShared.run_profile(desktopfileinformation["id"], desiredname, desktopfileinformation["browser"], desktopfileinformation["browsertype"], desktopfileinformation["website"], desktopfileinformation["wmclass"], desktopfileinformation["nohistory"], closeCallback)
+    onOpenProfile(desiredname)
     app.quit()
+
+def refreshProfiles():
+    #Now get all the profiles
+    profiles = []
+    for folder in os.listdir(profilesdir):
+        if os.path.isdir(profilesdir + "/" + folder):
+            if os.path.isfile(profilesdir + "/" + folder + browserSources[desktopfileinformation["browser"]]["expected-file"]):
+                profiles.append({"name": folder, "profileid": folder})
+                #TODO: Add profile IDs
+
+    #If there's no profiles, go into the profile creator
+    if profiles == []:
+        mainwnd.findChild(QObject, "pages").setProperty('currentIndex', 4)
+    else:
+        profilesmodel.setData(profiles)
 
 
 ## LAUNCHING CALLBACKS
 def closeCallback(): #Close the window
     mainwnd.close()
+
+def onOpenProfile(profileid):
+    IceShared.run_profile(desktopfileinformation["id"], profileid, desktopfileinformation["browser"], desktopfileinformation["browsertype"], desktopfileinformation["website"], desktopfileinformation["wmclass"], desktopfileinformation["nohistory"], closeCallback)
 
 
 #[1]: .desktop file
@@ -99,6 +145,7 @@ if not desktopfileinformation["browser"] in IceShared.sources_storage["browsers"
 
 
 #TODO: Store if application has been configured to be single profile before, and if so skip the GUI entirely unless an argument's specified
+profilesmodel = ProfilesModel()
 app = QApplication(sys.argv)
 
 app.setDesktopFileName(desktopfileinformation["wmclass"])
@@ -106,10 +153,12 @@ app.setApplicationName(desktopfileinformation["wmclass"])
 
 engine = QQmlApplicationEngine()
 engine.quit.connect(app.quit)
+engine.rootContext().setContextProperty('ProfilesModel', profilesmodel)
 engine.load('/usr/share/feren-storium/modules/packagemgmt-ice/icegui.qml')
 
 mainwnd = engine.rootObjects()[0]
 mainwnd.createProfile.connect(onCreateProfile)
+mainwnd.openProfile.connect(onOpenProfile)
 
 mainwnd.setProperty('title', desktopfileinformation["name"])
 mainwnd.findChild(QObject, "profilesHeader").setProperty('text', "Who's using %s?" % desktopfileinformation["name"])
@@ -134,17 +183,7 @@ profilesdir = IceShared.get_profiles_folder(desktopfileinformation["id"])
 if not os.path.isdir(profilesdir):
     IceShared.create_profiles_folder(desktopfileinformation["id"])
 
-#Now get all the profiles
-profiles = []
-for folder in os.listdir(profilesdir):
-    if os.path.isdir(profilesdir + "/" + folder):
-        if os.path.isfile(profilesdir + "/" + folder + browserSources[desktopfileinformation["browser"]]["expected-file"]):
-            profiles.append(folder)
-print(profiles)
-
-#If there's no profiles, go into the profile creator
-if profiles == []:
-    mainwnd.findChild(QObject, "pages").setProperty('currentIndex', 4)
+refreshProfiles()
 
 
 sys.exit(app.exec())
