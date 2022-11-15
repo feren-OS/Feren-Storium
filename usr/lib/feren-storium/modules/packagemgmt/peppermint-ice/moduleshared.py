@@ -138,7 +138,7 @@ class main():
         redc, greenc, bluec = tuple(int(hexcode[i:i+2], 16) for i in (1, 3, 5)) #Dodge the # character
         lumi = colorsys.rgb_to_hls(redc, greenc, bluec)[1]
         
-        if lumi > 127.5:
+        if lumi > 168:
             return True
         else:
             return False
@@ -475,6 +475,9 @@ class main():
             #Add theme colours to SSB (Vivaldi)
             result = self.chromi_set_colors(result, iteminfo["bg"], iteminfo["bgdark"], iteminfo["accent"], iteminfo["accentdark"], iteminfo["color"], iteminfo["accentonwindow"])
 
+            #Add the Start Page Bookmark
+            self.chromi_add_startpage(iteminfo["id"], profileid, iteminfo["name"], iteminfo["website"])
+
             #Save to the Preferences fileonusIDs
             try:
                 with open(PreferencesFile, 'w') as fp:
@@ -721,12 +724,33 @@ class main():
         if darkmode == True and not "enable-force-dark@1" in result["browser"]["enabled_labs_experiments"] and not "enable-force-dark@2" in result["browser"]["enabled_labs_experiments"] and not "enable-force-dark@3" in result["browser"]["enabled_labs_experiments"] and not "enable-force-dark@4" in result["browser"]["enabled_labs_experiments"] and not "enable-force-dark@5" in result["browser"]["enabled_labs_experiments"] and not "enable-force-dark@6" in result["browser"]["enabled_labs_experiments"] and not "enable-force-dark@7" in result["browser"]["enabled_labs_experiments"]:
             result["browser"]["enabled_labs_experiments"].append("enable-force-dark@1")
 
-        #Save to the Preferences fileonusIDs
+        #Save to the Local State
         try:
             with open(LocalStateFile, 'w') as fp:
                 fp.write(json.dumps(result, separators=(',', ':'))) # Also a minified json
         except Exception as exceptionstr:
             raise ICESharedModuleException(_("Failed to write to Local State"))
+
+
+    #Start Page
+    def chromi_add_startpage(self, itemid, profileid, name, website):
+        #dict, string, string
+
+        #First, open default Bookmarks file
+        with open("/usr/share/feren-storium/modules/packagemgmt-ice/chromiums/Bookmarks", 'r') as fp:
+            result = json.loads(fp.read())
+
+        #Then tweak the values
+        result["roots"]["bookmark_bar"]["children"][0]["children"][0]["meta_info"]["Thumbnail"] = "https://via.placeholder.com/256" #TODO
+        result["roots"]["bookmark_bar"]["children"][0]["children"][0]["name"] = name
+        result["roots"]["bookmark_bar"]["children"][0]["children"][0]["url"] = website
+
+        #Then write to Bookmarks
+        try:
+            with open("{0}/{1}/{2}/Default/Bookmarks".format(default_ice_directory, itemid, profileid), 'w') as fp:
+                fp.write(json.dumps(result, separators=(',', ':'))) # Also a minified json
+        except Exception as exceptionstr:
+            raise ICESharedModuleException(_("Failed to write to Bookmarks"))
 
     
     #Finishing touches
@@ -735,5 +759,3 @@ class main():
         
         with open("{0}/{1}/{2}/First Run".format(default_ice_directory, itemid, profileid), 'w') as fp:
             pass #Skips the initial Welcome to Google Chrome dialog
-        with open("{0}/{1}/{2}/Default/Bookmarks".format(default_ice_directory, itemid, profileid), 'w') as fp:
-            pass #Empties Bookmarks?

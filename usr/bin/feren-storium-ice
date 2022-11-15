@@ -37,7 +37,7 @@ class ProfilesModel(QAbstractListModel):
     def data(self, index, role=Qt.DisplayRole):
         row = index.row()
         if role == ProfilesModel.NameRole:
-            return self.profiles[row]["name"]
+            return self.profiles[row]["myname"]
         if role == ProfilesModel.IDRole:
             return self.profiles[row]["profileid"]
 
@@ -45,7 +45,7 @@ class ProfilesModel(QAbstractListModel):
         return len(self.profiles)
 
     def roleNames(self):
-        return {ProfilesModel.NameRole: b'name', ProfilesModel.IDRole: b'profileid'}
+        return {ProfilesModel.NameRole: b'myname', ProfilesModel.IDRole: b'profileid'}
 
     def setData(self, data):
         self.profiles = data
@@ -114,7 +114,7 @@ def refreshProfiles():
     for folder in os.listdir(profilesdir):
         if os.path.isdir(profilesdir + "/" + folder):
             if os.path.isfile(profilesdir + "/" + folder + browserSources[desktopfileinformation["browser"]]["expected-file"]):
-                profiles.append({"name": folder, "profileid": folder})
+                profiles.append({"myname": folder, "profileid": folder})
                 #TODO: Add profile IDs
 
     #If there's no profiles, go into the profile creator

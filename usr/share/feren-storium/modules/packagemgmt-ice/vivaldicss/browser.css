@@ -41,3 +41,9 @@
     --HighlightColor: var(--colorAccentFg) !important;
     --LowlightColor: var(--colorAccentFg) !important;
 }
+
+.SpeedDialView-SearchField,
+.SpeedDial-Blocked-Counter,
+.SpeedDialView-Settings-Button {
+    display: none !important;
+}

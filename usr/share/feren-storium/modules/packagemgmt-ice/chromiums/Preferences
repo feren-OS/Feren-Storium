@@ -213,7 +213,7 @@
         },
         "appearance": { "css_ui_mods_directory": "/usr/share/feren-storium/modules/packagemgmt-ice/vivaldicss" },
         "autofill": { "server_assist": false },
-        "bookmarks": { "version": "17" },
+        "bookmarks": { "version": "24" },
         "panels": {
             "list": [
                 { "available": false, "forMailOnly": false, "format": 7, "id": "format", "resizable": false, "width": -1 },
@@ -241,7 +241,7 @@
         "popups": { "show_in_tab": true },
         "privacy": { "google_component_extensions": { "web_store": false, "crypto_token": true } },
         "settings": { "in_tab": true },
-        "startpage": { "navigation": 2, "speed_dial": { "add_button_visible": false, "allow_dnd": false, "controls_visible": false, "delete_visible": false, "favicon_visible": false, "titles_visible": 1 } },
+        "startpage": { "navigation": 2, "speed_dial": { "add_button_visible": false, "allow_dnd": false, "columns": 1, "controls_visible": false, "delete_visible": false, "favicon_visible": false, "titles_visible": 1 } },
         "startup": { "check_is_default": false, "has_seen_feature": 1, "last_seen_version": "99.0.0001.02" },
         "status_bar": { "display": 2, "minimized": 1 },
         "system": { "show_exit_confirmation_dialog": false },
@@ -255,7 +255,7 @@
             "never_close_last": false,
             "new_page": {
                 "custom_url": "",
-                "link": 4
+                "link": 3
             },
             "page_load_info": 3,
             "show_synced_tabs_button": false,

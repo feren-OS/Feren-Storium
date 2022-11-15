@@ -1,7 +1,7 @@
 import QtQuick 2.6
 import QtQuick.Layouts 1.1
 import QtQuick.Controls 2.3
-import org.kde.kirigami 2.8 as Kirigami
+import org.kde.kirigami 2.13 as Kirigami
 
 ApplicationWindow {
     id: window
@@ -58,9 +58,10 @@ ApplicationWindow {
             }
 
             ScrollView {
-                width: parent.width
-                height: profiles.height
+                width: parent.width > profiles.width ? profiles.width : parent.width // center the profiles list
+                height: profiles.height + Kirigami.Units.gridUnit
                 anchors.centerIn: parent
+                anchors.verticalCenterOffset: Kirigami.Units.gridUnit * 0.5 // rebalance the centering
                 clip: true
                 contentWidth: profiles.width
                 RowLayout {
@@ -75,9 +76,26 @@ ApplicationWindow {
                         objectName: "profilesRepeater"
                         model: ProfilesModel
                         delegate: Button {
-                            text: name
+                            id: buttondeleg1
+                            Layout.preferredWidth: 7.5 * Kirigami.Units.gridUnit
+                            Layout.preferredHeight: 7 * Kirigami.Units.gridUnit
                             onClicked: window.openProfile(profileid)
-                            visible: true
+
+                            contentItem: ColumnLayout {
+                                Kirigami.Avatar {
+                                    name: myname
+                                    initialsMode: Kirigami.Avatar.InitialsMode.UseIcon
+                                    readonly property int size: 3 * Kirigami.Units.gridUnit
+                                    width: size
+                                    height: size
+                                    anchors.centerIn: parent //FIXME: it misaligns without this
+                                }
+                                Text {
+                                    text: myname
+                                    font: buttondeleg1.font
+                                    Layout.alignment: Qt.AlignHCenter
+                                }
+                            }
                         }
                     }
 
@@ -222,49 +240,80 @@ ApplicationWindow {
                     objectName: "editSubheader"
                     text: "Choose your name, and options for your profile.\nOnce you are done. hit Finish below."
                 }
+            }
 
-                Rectangle {
-                    color: "#00000000"
-                    height: 8
-                }
-                Label {
-                    id: editProfileNameTip
-                    objectName: "editProfileNameTip"
-                    text: "Choose a name for your profile:"
-                    font.pixelSize: Kirigami.Theme.defaultFont.pixelSize * 1.2
-                }
-                TextField {
-                    id: editProfileName
-                    objectName: "editProfileName"
-                }
-                Label {
-                    id: editProfileNameEmpty
-                    objectName: "editProfileNameEmpty"
-                    text: "Please specify a name for this profile"
-                    color: Kirigami.Theme.negativeTextColor
-                    visible: false
+            TextField {
+                id: editProfileName
+                objectName: "editProfileName"
+                horizontalAlignment: Text.AlignRight
+                anchors {
+                    right: editingAvatar.left
+                    verticalCenter: parent.verticalCenter
+                    rightMargin: Kirigami.Units.largeSpacing * 2
                 }
 
-                Rectangle {
-                    color: "#00000000"
-                    height: 8
+                Text {
+                    text: "Profile name"
+                    opacity: 0.5
+                    visible: !editProfileName.text
+                    anchors {
+                        right: parent.right
+                        verticalCenter: parent.verticalCenter
+                        rightMargin: Kirigami.Units.smallSpacing
+                    }
                 }
-                Label {
-                    id: editProfileOptionsTip
-                    objectName: "editProfileOptionsTip"
-                    text: "Profile options:"
-                    font.pixelSize: Kirigami.Theme.defaultFont.pixelSize * 1.2
+            }
+            Label {
+                id: editProfileNameEmpty
+                objectName: "editProfileNameEmpty"
+                text: "Please specify a name for this profile"
+                color: Kirigami.Theme.negativeTextColor
+                visible: false
+                wrapMode: Text.WordWrap
+                elide: Text.ElideRight
+                horizontalAlignment: Text.AlignRight
+
+                anchors {
+                    top: editProfileName.bottom
+                    topMargin: Kirigami.Units.smallSpacing
+                    left: parent.left
+                    right: editProfileName.right
                 }
-                CheckBox {
-                    id: forceDarkMode
-                    objectName: "forceDarkMode"
-                    text: "Force dark mode on websites (may break some websites)"
+            }
+
+            Kirigami.Avatar {
+                id: editingAvatar
+                name: editProfileName.text
+                initialsMode: Kirigami.Avatar.InitialsMode.UseIcon
+                readonly property int size: 8 * Kirigami.Units.gridUnit
+                width: size
+                height: size
+                anchors.centerIn: parent
+            }
+
+            CheckBox {
+                id: forceDarkMode
+                objectName: "forceDarkMode"
+                text: "Force dark mode"
+                anchors {
+                    left: editingAvatar.right
+                    right: parent.right
+                    verticalCenter: parent.verticalCenter
+                    leftMargin: Kirigami.Units.largeSpacing * 2
                 }
-                // CheckBox {
-                //     id: incognitoMode
-                //     objectName: "incognitoMode"
-                //     text: "Always start in Incognito Mode"
-                // }
+            }
+            Label {
+                id: forceDarkModeHint
+                objectName: "forceDarkModeHint"
+                text: "May break some websites"
+                wrapMode: Text.WordWrap
+                elide: Text.ElideRight
+
+                anchors {
+                    top: forceDarkMode.bottom
+                    left: forceDarkMode.left
+                    right: parent.right
+                }
             }
 
             // TODO: Page for profile editing/creation
