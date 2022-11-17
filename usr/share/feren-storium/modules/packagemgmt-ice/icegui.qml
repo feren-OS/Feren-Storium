@@ -81,6 +81,10 @@ ApplicationWindow {
                             Layout.preferredHeight: 7 * Kirigami.Units.gridUnit
                             onClicked: window.openProfile(profileid)
 
+                            ToolTip.visible: myname ? hovered : false
+                            ToolTip.text: myname
+                            ToolTip.delay: Kirigami.Units.toolTipDelay
+
                             contentItem: ColumnLayout {
                                 Kirigami.Avatar {
                                     name: myname
@@ -92,6 +96,7 @@ ApplicationWindow {
                                     anchors.centerIn: parent //FIXME: it misaligns without this
                                 }
                                 Text {
+                                    id: profilelbl
                                     text: myname
                                     font: buttondeleg1.font
                                     width: buttondeleg1.width - Kirigami.Units.gridUnit

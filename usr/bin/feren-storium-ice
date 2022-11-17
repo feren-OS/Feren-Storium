@@ -108,7 +108,6 @@ def onCreateProfile():
     #TODO: Add handlers for failure to create profile, invalid name, etc.
 
     onOpenProfile(profileid)
-    app.quit()
 
 def refreshProfiles():
     #Now get all the profiles
@@ -137,6 +136,7 @@ def closeCallback(): #Close the window
 
 def onOpenProfile(profileid):
     IceShared.run_profile(desktopfileinformation["id"], profileid, desktopfileinformation["browser"], desktopfileinformation["browsertype"], desktopfileinformation["website"], desktopfileinformation["wmclass"], desktopfileinformation["nohistory"], closeCallback)
+    app.quit()
 
 
 #[1]: .desktop file
