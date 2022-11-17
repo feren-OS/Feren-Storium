@@ -412,6 +412,18 @@ class main():
 
 
     ####PROFILE CREATION
+    def profileid_generate(self, itemid, profilename):
+        result = profilename.replace(" ", "").replace("\\", "").replace("/", "").replace("?", "").replace("*", "").replace("+", "").replace("%", "").lower()
+
+        print("{0}/{1}/{2}".format(default_ice_directory, itemid, result))
+        if os.path.isdir("{0}/{1}/{2}".format(default_ice_directory, itemid, result)): #Duplication prevention
+            numbertried = 2
+            while os.path.isdir("{0}/{1}/{2}{3}".format(default_ice_directory, itemid, result, numbertried)):
+                numbertried += 1
+            result = result + str(numbertried) #Append duplication prevention number
+
+        return result
+
     def create_profile_folder(self, itemid, profileid, browsertype):
         if not os.path.isdir(default_ice_directory + "/%s" % itemid): #Make sure profiles directory exists beforehand
             self.create_profiles_folder(itemid)
@@ -429,7 +441,7 @@ class main():
         #The rest is left up to self.update_profile_settings to do.
 
 
-    def update_profile_settings(self, iteminfo, profileid, darkmode):
+    def update_profile_settings(self, iteminfo, profilename, profileid, darkmode):
         if not os.path.isdir(default_ice_directory + "/%s" % iteminfo["id"]): #Make sure profiles directory exists beforehand
             self.create_profiles_folder(iteminfo["id"])
         if iteminfo["browsertype"] == "chromium":
@@ -438,7 +450,15 @@ class main():
             expectedfolder = "chrome"
         if not os.path.isdir("{0}/{1}/{2}/{3}".format(default_ice_directory, iteminfo["id"], profileid, expectedfolder)): #Make sure this profile's directory exists beforehand
             self.create_profile_folder(iteminfo["id"], profileid, iteminfo["browsertype"])
-        #TODO: Make this one big function to do all the configuring
+
+        #Make note of the profile name and last updated configs
+        profileconfs = {}
+        if os.path.isfile("{0}/{1}/{2}/.ice-settings".format(default_ice_directory, iteminfo["id"], profileid)):
+            with open("{0}/{1}/{2}/.ice-settings".format(default_ice_directory, iteminfo["id"], profileid), 'r') as fp:
+                profileconfs = json.loads(fp.read())
+
+        #Set user's human-readable name
+        profileconfs["readablename"] = profilename
 
         if iteminfo["browsertype"] == "chromium": #Chromium-specific configs
             PreferencesFile = "{0}/{1}/{2}/Default/Preferences".format(default_ice_directory, iteminfo["id"], profileid)
@@ -456,10 +476,8 @@ class main():
             result["custom_links"]["list"][0]["url"] = iteminfo["website"]
             result["session"]["startup_urls"] = [iteminfo["website"]]
             result["download"]["default_directory"] = GLib.get_user_special_dir(GLib.UserDirectory.DIRECTORY_DOWNLOAD) + "/" + _("{0} Downloads").format(iteminfo["name"])
-            result["profile"]["name"] = iteminfo["name"]
-            #result["ntp"]["custom_background_dict"]["attribution_line_1"] = _("Website Application - {0}").format(iteminfo["name"])
-            #result["vivaldi"]["tabs"]["new_page"]["custom_url"] = "https://feren-os.github.io/start-page/ice?ice-text="+(_("Website Application - {0}").format(iteminfo["name"]))+"&home-url={0}".format(parse.quote(iteminfo["website"], safe=""))+"&home-icon={0}".format(parse.quote(iconuri, safe=""))
-            #TODO: Change ^ to extension
+            result["profile"]["name"] = _("{0} - {1}").format(profilename, iteminfo["name"])
+            result["ntp"]["custom_background_dict"]["attribution_line_1"] = _("{0} - {1}").format(profilename, iteminfo["name"])
             result["vivaldi"]["homepage"] = iteminfo["website"]
             result["vivaldi"]["homepage_cache"] = iteminfo["website"]
 
@@ -580,6 +598,14 @@ class main():
         if "flatpak" in self.sources_storage["browsers"][iteminfo["browser"]]:
             os.system("/usr/bin/flatpak override --user {0} --filesystem={1}/{2}/{3}".format(self.sources_storage["browsers"][iteminfo["browser"]]["flatpak"], default_ice_directory, iteminfo["id"], profileid))
 
+        #Finally, save new last updated date and save to .ice-settings
+        profileconfs["lastupdated"] = datetime.today().strftime('%Y%m%d')
+
+        try:
+            with open("{0}/{1}/{2}/.ice-settings".format(default_ice_directory, iteminfo["id"], profileid), 'w') as fp:
+                fp.write(json.dumps(profileconfs, separators=(',', ':')))
+        except Exception as exceptionstr:
+            raise ICESharedModuleException(_("Failed to write to .ice-settings"))
 
 
 

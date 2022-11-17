@@ -5,6 +5,7 @@ import subprocess
 import time
 import shutil
 import ast
+import json
 
 from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
@@ -99,13 +100,14 @@ def onCreateProfile():
     darkmode = mainwnd.findChild(QObject, "forceDarkMode").property('checked')
 
     #Now generate the profile's folder
-    IceShared.create_profile_folder(desktopfileinformation["id"], desiredname, desktopfileinformation["browsertype"])
+    profileid = IceShared.profileid_generate(desktopfileinformation["id"], desiredname)
+    IceShared.create_profile_folder(desktopfileinformation["id"], profileid, desktopfileinformation["browsertype"])
     #Then add in the initial settings
-    IceShared.update_profile_settings(desktopfileinformation, desiredname, darkmode)
+    IceShared.update_profile_settings(desktopfileinformation, desiredname, profileid, darkmode)
 
     #TODO: Add handlers for failure to create profile, invalid name, etc.
 
-    onOpenProfile(desiredname)
+    onOpenProfile(profileid)
     app.quit()
 
 def refreshProfiles():
@@ -114,8 +116,13 @@ def refreshProfiles():
     for folder in os.listdir(profilesdir):
         if os.path.isdir(profilesdir + "/" + folder):
             if os.path.isfile(profilesdir + "/" + folder + browserSources[desktopfileinformation["browser"]]["expected-file"]):
-                profiles.append({"myname": folder, "profileid": folder})
-                #TODO: Add profile IDs
+                readablename = folder
+                if os.path.isfile(profilesdir + "/" + folder + "/.ice-settings"):
+                    with open(profilesdir + "/" + folder + "/.ice-settings", 'r') as fp:
+                        icesettings = json.loads(fp.read())
+                        if "readablename" in icesettings:
+                            readablename = icesettings["readablename"]
+                profiles.append({"myname": readablename, "profileid": folder})
 
     #If there's no profiles, go into the profile creator
     if profiles == []:

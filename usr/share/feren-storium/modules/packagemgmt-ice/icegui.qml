@@ -84,7 +84,8 @@ ApplicationWindow {
                             contentItem: ColumnLayout {
                                 Kirigami.Avatar {
                                     name: myname
-                                    initialsMode: Kirigami.Avatar.InitialsMode.UseIcon
+                                    iconSource: "user-identity"
+                                    cache: false
                                     readonly property int size: 3 * Kirigami.Units.gridUnit
                                     width: size
                                     height: size
@@ -93,7 +94,13 @@ ApplicationWindow {
                                 Text {
                                     text: myname
                                     font: buttondeleg1.font
-                                    Layout.alignment: Qt.AlignHCenter
+                                    width: buttondeleg1.width - Kirigami.Units.gridUnit
+                                    horizontalAlignment: Text.AlignHCenter
+                                    anchors.horizontalCenter: parent.horizontalCenter //FIXME: again, misaligns without this and the above line
+                                    color: Kirigami.Theme.textColor
+                                    Kirigami.Theme.inherit: false
+                                    Kirigami.Theme.colorSet: Kirigami.Theme.Button
+                                    elide: Text.ElideRight
                                 }
                             }
                         }
@@ -261,6 +268,7 @@ ApplicationWindow {
                         verticalCenter: parent.verticalCenter
                         rightMargin: Kirigami.Units.smallSpacing
                     }
+                    color: Kirigami.Theme.textColor
                 }
             }
             Label {
@@ -282,9 +290,12 @@ ApplicationWindow {
             }
 
             Kirigami.Avatar {
+                Kirigami.Theme.inherit: false //use normal colour set
                 id: editingAvatar
                 name: editProfileName.text
-                initialsMode: Kirigami.Avatar.InitialsMode.UseIcon
+                color: Kirigami.Theme.backgroundColor
+                iconSource: "user-identity"
+                cache: false
                 readonly property int size: 8 * Kirigami.Units.gridUnit
                 width: size
                 height: size
