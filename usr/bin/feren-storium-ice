@@ -19,6 +19,7 @@ IceShared = IceModuleShared.main()
 
 browserSources = IceShared.sources_storage["browsers"]
 currentlyEditedProfileID = ""
+autoDestinationProfile = ""
 
 #######################################################################################
 # Ice Launcher Interface - Feren Storium                                              #
@@ -175,7 +176,7 @@ def onEditProfile():
     #TODO: Add handlers for failure to create profile, invalid name, etc.
 
     if currentlyEditedProfileID == "": #Launch into profile upon creation
-        onOpenProfile(profileid)
+        onOpenProfile(profileid, False)
     else: #Return to the profile manager otherwise
         mainwnd.findChild(QObject, "pages").setProperty('currentIndex', 1)
         refreshProfiles()
@@ -192,7 +193,8 @@ def onDeleteProfile():
     refreshProfiles()
 
 
-def refreshProfiles():
+## PROFILES LOADING
+def getProfiles():
     #Now get all the profiles
     profiles = []
     for folder in os.listdir(profilesdir):
@@ -206,19 +208,57 @@ def refreshProfiles():
                             readablename = icesettings["readablename"]
                 profiles.append({"myname": readablename, "profileid": folder})
 
-    #If there's no profiles, go into the profile creator
+    return profiles
+def refreshProfiles(profiles=[]):
+    if profiles == []:
+        profiles = getProfiles()
     if profiles == []:
         onEnterCreateProfile()
     profilesmodel.setData(profiles)
+
+def automaticProfileLaunch():
+    if os.path.isfile(profilesdir + "/.ice-autolaunch"):
+        global autoDestinationProfile
+        autoDestinationProfile = ""
+        with open(profilesdir + "/.ice-autolaunch", 'r') as fp:
+            autoDestinationProfile = fp.readline()
+
+        if len(sys.argv) == 3:
+            if sys.argv[2] == "--force-manager":
+                return #Skip to the GUI if the override's specified
+
+        if autoDestinationProfile == "":
+            return #Skip to the GUI if there is no destination profile
+
+        profilespossible = getProfiles()
+        if not len(profilespossible) == 1:
+            return #Skip to the GUI if more than one profile is present
+
+        itemscounted = 0
+        for profile in profilespossible:
+            if profilespossible[itemscounted]["profileid"] == autoDestinationProfile:
+                onOpenProfile(autoDestinationProfile, True, False)
+                sys.exit(0) #End the code here
+                break
+            itemscounted = 1
 
 
 ## LAUNCHING CALLBACKS
 def closeCallback(): #Close the window
     mainwnd.close()
 
-def onOpenProfile(profileid):
+def onOpenProfile(profileid, alwaysuse, gui=True):
+    if gui == True:
+        if alwaysuse == True: #In the future, automatically launch the current profile
+            with open(profilesdir + "/.ice-autolaunch", 'w') as fp:
+                fp.write(profileid)
+        else: #Delete the autostart otherwise
+            if os.path.isfile(profilesdir + "/.ice-autolaunch"):
+                os.remove(profilesdir + "/.ice-autolaunch")
+
     IceShared.run_profile(desktopfileinformation["id"], profileid, desktopfileinformation["browser"], desktopfileinformation["browsertype"], desktopfileinformation["website"], desktopfileinformation["wmclass"], desktopfileinformation["nohistory"], closeCallback)
-    app.quit()
+    if gui == True:
+        app.quit()
 
 
 #[1]: .desktop file
@@ -231,6 +271,19 @@ except:
 #Check the browser even has data for use in this
 if not desktopfileinformation["browser"] in IceShared.sources_storage["browsers"]:
     sys.exit(1) #There is an invalid browser specification
+
+#Assign profilesdir
+profilesdir = IceShared.get_profiles_folder(desktopfileinformation["id"])
+
+#Check browser is installed
+browserInstalled = False
+for browser in browserSources[desktopfileinformation["browser"]]["required-file"]:
+    if os.path.isfile(browser):
+        browserInstalled = True
+
+#Automatically open profile if the application has been configured to launch the profile immediately
+# Overridden by --force-manager
+automaticProfileLaunch()
 
 
 #TODO: Store if application has been configured to be single profile before, and if so skip the GUI entirely unless an argument's specified
@@ -264,19 +317,26 @@ mainwnd.findChild(QObject, "editProfileSubheader").setProperty('text', "Choose y
 
 
 #If browser isn't installed, react accordingly
-browserInstalled = False
-for browser in browserSources[desktopfileinformation["browser"]]["required-file"]:
-    if os.path.isfile(browser):
-        browserInstalled = True
 if browserInstalled == False:
     pass #TODO: Screen for picking browser, and error if no browsers available to switch it to
 
 #If profiles folder doesn't exist, create it.
-profilesdir = IceShared.get_profiles_folder(desktopfileinformation["id"])
 if not os.path.isdir(profilesdir):
     IceShared.create_profiles_folder(desktopfileinformation["id"])
 
-refreshProfiles()
+profiles = getProfiles()
+refreshProfiles(profiles)
+
+if len(sys.argv) == 3:
+    if sys.argv[2] == "--force-manager" and os.path.isfile(profilesdir + "/.ice-autolaunch") and autoDestinationProfile != "":
+        #Restore the Always use Profile option's checked state if the automatically chosen profile is present and it is visible
+        itemscounted = 0
+        for profile in profiles:
+            if profiles[itemscounted]["profileid"] == autoDestinationProfile:
+                checkboxtarget = mainwnd.findChild(QObject, "alwaysUseProfile")
+                checkboxtarget.setProperty('checked', len(profiles) == 1)
+            itemscounted = 1
+
 
 
 sys.exit(app.exec())

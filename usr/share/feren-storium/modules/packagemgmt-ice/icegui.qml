@@ -13,7 +13,7 @@ ApplicationWindow {
 
     //SIGNALS
     signal editProfile()
-    signal openProfile(var profileid)
+    signal openProfile(var profileid, var alwaysuse)
     signal enterEditProfile(var profileid)
     signal enterCreateProfile()
     signal deleteProfile()
@@ -85,7 +85,7 @@ ApplicationWindow {
                             id: buttondeleg1
                             Layout.preferredWidth: 7.5 * Kirigami.Units.gridUnit
                             Layout.preferredHeight: 7 * Kirigami.Units.gridUnit
-                            onClicked: window.openProfile(profileid)
+                            onClicked: window.openProfile(profileid, alwaysUseProfile.checked)
 
                             ToolTip.visible: myname ? hovered : false
                             ToolTip.text: myname
@@ -122,6 +122,35 @@ ApplicationWindow {
                         color: "#00000000"
                         Layout.fillWidth: true
                     }
+                }
+            }
+
+            CheckBox {
+                id: alwaysUseProfile
+                objectName: "alwaysUseProfile"
+                text: "Always use this profile"
+                checked: false
+                anchors {
+                    bottom: alwaysUseProfileHint.top
+                    left: alwaysUseProfileHint.left
+                }
+                visible: profilesRepeater.count == 1
+            }
+            Label {
+                id: alwaysUseProfileHint
+                objectName: "alwaysUseProfileHint"
+                text: 'You can manage profiles and select other profiles by right-clicking this application in the Applications Menu and choosing "Manage Profiles...".'
+                wrapMode: Text.WordWrap
+                elide: Text.ElideRight
+                font.pointSize: Kirigami.Theme.smallFont.pointSize
+                visible: alwaysUseProfile.visible
+
+                anchors {
+                    left: parent.left
+                    bottom: parent.bottom
+                    right: parent.right
+                    leftMargin: Kirigami.Units.largeSpacing * 2
+                    bottomMargin: Kirigami.Units.largeSpacing * 2
                 }
             }
         }
@@ -303,6 +332,7 @@ ApplicationWindow {
                 text: "May break some websites"
                 wrapMode: Text.WordWrap
                 elide: Text.ElideRight
+                font.pointSize: Kirigami.Theme.smallFont.pointSize
 
                 anchors {
                     top: forceDarkMode.bottom
