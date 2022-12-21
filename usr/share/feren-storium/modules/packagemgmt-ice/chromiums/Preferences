@@ -228,7 +228,7 @@
                 { "available": false, "forMailOnly": false, "id": "calendar", "resizable": false, "width": -1 },
                 { "available": false, "forMailOnly": false, "id": "chat", "resizable": false, "width": 290 }
             ],
-            "state": { "barVisible": false, "panelVisible": false },
+            "window_defaults": { "barVisible": false, "panelVisible": false },
             "version": "99.0.0001.02",
             "web": { "items": [], "modified": ["ckmam0bsw00002y5xoafpww5i", "ckn7fhhqx0000hc2roo8jshm4"], "removed_items": [{ "id": "ckmam0bsw00002y5xoafpww5i" }, { "id": "ckn7fhhqx0000hc2roo8jshm4" }], "version": "99.0.0001.02" },
             "window": { "single_click_opens": true }

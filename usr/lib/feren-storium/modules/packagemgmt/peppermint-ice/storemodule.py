@@ -14,6 +14,8 @@ import time
 from gi.repository import GLib
 import colorsys
 from urllib import parse
+from PIL import Image
+
 sys.path.insert(0, "/usr/lib/feren-storium/modules/packagemgmt/peppermint-ice")
 import moduleshared
 
@@ -181,7 +183,44 @@ class module():
         self.moduleshared.create_appsmenu_shortcuts(taskdata.itemid, taskdata.subsourceid, package_information, taskdata.bonusids)
         progress_callback(50)
 
-        #TODO: Save icon to hicolor
+        #Save icon to local hicolor icon set
+        #TODO: Repeat for every icon, and move to shared
+        iconsource = None
+        try:
+            iconsource = self.storeapi.getFallbackIconLocation(package_information["iconlocal"], package_information["iconuri"], taskdata.itemid)
+        except Exception as e:
+            print(e) #TODO: Fail here
+        if iconsource != None:
+            try:
+                iconfile = Image.open(iconsource)
+                #Get and store the image's size, first
+                imagesize = iconfile.size[1]
+
+                #Make sure necessary directories exist
+                for i in [os.path.expanduser("~") + "/.local", os.path.expanduser("~") + "/.local/share", os.path.expanduser("~") + "/.local/share/icons", os.path.expanduser("~") + "/.local/share/icons/hicolor"]:
+                    if not os.path.isdir(i):
+                        os.path.mkdir(i)
+
+                #Now downsize the icon to each size:
+                for i in [[512, "512x512"], [256, "256x256"], [128, "128x128"], [64, "64x64"], [48, "48x48"], [32, "32x32"], [24, "24x24"], [16, "16x16"]]:
+                    #...if it is large enough
+                    if imagesize < i[0]:
+                        continue
+
+                    #Create the directory if it doesn't exist
+                    for ii in [os.path.expanduser("~") + "/.local/share/icons/hicolor/" + i[1], os.path.expanduser("~") + "/.local/share/icons/hicolor/" + i[1] + "/apps"]:
+                        if not os.path.isdir(ii):
+                            os.path.mkdir(ii)
+
+                    #TODO: Check for SVGs, etc.
+                    targetpath = os.path.expanduser("~") + "/.local/share/icons/hicolor/" + i[1] + "/apps/" + package_information["iconname"] + ".png"
+                    if imagesize != i[0]:
+                        iconfile.resize((i[0], i[0]))
+                        iconfile.save(targetpath, "PNG")
+                    else:
+                        shutil.copy(iconsource, targetpath)
+            except Exception as e:
+                print(e) #TODO: fail here
         
         progress_callback(100)
 
