@@ -97,8 +97,12 @@ def onEnterCreateProfile():
     currentlyEditedProfileID = ""
     mainwnd.findChild(QObject, "deleteProfileBtn").setProperty('enabled', False)
 
+    mainwnd.findChild(QObject, "editProfileName").setProperty('text', "")
+    mainwnd.findChild(QObject, "forceDarkMode").setProperty('checked', False)
+
 
     mainwnd.findChild(QObject, "pages").setProperty('currentIndex', 2)
+    mainwnd.findChild(QObject, "editProfileName").forceActiveFocus(True)
 
 def onCreateProfile():
     if mainwnd.findChild(QObject, "editProfileName").property('text') == "":
@@ -142,6 +146,7 @@ def onEnterEditProfile(profileid):
     mainwnd.findChild(QObject, "forceDarkMode").setProperty('checked', darkmode)
 
     mainwnd.findChild(QObject, "pages").setProperty('currentIndex', 2)
+    mainwnd.findChild(QObject, "editProfileName").forceActiveFocus(True)
 
 def onEditProfile():
     if mainwnd.findChild(QObject, "editProfileName").property('text') == "":
@@ -174,6 +179,18 @@ def onEditProfile():
     else: #Return to the profile manager otherwise
         mainwnd.findChild(QObject, "pages").setProperty('currentIndex', 1)
         refreshProfiles()
+        if profilesmodel.profiles != []:
+            mainwnd.findChild(QObject, "profileManager").forceActiveFocus(True)
+
+def onDeleteProfile():
+    global currentlyEditedProfileID
+
+    #TODO: Code in killing their current process
+
+    shutil.rmtree(profilesdir + "/" + currentlyEditedProfileID)
+    mainwnd.findChild(QObject, "pages").setProperty('currentIndex', 1)
+    refreshProfiles()
+
 
 def refreshProfiles():
     #Now get all the profiles
@@ -192,8 +209,7 @@ def refreshProfiles():
     #If there's no profiles, go into the profile creator
     if profiles == []:
         onEnterCreateProfile()
-    else:
-        profilesmodel.setData(profiles)
+    profilesmodel.setData(profiles)
 
 
 ## LAUNCHING CALLBACKS
@@ -235,6 +251,7 @@ mainwnd.editProfile.connect(onEditProfile)
 mainwnd.openProfile.connect(onOpenProfile)
 mainwnd.enterEditProfile.connect(onEnterEditProfile)
 mainwnd.enterCreateProfile.connect(onEnterCreateProfile)
+mainwnd.deleteProfile.connect(onDeleteProfile)
 
 mainwnd.setProperty('title', desktopfileinformation["name"])
 mainwnd.findChild(QObject, "profilesHeader").setProperty('text', "Who's using %s?" % desktopfileinformation["name"])

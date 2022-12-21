@@ -16,16 +16,18 @@ ApplicationWindow {
     signal openProfile(var profileid)
     signal enterEditProfile(var profileid)
     signal enterCreateProfile()
+    signal deleteProfile()
 
     Kirigami.Theme.inherit: true
     color: Kirigami.Theme.backgroundColor
 
     property var buttonRowMargin: 5
-    property var createProfileFromHome: true
+    property var creationCancel: QtObject { property bool returnHome: true }
 
     SwipeView {
         id: pages
         objectName: "pages"
+        interactive: false
         anchors.top: parent.top
         anchors.left: parent.left
         anchors.right: parent.right
@@ -68,6 +70,7 @@ ApplicationWindow {
                 contentWidth: profiles.width
                 RowLayout {
                     id: profiles
+                    objectName: "profiles"
                     Rectangle {
                         color: "#00000000"
                         Layout.fillWidth: true
@@ -154,13 +157,13 @@ ApplicationWindow {
                 contentWidth: profilesToManage.width
                 RowLayout {
                     id: profilesToManage
+                    objectName: "profilesToManage"
                     Rectangle {
                         color: "#00000000"
                         Layout.fillWidth: true
                     }
 
                     Repeater {
-                        objectName: "profileManagerRepeater"
                         id: profileManagerRepeater
                         model: ProfilesModel
                         delegate: Button {
@@ -360,6 +363,14 @@ ApplicationWindow {
             text: "Browse as Guest (dummy)"
             visible: pages.currentIndex == 0 ? true : false
         }
+        // Profile Manager Buttons
+        Button {
+            text: "Manage bonuses in Store... (dummy)"
+            icon {
+                name: "feren-store"
+            }
+            visible: pages.currentIndex == 1 ? true : false
+        }
         // Profile Editor Buttons
         Button {
             text: "Cancel"
@@ -368,23 +379,25 @@ ApplicationWindow {
             }
             visible: pages.currentIndex == 2 ? true : false
             enabled: profilesRepeater.count > 0 ? true : false
-            onClicked: createProfileFromHome == true ? pages.currentIndex = 0 : pages.currentIndex = 1
+            onClicked: {
+                if (creationCancel.returnHome == true) {
+                    pages.currentIndex = 0;
+                    profileSelect.forceActiveFocus(true);
+                } else {
+                    pages.currentIndex = 1;
+                    profileManager.forceActiveFocus(true);
+                }
+            }
         }
         Button {
-            text: "Delete profile (dummy)"
+            text: "Delete profile"
             objectName: "deleteProfileBtn"
             icon {
                 name: "delete"
                 color: Kirigami.Theme.negativeTextColor
             }
             visible: pages.currentIndex == 2 ? true : false
-        }
-        Button {
-            text: "Manage bonuses in Store... (dummy)"
-            icon {
-                name: "feren-store"
-            }
-            visible: pages.currentIndex == 3 ? true : false
+            onClicked: deleteProfile();
         }
 
         // Separator
@@ -409,7 +422,7 @@ ApplicationWindow {
             }
             visible: pages.currentIndex == 0 ? true : false
             onClicked: {
-                createProfileFromHome = true; // return to *this* page if we cancel
+                creationCancel.returnHome = true; // return to *this* page if we cancel
                 enterCreateProfile();
             }
         }
@@ -419,7 +432,10 @@ ApplicationWindow {
                 color: Kirigami.Theme.neutralTextColor
             }
             visible: pages.currentIndex == 0 ? true : false
-            onClicked: pages.currentIndex = 1
+            onClicked: {
+                pages.currentIndex = 1;
+                profileManager.forceActiveFocus(true);
+            }
         }
         // Profile Management Buttons
         Button {
@@ -429,18 +445,23 @@ ApplicationWindow {
             }
             visible: pages.currentIndex == 1 ? true : false
             onClicked: {
-                createProfileFromHome = false; // return to *this* page if we cancel
+                creationCancel.returnHome = false; // return to *this* page if we cancel
                 enterCreateProfile();
             }
         }
         Button {
             text: "Done"
+            objectName: "exitManagerBtn"
+            id: exitManagerBtn
             icon {
                 name: "dialog-apply"
                 color: Kirigami.Theme.positiveTextColor
             }
             visible: pages.currentIndex == 1 ? true : false
-            onClicked: pages.currentIndex = 0
+            onClicked: {
+                pages.currentIndex = 0;
+                profileSelect.forceActiveFocus(true);
+            }
         }
         // Profile Editor Buttons
         Button {
