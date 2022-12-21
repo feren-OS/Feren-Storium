@@ -39,16 +39,16 @@
         "website": "https://music.youtube.com",
         "icewebsite": "https://music.youtube.com/?source=pwa"
     },
-    "microsoft-office": {
+    "microsoft-365": {
         "extrasids": ["word", "excel", "powerpoint", "onenote", "teams"],
-        "realname": "Microsoft Office Online",
+        "realname": "Microsoft 365",
         "iconname": "ms-office",
-        "iconuri": "https://blobs.officehome.msocdn.com/versionless/webmanifestimages/OfficeDesktop_256.png",
+        "iconuri": "https://res.cdn.office.net/officehub/versionless/webmanifestimages/desktop_512.png",
         "shortdescription": "The simple solution for productivity",
-        "description": "Microsoft Office Online allows you to use Word, Excel, PowerPoint, OneNote and more of the Office suite on the go through Microsoft's cloud services. It gives you access to all the essential Office features you should need on a daily basis.",
+        "description": "Microsoft 365 allows you to use Word, Excel, PowerPoint, OneNote and more of the Microsoft 365 suite on the go through Microsoft's cloud services. It gives you access to all the essential Microsoft 365 features you should need on a daily basis.",
         "images": [""],
         "category": "ice-office",
-        "keywords": "Microsoft;Office;Word;PowerPoint;Excel;OneNote;SharePoint;Outlook;Sway;Yammer;Project;Delve;",
+        "keywords": "Microsoft Office;microsoft-office;Microsoft;Office;Word;PowerPoint;Excel;OneNote;SharePoint;Outlook;Sway;Yammer;Project;Delve;",
         "author": "Microsoft Corporation",
         "website": "https://www.office.com",
         "donateurl": "",
@@ -59,12 +59,12 @@
         "icebackground-dark": "#0F0F0F",
         "iceaccent": "#FAF9F8",
         "iceaccent-dark": "#191817",
-        "icecolor": "#D53A00",
+        "icecolor": "#6E7CDD",
         "icewebsite": "https://www.office.com/?auth=1&from=Homescreen",
         "icelastupdated": "20211210"
     },
-    "microsoft-office-word": {
-        "parentitemid": "microsoft-office",
+    "microsoft-365-word": {
+        "parentitemid": "microsoft-365",
         "realname": "Microsoft Word",
         "iconname": "ms-word",
         "iconuri": "https://upload.wikimedia.org/wikipedia/commons/f/fd/Microsoft_Office_Word_%282019%E2%80%93present%29.svg",
@@ -73,8 +73,8 @@
         "keywords": "Microsoft;Office;Word;",
         "icewebsite": "https://www.office.com/launch/word"
     },
-    "microsoft-office-excel": {
-        "parentitemid": "microsoft-office",
+    "microsoft-365-excel": {
+        "parentitemid": "microsoft-365",
         "realname": "Microsoft Excel",
         "iconname": "ms-excel",
         "iconuri": "https://upload.wikimedia.org/wikipedia/commons/3/34/Microsoft_Office_Excel_%282019%E2%80%93present%29.svg",
@@ -83,8 +83,8 @@
         "keywords": "Microsoft;Office;Excel;",
         "icewebsite": "https://www.office.com/launch/excel"
     },
-    "microsoft-office-powerpoint": {
-        "parentitemid": "microsoft-office",
+    "microsoft-365-powerpoint": {
+        "parentitemid": "microsoft-365",
         "realname": "Microsoft PowerPoint",
         "iconname": "ms-powerpoint",
         "iconuri": "https://upload.wikimedia.org/wikipedia/commons/0/0d/Microsoft_Office_PowerPoint_%282019%E2%80%93present%29.svg",
@@ -93,8 +93,8 @@
         "keywords": "Microsoft;Office;PowerPoint;",
         "icewebsite": "https://www.office.com/launch/powerpoint"
     },
-    "microsoft-office-onenote": {
-        "parentitemid": "microsoft-office",
+    "microsoft-365-onenote": {
+        "parentitemid": "microsoft-365",
         "realname": "Microsoft OneNote",
         "iconname": "ms-onenote",
         "iconuri": "https://upload.wikimedia.org/wikipedia/commons/1/10/Microsoft_Office_OneNote_%282019%E2%80%93present%29.svg",
@@ -103,8 +103,8 @@
         "keywords": "Microsoft;Office;OneNote;",
         "icewebsite": "https://www.onenote.com/notebooks"
     },
-    "microsoft-office-teams": {
-        "parentitemid": "microsoft-office",
+    "microsoft-365-teams": {
+        "parentitemid": "microsoft-365",
         "realname": "Microsoft Teams",
         "iconname": "teams",
         "iconuri": "https://upload.wikimedia.org/wikipedia/commons/c/c9/Microsoft_Office_Teams_%282018%E2%80%93present%29.svg",

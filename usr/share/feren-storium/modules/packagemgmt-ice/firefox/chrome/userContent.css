@@ -44,6 +44,7 @@
 @-moz-document url-prefix('about:addons') {
     recommended-extensions-section,
     recommended-themes-section,
+    discovery-pane,
     .colorways-section {
         display: none !important;
     }

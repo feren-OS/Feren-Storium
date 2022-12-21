@@ -460,7 +460,11 @@ class main():
         #Set user's human-readable name
         profileconfs["readablename"] = profilename
 
-        if iteminfo["browsertype"] == "chromium": #Chromium-specific configs
+        #Note user's dark-mode preference
+        profileconfs["darkmode"] = darkmode
+
+        #Chromium-specific configs
+        if iteminfo["browsertype"] == "chromium":
             PreferencesFile = "{0}/{1}/{2}/Default/Preferences".format(default_ice_directory, iteminfo["id"], profileid)
 
             result = {}
@@ -509,7 +513,8 @@ class main():
             #and finish off with this:
             self.chromi_finishing_touches(iteminfo["id"], profileid)
 
-        elif iteminfo["browsertype"] == "firefox": #Firefox-specific configs
+        #Firefox-specific configs
+        elif iteminfo["browsertype"] == "firefox":
             targetfolder = "{0}/{1}/{2}/".format(default_ice_directory, iteminfo["id"], profileid)
             #First, copy config files over
             for cfile in ["handlers.json", "user.js"]:

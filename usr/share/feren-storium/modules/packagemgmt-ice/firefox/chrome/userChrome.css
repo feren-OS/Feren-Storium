@@ -5,9 +5,9 @@
 
     :root {
         --toolbar-btn-width: calc((var(--toolbar-start-end-padding) * 2) +
-            (16px * 3) +
-            (var(--toolbarbutton-outer-padding) * 2 * 3) +
-            (var(--toolbarbutton-inner-padding) * 2 * 3));
+            (16px * 4) +
+            (var(--toolbarbutton-outer-padding) * 2 * 4) +
+            (var(--toolbarbutton-inner-padding) * 2 * 4));
     }
 
     window,

@@ -58,6 +58,8 @@ user_pref("distribution.iniFile.exists.value", true);
 user_pref("doh-rollout.doneFirstRun", true);
 user_pref("extensions.pocket.enabled", false);
 user_pref("extensions.ui.lastCategory", "addons://list/extension");
+user_pref("extensions.htmlaboutaddons.recommendations.enabled", false);
+user_pref("extensions.htmlaboutaddons.discover.enabled", false);
 user_pref("gfx.webrender.all", true);
 user_pref("identity.fxaccounts.enabled", false);
 user_pref("layout.css.backdrop-filter.enabled", true);

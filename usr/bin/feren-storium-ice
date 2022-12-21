@@ -18,6 +18,7 @@ import moduleshared as IceModuleShared #TODO: Move these into their own importab
 IceShared = IceModuleShared.main()
 
 browserSources = IceShared.sources_storage["browsers"]
+currentlyEditedProfileID = ""
 
 #######################################################################################
 # Ice Launcher Interface - Feren Storium                                              #
@@ -25,11 +26,12 @@ browserSources = IceShared.sources_storage["browsers"]
 # Rest in Peace, Mark Greaves.                                                        #
 #######################################################################################
 
+QApplication.setAttribute(Qt.AA_EnableHighDpiScaling, True)
+
 ## Model for profile selector
 class ProfilesModel(QAbstractListModel):
     NameRole = Qt.UserRole + 1
     IDRole = Qt.UserRole + 2
-    profilesChanged = pyqtSignal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -89,6 +91,15 @@ def strToBool(string):
 
 
 ## CREATE PROFILE
+def onEnterCreateProfile():
+    mainwnd.findChild(QObject, "editProfileHeader").setProperty('text', "Create a profile")
+    global currentlyEditedProfileID
+    currentlyEditedProfileID = ""
+    mainwnd.findChild(QObject, "deleteProfileBtn").setProperty('enabled', False)
+
+
+    mainwnd.findChild(QObject, "pages").setProperty('currentIndex', 2)
+
 def onCreateProfile():
     if mainwnd.findChild(QObject, "editProfileName").property('text') == "":
         mainwnd.findChild(QObject, "editProfileNameEmpty").setProperty('visible', True)
@@ -109,6 +120,61 @@ def onCreateProfile():
 
     onOpenProfile(profileid)
 
+## EDIT PROFILE
+def onEnterEditProfile(profileid):
+    mainwnd.findChild(QObject, "editProfileHeader").setProperty('text', "Configuring profile")
+    global currentlyEditedProfileID
+    currentlyEditedProfileID = profileid
+    mainwnd.findChild(QObject, "deleteProfileBtn").setProperty('enabled', True)
+
+    #Restore settings
+    readablename = profileid
+    darkmode = False
+    if os.path.isfile(profilesdir + "/" + profileid + "/.ice-settings"):
+        with open(profilesdir + "/" + profileid + "/.ice-settings", 'r') as fp:
+            icesettings = json.loads(fp.read())
+            if "readablename" in icesettings:
+                readablename = icesettings["readablename"]
+            if "darkmode" in icesettings:
+                darkmode = icesettings["darkmode"]
+
+    mainwnd.findChild(QObject, "editProfileName").setProperty('text', readablename)
+    mainwnd.findChild(QObject, "forceDarkMode").setProperty('checked', darkmode)
+
+    mainwnd.findChild(QObject, "pages").setProperty('currentIndex', 2)
+
+def onEditProfile():
+    if mainwnd.findChild(QObject, "editProfileName").property('text') == "":
+        mainwnd.findChild(QObject, "editProfileNameEmpty").setProperty('visible', True)
+        return
+    else:
+        mainwnd.findChild(QObject, "editProfileNameEmpty").setProperty('visible', False)
+
+    desiredname = mainwnd.findChild(QObject, "editProfileName").property('text')
+    darkmode = mainwnd.findChild(QObject, "forceDarkMode").property('checked')
+
+    profileid = IceShared.profileid_generate(desktopfileinformation["id"], desiredname)
+    if currentlyEditedProfileID == "":
+        #Now generate the profile's folder
+        IceShared.create_profile_folder(desktopfileinformation["id"], profileid, desktopfileinformation["browsertype"])
+    else:
+        if currentlyEditedProfileID != profileid:
+            try:
+                os.rename(profilesdir + "/" + currentlyEditedProfileID, profilesdir + "/" + profileid)
+            except Exception as e:
+                print('TEMP: ' + e)
+
+    #Then update their settings
+    IceShared.update_profile_settings(desktopfileinformation, desiredname, profileid, darkmode)
+
+    #TODO: Add handlers for failure to create profile, invalid name, etc.
+
+    if currentlyEditedProfileID == "": #Launch into profile upon creation
+        onOpenProfile(profileid)
+    else: #Return to the profile manager otherwise
+        mainwnd.findChild(QObject, "pages").setProperty('currentIndex', 1)
+        refreshProfiles()
+
 def refreshProfiles():
     #Now get all the profiles
     profiles = []
@@ -125,7 +191,7 @@ def refreshProfiles():
 
     #If there's no profiles, go into the profile creator
     if profiles == []:
-        mainwnd.findChild(QObject, "pages").setProperty('currentIndex', 4)
+        onEnterCreateProfile()
     else:
         profilesmodel.setData(profiles)
 
@@ -161,17 +227,20 @@ app.setApplicationName(desktopfileinformation["wmclass"])
 engine = QQmlApplicationEngine()
 engine.quit.connect(app.quit)
 engine.rootContext().setContextProperty('ProfilesModel', profilesmodel)
+engine.rootContext().setContextProperty('selectedManageProfiles', [])
 engine.load('/usr/share/feren-storium/modules/packagemgmt-ice/icegui.qml')
 
 mainwnd = engine.rootObjects()[0]
-mainwnd.createProfile.connect(onCreateProfile)
+mainwnd.editProfile.connect(onEditProfile)
 mainwnd.openProfile.connect(onOpenProfile)
+mainwnd.enterEditProfile.connect(onEnterEditProfile)
+mainwnd.enterCreateProfile.connect(onEnterCreateProfile)
 
 mainwnd.setProperty('title', desktopfileinformation["name"])
 mainwnd.findChild(QObject, "profilesHeader").setProperty('text', "Who's using %s?" % desktopfileinformation["name"])
 mainwnd.findChild(QObject, "browsersHeader").setProperty('text', "Choose a browser to launch %s" % desktopfileinformation["name"])
 mainwnd.findChild(QObject, "manageHeader").setProperty('text', "Manage %s Profiles" % desktopfileinformation["name"])
-
+mainwnd.findChild(QObject, "editProfileSubheader").setProperty('text', "Choose your name, and options for your profile.\nOnce you are done. hit Finish below.")
 #TODO: Add in label changing to translate the labels
 
 

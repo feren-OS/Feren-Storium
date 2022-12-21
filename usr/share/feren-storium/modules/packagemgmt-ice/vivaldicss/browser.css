@@ -44,6 +44,13 @@
 
 .SpeedDialView-SearchField,
 .SpeedDial-Blocked-Counter,
-.SpeedDialView-Settings-Button {
+.SpeedDialView-Settings-Button,
+.startpage-navigation {
     display: none !important;
+}
+.speeddial .dial-columns .dial:not([tabindex="0"]) {
+    display: none;
+}
+.speeddial .dial-columns {
+    height: 100% !important;
 }

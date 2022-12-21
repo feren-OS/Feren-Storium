@@ -241,7 +241,7 @@
         "popups": { "show_in_tab": true },
         "privacy": { "google_component_extensions": { "web_store": false, "crypto_token": true } },
         "settings": { "in_tab": true },
-        "startpage": { "navigation": 2, "speed_dial": { "add_button_visible": false, "allow_dnd": false, "columns": 1, "controls_visible": false, "delete_visible": false, "favicon_visible": false, "titles_visible": 1 } },
+        "startpage": { "navigation": 2, "speed_dial": { "add_button_visible": false, "allow_dnd": false, "columns": 99, "controls_visible": false, "delete_visible": false, "favicon_visible": false, "titles_visible": 1 } },
         "startup": { "check_is_default": false, "has_seen_feature": 1, "last_seen_version": "99.0.0001.02" },
         "status_bar": { "display": 2, "minimized": 1 },
         "system": { "show_exit_confirmation_dialog": false },
