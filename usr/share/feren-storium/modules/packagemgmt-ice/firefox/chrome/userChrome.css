@@ -74,7 +74,7 @@
     }
     #customization-content-container::before {
         margin: auto;
-        content: "🧊";
+        content: "🌅";
         font-size: 800%;
     }
     #nav-bar-customization-target {

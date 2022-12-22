@@ -19,6 +19,8 @@ from urllib import parse
 import collections.abc
 from threading import Thread
 gettext.install("feren-storium-ice-shared", "/usr/share/locale", names="ngettext")
+from PIL import Image
+import magic
 
 
 #Developer options
@@ -277,6 +279,51 @@ class main():
                 raise ICEModuleException(_("{1} was encountered when trying to create the profile's folder")).format(exceptionstr)
 
 
+    def export_icon_file(self, itemid, iconsource):
+        try:
+            #Make sure necessary directories exist
+            for i in [os.path.expanduser("~") + "/.local", os.path.expanduser("~") + "/.local/share", os.path.expanduser("~") + "/.local/share/icons", os.path.expanduser("~") + "/.local/share/icons/hicolor"]:
+                if not os.path.isdir(i):
+                    os.path.mkdir(i)
+
+            mimetype = magic.Magic(mime=True).from_file(iconsource)
+            if mimetype == "image/png" or mimetype == "image/vnd.microsoft.icon" or mimetype == "image/jpeg" or mimetype == "image/bmp": #PNG, JPG, BMP or ICO
+                iconfile = Image.open(iconsource)
+                #Get and store the image's size, first
+                imagesize = iconfile.size[1]
+
+                #Now downsize the icon to each size:
+                for i in [[512, "512x512"], [256, "256x256"], [128, "128x128"], [64, "64x64"], [48, "48x48"], [32, "32x32"], [24, "24x24"], [16, "16x16"]]:
+                    #...if it is large enough
+                    if imagesize < i[0]:
+                        continue
+
+                    #Create the directory if it doesn't exist
+                    for ii in [os.path.expanduser("~") + "/.local/share/icons/hicolor/" + i[1], os.path.expanduser("~") + "/.local/share/icons/hicolor/" + i[1] + "/apps"]:
+                        if not os.path.isdir(ii):
+                            os.mkdir(ii)
+
+                    targetpath = os.path.expanduser("~") + "/.local/share/icons/hicolor/" + i[1] + "/apps/solstice-" + itemid + ".png"
+                    if imagesize != i[0]:
+                        iconfile.resize((i[0], i[0]))
+                        iconfile.save(targetpath, "PNG")
+                    else:
+                        shutil.copy(iconsource, targetpath)
+            elif mimetype == "image/svg+xml": #SVG
+                #Create the directory if it doesn't exist
+                for ii in [os.path.expanduser("~") + "/.local/share/icons/hicolor/scalable", os.path.expanduser("~") + "/.local/share/icons/hicolor/scalable/apps"]:
+                    if not os.path.isdir(ii):
+                        os.mkdir(ii)
+
+                #Copy the SVG over
+                targetpath = os.path.expanduser("~") + "/.local/share/icons/hicolor/scalable/apps/solstice-" + itemid + ".svg"
+                shutil.copy(iconsource, targetpath)
+
+
+        except Exception as e:
+            print(e) #TODO: fail here
+
+
     def create_appsmenu_shortcuts(self, itemid, browser, package_information, bonusids):
         #string, string, dict
 
@@ -291,7 +338,7 @@ class main():
             fp.write("Name={0}\n".format(package_information["realname"]))
             fp.write("Comment={0}\n".format(package_information["shortdescription"]))
             if "iconname" in package_information:
-                fp.write("Icon={0}\n".format(package_information["iconname"]))
+                fp.write("Icon={0}\n".format("solstice-" + itemid))
             else:
                 fp.write("Icon=ice\n")
 
@@ -310,6 +357,8 @@ class main():
                 location = "Office;"
             elif package_information["category"] == "ice-programming":
                 location = "Development;"
+            elif package_information["category"] == "ice-education":
+                location = "Education;"
             elif package_information["category"] == "ice-multimedia":
                 location = "AudioVideo;"
             elif package_information["category"] == "ice-system":
@@ -365,7 +414,7 @@ class main():
                 fp.write("Name={0}\n".format(targetidinfo["realname"]))
                 fp.write("Comment={0}\n".format(targetidinfo["shortdescription"]))
                 if "iconname" in targetidinfo:
-                    fp.write("Icon={0}\n".format(targetidinfo["iconname"]))
+                    fp.write("Icon={0}\n".format("solstice-" + targetid))
                 else:
                     fp.write("Icon=ice\n")
 
