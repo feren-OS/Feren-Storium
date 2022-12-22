@@ -394,6 +394,15 @@ class main():
             fp.write("X-FerenIce-AccentWindow=%s\n" % self.boolean_to_jsonbool(package_information["iceaccentwindow"]))
             fp.write("X-FerenIce-LastUpdate=%s\n" % package_information["icelastupdated"])
 
+            #Now write the force manager action
+            fp.write("\n")
+            fp.write("Actions=force-manager;\n")
+            fp.write("\n")
+            fp.write("[Desktop Action force-manager]\n")
+            fp.write("Name=Manage Profiles...\n")
+            fp.write("Icon=solstice\n")
+            fp.write("Exec=/usr/bin/feren-storium-ice {0} --force-manager\n".format('"' + applications_directory + "/{0}.desktop".format(windowclassid) + '"'))
+
 
         #Finally, make it executable so it launches fine from the Applications Menu:
         os.system("chmod +x " + applications_directory + "/{0}.desktop".format(windowclassid))
@@ -453,6 +462,15 @@ class main():
                 fp.write("\n")
                 fp.write("X-FerenIce-ParentID=%s\n" % targetidinfo["parentitemid"])
                 fp.write("X-FerenIce-Website=%s\n" % targetidinfo["icewebsite"])
+
+                #Now write the force manager action
+                fp.write("\n")
+                fp.write("Actions=force-manager;\n")
+                fp.write("\n")
+                fp.write("[Desktop Action force-manager]\n")
+                fp.write("Name=Manage Profiles...\n")
+                fp.write("Icon=solstice\n")
+                fp.write("Exec=/usr/bin/feren-storium-ice {0} --force-manager\n".format('"' + applications_directory + "/{0}.desktop".format(windowclassid) + '"'))
 
 
             #Finally, make it executable so it launches fine from the Applications Menu:

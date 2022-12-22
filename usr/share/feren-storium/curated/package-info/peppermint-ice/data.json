@@ -114,7 +114,7 @@
         "icewebsite": "https://teams.microsoft.com"
     },
     "microsoft-outlook": {
-        "extrasids": ["calendar"],
+        "extrasids": ["calendar", "todo"],
         "realname": "Outlook",
         "iconname": "ms-outlook",
         "iconuri": "https://res-1.cdn.office.net/assets/mail/pwa/v1/pngs/Outlook.512x512.png",
