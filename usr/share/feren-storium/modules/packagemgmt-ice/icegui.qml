@@ -41,6 +41,7 @@ ApplicationWindow {
 
         Item {
             id: profileSelect
+            objectName: "profileSelect"
 
             ColumnLayout {
                 anchors.top: parent.top
@@ -157,6 +158,7 @@ ApplicationWindow {
 
         Item {
             id: profileManager
+            objectName: "profileManager"
 
             ColumnLayout {
                 anchors.top: parent.top
