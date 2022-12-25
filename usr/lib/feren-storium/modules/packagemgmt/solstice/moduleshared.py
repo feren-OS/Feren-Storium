@@ -18,18 +18,18 @@ import colorsys
 from urllib import parse
 import collections.abc
 from threading import Thread
-gettext.install("feren-storium-ice-shared", "/usr/share/locale", names="ngettext")
+gettext.install("feren-solstice-pymodule", "/usr/share/locale", names="ngettext")
 from PIL import Image
 import magic
 
 
 #Developer options
 applications_directory = os.path.expanduser("~") + "/.local/share/applications"
-default_ice_directory = os.path.expanduser("~") + "/.local/share/feren-storium-ice"
-icevivaldiprefix = "vivaldistoriumice:"
+default_ice_directory = os.path.expanduser("~") + "/.local/share/feren-solstice"
+icevivaldiprefix = "vivaldisolstice:"
 
 
-class ICEModuleSharedException(Exception): # Name this according to the module to allow easier debugging
+class SolsticeModuleSharedException(Exception): # Name this according to the module to allow easier debugging
     pass
 
 
@@ -66,7 +66,7 @@ class main():
     def refresh_memory(self): # Function to refresh some memory values
         self.json_storage = {}
 
-        for i in ["package-info/peppermint-ice"]:
+        for i in ["package-info/solstice"]:
             with open("/usr/share/feren-storium/curated/" + i + "/data.json", 'r') as fp:
                 self.json_storage[i] = json.loads(fp.read())
             if os.path.isfile("/usr/share/feren-storium/curated/" + locale.getlocale()[0] + "/" + i + "/data.json"):
@@ -86,7 +86,7 @@ class main():
         result = {}
         #Get information on a package using the JSON data
         try:
-            result = self.json_storage["package-info/peppermint-ice"][itemid]
+            result = self.json_storage["package-info/solstice"][itemid]
             result["iconlocal"] = ""
             if not "shortdescription" in result:
                 result["shortdescription"] = _("Website Application")
@@ -102,7 +102,7 @@ class main():
             return result
         except:
             pass
-        raise ICEModuleSharedException(_("%s's information failed to be obtained - perhaps the item doesn't exist on this source?") % itemid)
+        raise SolsticeModuleSharedException(_("%s's information failed to be obtained - perhaps the item doesn't exist on this source?") % itemid)
 
         
     #### INSPIRE TITLEBAR THEME ADDITIONS
@@ -222,7 +222,7 @@ class main():
 
             ssbproc = subprocess.Popen(commandtorun, close_fds=True)
         else:
-            raise ICEModuleSharedException(_("Cannot find information about the specified browser to launch"))
+            raise SolsticeModuleSharedException(_("Cannot find information about the specified browser to launch"))
 
         #Check there's a note about a process having ran, and if so if the process is running
         if os.path.isfile(profiledir + "/.storium-active-pid"):
@@ -342,7 +342,7 @@ class main():
             else:
                 fp.write("Icon=ice\n")
 
-            fp.write("Exec=/usr/bin/feren-storium-ice {0}\n".format('"' + applications_directory + "/{0}.desktop".format(windowclassid) + '"'))
+            fp.write("Exec=/usr/bin/feren-solstice {0}\n".format('"' + applications_directory + "/{0}.desktop".format(windowclassid) + '"'))
 
             #Ice stuff will have their own categories to allow for easier sectioning of items in Store overall
             if package_information["category"] == "ice-accessories":
@@ -401,7 +401,7 @@ class main():
             fp.write("[Desktop Action force-manager]\n")
             fp.write("Name=Manage Profiles...\n")
             fp.write("Icon=solstice\n")
-            fp.write("Exec=/usr/bin/feren-storium-ice {0} --force-manager\n".format('"' + applications_directory + "/{0}.desktop".format(windowclassid) + '"'))
+            fp.write("Exec=/usr/bin/feren-solstice {0} --force-manager\n".format('"' + applications_directory + "/{0}.desktop".format(windowclassid) + '"'))
 
 
         #Finally, make it executable so it launches fine from the Applications Menu:
@@ -427,7 +427,7 @@ class main():
                 else:
                     fp.write("Icon=ice\n")
 
-                fp.write("Exec=/usr/bin/feren-storium-ice {0}\n".format('"' + applications_directory + "/{0}.desktop".format(windowclassid) + '"'))
+                fp.write("Exec=/usr/bin/feren-solstice {0}\n".format('"' + applications_directory + "/{0}.desktop".format(windowclassid) + '"'))
 
                 #Ice stuff will have their own categories to allow for easier sectioning of items in Store overall
                 if targetidinfo["category"] == "ice-accessories":
@@ -460,6 +460,7 @@ class main():
 
                 #Now to write the information for ICE to use
                 fp.write("\n")
+                fp.write("X-FerenIce-ID=%s\n" % targetid)
                 fp.write("X-FerenIce-ParentID=%s\n" % targetidinfo["parentitemid"])
                 fp.write("X-FerenIce-Website=%s\n" % targetidinfo["icewebsite"])
 
@@ -470,7 +471,7 @@ class main():
                 fp.write("[Desktop Action force-manager]\n")
                 fp.write("Name=Manage Profiles...\n")
                 fp.write("Icon=solstice\n")
-                fp.write("Exec=/usr/bin/feren-storium-ice {0} --force-manager\n".format('"' + applications_directory + "/{0}.desktop".format(windowclassid) + '"'))
+                fp.write("Exec=/usr/bin/feren-solstice {0} --force-manager\n".format('"' + applications_directory + "/{0}.desktop".format(windowclassid) + '"'))
 
 
             #Finally, make it executable so it launches fine from the Applications Menu:
@@ -496,7 +497,7 @@ class main():
             self.create_profiles_folder(itemid)
 
         if os.path.isdir("{0}/{1}/{2}".format(default_ice_directory, itemid, profileid)): #Fail if profile exists
-            raise ICEModuleSharedException(_("Cannot create new profile as %s already exists") % profileid)
+            raise SolsticeModuleSharedException(_("Cannot create new profile as %s already exists") % profileid)
         else:
             os.mkdir("{0}/{1}/{2}".format(default_ice_directory, itemid, profileid))
 

@@ -131,9 +131,9 @@
         "privpolurl": "",
         "icebackground": "#F0F0F0",
         "icebackground-dark": "#0A0A0A",
-        "iceaccent": "#0078D4",
+        "iceaccent": "#0F6CBD",
         "iceaccent-dark": "#0078D4",
-        "icecolor": "#0078D4",
+        "icecolor": "#0F6CBD",
         "iceaccentwindow": false,
         "icewebsite": "https://outlook.com/mail",
         "icelastupdated": "20211210"
@@ -183,7 +183,7 @@
         "icelastupdated": "20211210"
     },
     "facebook-facebook-messenger": {
-        "parentitemid": "facebook-facebook-messenger",
+        "parentitemid": "facebook-facebook",
         "realname": "Messenger",
         "iconname": "FacebookMessenger-facebook.com",
         "iconuri": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/be/Facebook_Messenger_logo_2020.svg/800px-Facebook_Messenger_logo_2020.svg.png",
@@ -244,7 +244,7 @@
     },
     "pixiv-pixiv": {
         "extrasids": [],
-        "warnings": ["LegalJapanLawsNSFWOptional"],
+        "warnings": ["legal:JapanPrnReg"],
         "realname": "Pixiv",
         "iconname": "pixiv",
         "iconuri": "https://source.pixiv.net/common/images/android-chrome-192x192.png?20200601",
@@ -323,7 +323,7 @@
         "parentitemid": "bbc-bbc",
         "realname": "BBC News",
         "iconname": "bbc-news",
-        "iconuri": "http://m.files.bbci.co.uk/modules/bbc-morph-news-waf-page-meta/5.2.0/apple-touch-icon.png",
+        "iconuri": "https://play-lh.googleusercontent.com/c2h7PtXYpCVIPVsNBMZ-iiwxZpAFm8ZP8rEyxZSihrQxHkSakqT_MstjJwlBi4HvS85b",
         "images": [""],
         "category": "ice-internet",
         "keywords": "BBC;News;UK;World;Africa;Asia;Australia;Europe;America;Canada;",
@@ -345,7 +345,7 @@
         "iconname": "bbc-weather",
         "iconuri": "https://play-lh.googleusercontent.com/O1jo0WUjAM8zadGZwrCCGmETP2dlKBHDYTlhH07e7xkcjc64q8wk8XV5LjAkl-thnes",
         "images": [""],
-        "category": "ice-internet",
+        "category": "ice-accessories",
         "keywords": "BBC;Weather;UK;",
         "icewebsite": "https://www.bbc.com/weather"
     },
@@ -355,7 +355,7 @@
         "iconname": "bbc-sounds",
         "iconuri": "https://play-lh.googleusercontent.com/80Uwsf1UEGSrRXzfYbis2Z74aFOicnJ8Sss-Z3oORQRhQZ8pw0VkLu6qBSE2jfVD6rv0",
         "images": [""],
-        "category": "ice-internet",
+        "category": "ice-multimedia",
         "keywords": "BBC;Sounds;UK;",
         "icewebsite": "https://www.bbc.com/sounds"
     },
@@ -407,6 +407,31 @@
         "icecolor": "#963CE1",
         "iceaccentwindow": true,
         "icewebsite": "https://www.bbc.com/bitesize",
+        "icelastupdated": "20211210"
+    },
+    "metoffice-weather": {
+        "extrasids": [],
+        "realname": "Met Office Weather",
+        "iconname": "metoffice-weather",
+        "iconuri": "https://play-lh.googleusercontent.com/Z6IzoNZL4FNu3zSGDRTIUkxVpbtoA6FsSWp3RT_aSbhAo381vvdzdOoGzaeudxXN2-o",
+        "shortdescription": "",
+        "description": "TODO",
+        "images": [""],
+        "category": "ice-accessories",
+        "keywords": "Met Office;MetOffice;Weather;",
+        "author": "Met Office",
+        "website": "https://www.metoffice.gov.uk",
+        "donateurl": "",
+        "bugreporturl": "",
+        "tosurl": "",
+        "privpolurl": "",
+        "icebackground": "#F4F4F4",
+        "icebackground-dark": "#2A2A2A",
+        "iceaccent": "#1D1D1D",
+        "iceaccent-dark": "#1D1D1D",
+        "icecolor": "#C4E90C",
+        "iceaccentwindow": true,
+        "icewebsite": "https://www.metoffice.gov.uk/weather",
         "icelastupdated": "20211210"
     },
     "nhk-world-japan": {

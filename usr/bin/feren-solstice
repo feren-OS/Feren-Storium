@@ -13,8 +13,10 @@ from PyQt5.QtQml import * #Needs python3-pyqt5.qtquick
 
 from xdg.DesktopEntry import DesktopEntry
 
-sys.path.insert(0, "/usr/lib/feren-storium/modules/packagemgmt/peppermint-ice")
+sys.path.insert(0, "/usr/lib/feren-storium/modules/packagemgmt/solstice")
 import moduleshared as IceModuleShared #TODO: Move these into their own importable module
+import ferensolstice
+
 IceShared = IceModuleShared.main()
 
 browserSources = IceShared.sources_storage["browsers"]
@@ -22,7 +24,7 @@ currentlyEditedProfileID = ""
 autoDestinationProfile = ""
 
 #######################################################################################
-# Ice Launcher Interface - Feren Storium                                              #
+# Solstice Interface - Feren Storium                                                  #
 #                                                                                     #
 # Rest in Peace, Mark Greaves.                                                        #
 #######################################################################################
@@ -61,16 +63,23 @@ def getDesktopFileInformation(path):
     global desktopfileinformation
     entry=DesktopEntry()
     entry.parse(path)
-
     desktopfileinformation = {}
+
+    parentidtest = entry.get("X-FerenIce-ParentID")
     #Add basic information for GUI
-    desktopfileinformation["name"] = entry.getName()
+    if parentidtest != '': #If this is a subshortcut, add the values from the original shortcut, alongside an indication for the GUI to use our subshortcut's class
+        desktopfileinformation["name"] = entry.getName()
+        desktopfileinformation["guiwmclass"] = entry.getStartupWMClass()
+        desktopfileinformation["website"] = entry.get("X-FerenIce-Website")
+        entry.parse(path.replace(entry.get("X-FerenIce-ID"), parentidtest))
+    else:
+        desktopfileinformation["name"] = entry.getName()
+        desktopfileinformation["website"] = entry.get("X-FerenIce-Website")
+
     desktopfileinformation["wmclass"] = entry.getStartupWMClass()
-    #Add custom settings
     desktopfileinformation["browser"] = entry.get("X-FerenIce-Browser")
     desktopfileinformation["browsertype"] = entry.get("X-FerenIce-BrowserType")
     desktopfileinformation["id"] = entry.get("X-FerenIce-ID")
-    desktopfileinformation["website"] = entry.get("X-FerenIce-Website")
     desktopfileinformation["extraids"] = ast.literal_eval(entry.get("X-FerenIce-ExtraIDs"))
     desktopfileinformation["nohistory"] = strToBool(entry.get("X-FerenIce-NoHistory"))
     desktopfileinformation["googleinteg"] = strToBool(entry.get("X-FerenIce-Google"))
@@ -135,8 +144,8 @@ def onEnterEditProfile(profileid):
     #Restore settings
     readablename = profileid
     darkmode = False
-    if os.path.isfile(profilesdir + "/" + profileid + "/.ice-settings"):
-        with open(profilesdir + "/" + profileid + "/.ice-settings", 'r') as fp:
+    if os.path.isfile(profilesdir + "/" + profileid + "/.solstice-settings"):
+        with open(profilesdir + "/" + profileid + "/.solstice-settings", 'r') as fp:
             icesettings = json.loads(fp.read())
             if "readablename" in icesettings:
                 readablename = icesettings["readablename"]
@@ -201,8 +210,8 @@ def getProfiles():
         if os.path.isdir(profilesdir + "/" + folder):
             if os.path.isfile(profilesdir + "/" + folder + browserSources[desktopfileinformation["browser"]]["expected-file"]):
                 readablename = folder
-                if os.path.isfile(profilesdir + "/" + folder + "/.ice-settings"):
-                    with open(profilesdir + "/" + folder + "/.ice-settings", 'r') as fp:
+                if os.path.isfile(profilesdir + "/" + folder + "/.solstice-settings"):
+                    with open(profilesdir + "/" + folder + "/.solstice-settings", 'r') as fp:
                         icesettings = json.loads(fp.read())
                         if "readablename" in icesettings:
                             readablename = icesettings["readablename"]
@@ -217,10 +226,10 @@ def refreshProfiles(profiles=[]):
     profilesmodel.setData(profiles)
 
 def automaticProfileLaunch():
-    if os.path.isfile(profilesdir + "/.ice-autolaunch"):
+    if os.path.isfile(profilesdir + "/.solstice-autolaunch"):
         global autoDestinationProfile
         autoDestinationProfile = ""
-        with open(profilesdir + "/.ice-autolaunch", 'r') as fp:
+        with open(profilesdir + "/.solstice-autolaunch", 'r') as fp:
             autoDestinationProfile = fp.readline()
 
         if len(sys.argv) == 3:
@@ -250,11 +259,11 @@ def closeCallback(): #Close the window
 def onOpenProfile(profileid, alwaysuse, gui=True):
     if gui == True:
         if alwaysuse == True: #In the future, automatically launch the current profile
-            with open(profilesdir + "/.ice-autolaunch", 'w') as fp:
+            with open(profilesdir + "/.solstice-autolaunch", 'w') as fp:
                 fp.write(profileid)
         else: #Delete the autostart otherwise
-            if os.path.isfile(profilesdir + "/.ice-autolaunch"):
-                os.remove(profilesdir + "/.ice-autolaunch")
+            if os.path.isfile(profilesdir + "/.solstice-autolaunch"):
+                os.remove(profilesdir + "/.solstice-autolaunch")
 
     IceShared.run_profile(desktopfileinformation["id"], profileid, desktopfileinformation["browser"], desktopfileinformation["browsertype"], desktopfileinformation["website"], desktopfileinformation["wmclass"], desktopfileinformation["nohistory"], closeCallback)
     if gui == True:
@@ -290,8 +299,11 @@ automaticProfileLaunch()
 profilesmodel = ProfilesModel()
 app = QApplication(sys.argv)
 
-app.setDesktopFileName(desktopfileinformation["wmclass"])
-app.setApplicationName(desktopfileinformation["wmclass"])
+guiwmclass = desktopfileinformation["wmclass"]
+if "guiwmclass" in desktopfileinformation:
+    guiwmclass = desktopfileinformation["guiwmclass"]
+app.setDesktopFileName(guiwmclass)
+app.setApplicationName(guiwmclass)
 
 engine = QQmlApplicationEngine()
 engine.quit.connect(app.quit)
@@ -328,7 +340,7 @@ profiles = getProfiles()
 refreshProfiles(profiles)
 
 if len(sys.argv) == 3:
-    if sys.argv[2] == "--force-manager" and os.path.isfile(profilesdir + "/.ice-autolaunch") and autoDestinationProfile != "":
+    if sys.argv[2] == "--force-manager" and os.path.isfile(profilesdir + "/.solstice-autolaunch") and autoDestinationProfile != "":
         #Restore the Always use Profile option's checked state if the automatically chosen profile is present and it is visible
         itemscounted = 0
         for profile in profiles:

@@ -1,3 +1,0 @@
-[gui_scripts]
-feren-store = feren_store.__main__:main
-

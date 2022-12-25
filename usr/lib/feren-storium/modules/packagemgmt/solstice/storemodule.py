@@ -15,11 +15,11 @@ from gi.repository import GLib
 import colorsys
 from urllib import parse
 
-sys.path.insert(0, "/usr/lib/feren-storium/modules/packagemgmt/peppermint-ice")
+sys.path.insert(0, "/usr/lib/feren-storium/modules/packagemgmt/solstice")
 import moduleshared
 
 
-class ICEModuleException(Exception): # Name this according to the module to allow easier debugging
+class SolsticeModuleException(Exception): # Name this according to the module to allow easier debugging
     pass
 
 
@@ -27,15 +27,15 @@ class module():
 
     def __init__(self, storeapi):
         #Gettext Translator
-        gettext.install("feren-storium-ice", "/usr/share/locale", names="ngettext")
+        gettext.install("feren-solstice-storium", "/usr/share/locale", names="ngettext")
         
         #Store APIs
         self.storeapi = storeapi
 
         #Name to be used in Debugging output
-        self.title = _("Ice Management Module")
+        self.title = _("Solstice Management Module")
         #Name to be shown in the GUI
-        self.humanreadabletitle = _("Ice Application Management")
+        self.humanreadabletitle = _("Solstice Application Management")
         #Name to be shown in sources
         self.sourcesmodulename = _("Website Application")
         
@@ -50,7 +50,7 @@ class module():
         self.memory_refreshing = False
         
         #What package types does this module work with?
-        self.types_supported = ["peppermint-ice"]
+        self.types_supported = ["solstice"]
         
         #////Package Management:////
         #Can manage Application Sources?
@@ -82,8 +82,8 @@ class module():
     def getCategoryIDs(self, categoryid):
         #Get list of itemids in the category of categoryid and return that list
         result = []
-        for itemid in self.moduleshared.json_storage["package-info/peppermint-ice"]:
-            if self.moduleshared.json_storage["package-info/peppermint-ice"][itemid]["category"] == categoryid or "all" == categoryid:
+        for itemid in self.moduleshared.json_storage["package-info/solstice"]:
+            if self.moduleshared.json_storage["package-info/solstice"][itemid]["category"] == categoryid or "all" == categoryid:
                 result.append(itemid)
         return result
 
@@ -101,7 +101,7 @@ class module():
                     break #Don't need to check more candidates
         
         #Return complete sources value
-        return {"peppermint-ice": {"subsources": subsources, "name": _("Website Application")}}
+        return {"solstice": {"subsources": subsources, "name": _("Website Application")}}
     
     
     def getAvailable(self, pkgid, sourceid):
@@ -111,7 +111,7 @@ class module():
         #1: Unavailable
         #2: Repository requires being added first
 
-        if pkgid in self.moduleshared.json_storage["package-info/peppermint-ice"]:
+        if pkgid in self.moduleshared.json_storage["package-info/solstice"]:
             return 0 #of course Website Applications are available.
         else:
             return 1
@@ -137,13 +137,13 @@ class module():
         # 3 - Available in a disabled source
         # 403 - Not in repositories
         
-        if os.path.isfile(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/.storium-last-updated" % pkgid):
-            with open(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/.storium-last-updated" % pkgid, 'r') as fp:
+        if os.path.isfile(os.path.expanduser("~") + "/.local/share/feren-solstice/%s/.storium-last-updated" % pkgid):
+            with open(os.path.expanduser("~") + "/.local/share/feren-solstice/%s/.storium-last-updated" % pkgid, 'r') as fp:
                 lastupdated = fp.readline()
         else:
             lastupdated = "19700101" #Fallback date, and yes it's beginning of UNIX time - why not
         
-        if os.path.isdir(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s" % pkgid):
+        if os.path.isdir(os.path.expanduser("~") + "/.local/share/feren-solstice/%s" % pkgid):
             #TODO: Change this to use own item information obtaining
             if self.storebrain.get_item_info_specific(pkgid, pkgtype, sourceid, True)["icelastupdated"] > lastupdated or self.icelastupdated > lastupdated:
                 return 2
@@ -174,7 +174,7 @@ class module():
         #Take note of package information so we can reuse its information
         package_information = self.getInfo(taskdata.itemid, taskdata.sourceid, taskdata.subsourceid)
 
-        #{'type-importance': ['peppermint-ice'], 'realname': 'BBC News', 'iconname': 'bbc-news', 'iconlocal': '', 'iconuri': 'http://m.files.bbci.co.uk/modules/bbc-morph-news-waf-page-meta/5.2.0/apple-touch-icon.png', 'shortdescription': '', 'description': 'TODO', 'website': 'https://www.bbc.co.uk/news', 'donateurl': '', 'category': 'ice-internet', 'images': [''], 'sources-available': ['all'], 'all': {'keywords': 'BBC;News;UK;World;Africa;Asia;Australia;Europe;America;Canada;', 'author': 'BBC', 'bugreporturl': '', 'tosurl': '', 'privpolurl': '', 'icecolor': '#FFFFFF', 'icecolordark': '#000000', 'icecolorhighlight': '#bb1919', 'icelastupdated': '20211210'}, 'keywords': 'BBC;News;UK;World;Africa;Asia;Australia;Europe;America;Canada;', 'author': 'BBC', 'bugreporturl': '', 'tosurl': '', 'privpolurl': '', 'icecolor': '#FFFFFF', 'icecolordark': '#000000', 'icecolorhighlight': '#bb1919', 'icelastupdated': '20211210'}
+        #{'type-importance': ['solstice'], 'realname': 'BBC News', 'iconname': 'bbc-news', 'iconlocal': '', 'iconuri': 'http://m.files.bbci.co.uk/modules/bbc-morph-news-waf-page-meta/5.2.0/apple-touch-icon.png', 'shortdescription': '', 'description': 'TODO', 'website': 'https://www.bbc.co.uk/news', 'donateurl': '', 'category': 'ice-internet', 'images': [''], 'sources-available': ['all'], 'all': {'keywords': 'BBC;News;UK;World;Africa;Asia;Australia;Europe;America;Canada;', 'author': 'BBC', 'bugreporturl': '', 'tosurl': '', 'privpolurl': '', 'icecolor': '#FFFFFF', 'icecolordark': '#000000', 'icecolorhighlight': '#bb1919', 'icelastupdated': '20211210'}, 'keywords': 'BBC;News;UK;World;Africa;Asia;Australia;Europe;America;Canada;', 'author': 'BBC', 'bugreporturl': '', 'tosurl': '', 'privpolurl': '', 'icecolor': '#FFFFFF', 'icecolordark': '#000000', 'icecolorhighlight': '#bb1919', 'icelastupdated': '20211210'}
 
         #First remove the files just in case there's a partial installation
         #TODO self.task_remove_package(taskdata, None, True)
@@ -208,8 +208,8 @@ class module():
     
     
     def task_remove_package(self, taskdata, progress_callback, forinstall=False):
-        if os.path.isfile(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/.storium-active-pid" % taskdata["packagename"]):
-            with open(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/.storium-active-pid" % taskdata["packagename"], 'r') as pidfile:
+        if os.path.isfile(os.path.expanduser("~") + "/.local/share/feren-solstice/%s/.solstice-active-pid" % taskdata["packagename"]):
+            with open(os.path.expanduser("~") + "/.local/share/feren-solstice/%s/.solstice-active-pid" % taskdata["packagename"], 'r') as pidfile:
                 currentpid = pidfile.readline()
                 try:
                     currentpid = int(currentpid)
@@ -235,7 +235,7 @@ class module():
                 #TODO: Remove window rule
             except Exception as exceptionstr:
                 if not forinstall:
-                    raise ICEModuleException(_("Failed to uninstall {0}: {1} was encountered when removing the colour scheme").format(taskdata["packagename"], exceptionstr))
+                    raise SolsticeModuleException(_("Failed to uninstall {0}: {1} was encountered when removing the colour scheme").format(taskdata["packagename"], exceptionstr))
             #os.system("qdbus org.kde.KWin /KWin reconfigure")
         
         
@@ -248,7 +248,7 @@ class module():
                 os.remove(os.path.expanduser("~") + "/.local/share/applications/vivaldi-%s.desktop" % taskdata["packagename"])
         except Exception as exceptionstr:
             if not forinstall:
-                raise ICEModuleException(_("Failed to uninstall {0}: {1} was encountered when removing the shortcut from the Applications Menu").format(taskdata["packagename"], exceptionstr))
+                raise SolsticeModuleException(_("Failed to uninstall {0}: {1} was encountered when removing the shortcut from the Applications Menu").format(taskdata["packagename"], exceptionstr))
         
         #Now repeat for extras, if appropriate
         extrascount = 0 #Classic strat for iteration
@@ -258,17 +258,17 @@ class module():
                     os.remove(os.path.expanduser("~") + "/.local/share/applications/{0}-{1}.desktop".format(taskdata["packagename"], extraid))
             except Exception as exceptionstr:
                 self.task_remove_package(taskdata, None, True) #Remove profile's files/folders on failure
-                raise ICEModuleException(_("Failed to uninstall {0}: {1} was encountered when removing extra shortcuts from the Applications Menu").format(taskdata["packagename"], exceptionstr))
+                raise SolsticeModuleException(_("Failed to uninstall {0}: {1} was encountered when removing extra shortcuts from the Applications Menu").format(taskdata["packagename"], exceptionstr))
             extrascount += 1
             
         if not forinstall:
             progress_callback(50)
         
         try:
-            shutil.rmtree(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s" % taskdata["packagename"])
+            shutil.rmtree(os.path.expanduser("~") + "/.local/share/feren-solstice/%s" % taskdata["packagename"])
         except Exception as exceptionstr:
             if not forinstall:
-                raise ICEModuleException(_("Failed to uninstall {0}: {1} was encountered when deleting the Chromium-based profile").format(taskdata["packagename"], exceptionstr))
+                raise SolsticeModuleException(_("Failed to uninstall {0}: {1} was encountered when deleting the Chromium-based profile").format(taskdata["packagename"], exceptionstr))
         
         if not forinstall:
             progress_callback(100)
@@ -289,13 +289,13 @@ class module():
                 if os.path.isfile(os.path.expanduser("~") + "/.local/share/applications/%s.desktop" % taskdata["packagename"]):
                     os.remove(os.path.expanduser("~") + "/.local/share/applications/%s.desktop" % taskdata["packagename"])
             except Exception as exceptionstr:
-                raise ICEModuleException(_("Failed to update {0}: {1} was encountered when switching the shortcut in the Applications Menu").format(taskdata["packagename"], exceptionstr))
+                raise SolsticeModuleException(_("Failed to update {0}: {1} was encountered when switching the shortcut in the Applications Menu").format(taskdata["packagename"], exceptionstr))
         else:
             try:
                 if os.path.isfile(os.path.expanduser("~") + "/.local/share/applications/vivaldi-%s.desktop" % taskdata["packagename"]):
                     os.remove(os.path.expanduser("~") + "/.local/share/applications/vivaldi-%s.desktop" % taskdata["packagename"])
             except Exception as exceptionstr:
-                raise ICEModuleException(_("Failed to update {0}: {1} was encountered when switching the shortcut in the Applications Menu").format(taskdata["packagename"], exceptionstr))
+                raise SolsticeModuleException(_("Failed to update {0}: {1} was encountered when switching the shortcut in the Applications Menu").format(taskdata["packagename"], exceptionstr))
         
         icepackageinfo = taskdata["pkginfo"]
         if "extrasids" in icepackageinfo:
@@ -303,8 +303,8 @@ class module():
         else:
             iceextrasids = []
         
-        if os.path.isfile(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/.storium-active-pid" % taskdata["packagename"]):
-            with open(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/.storium-active-pid" % taskdata["packagename"], 'r') as pidfile:
+        if os.path.isfile(os.path.expanduser("~") + "/.local/share/feren-solstice/%s/.storium-active-pid" % taskdata["packagename"]):
+            with open(os.path.expanduser("~") + "/.local/share/feren-solstice/%s/.storium-active-pid" % taskdata["packagename"], 'r') as pidfile:
                 currentpid = pidfile.readline()
             pidisrunning = False
             try:
@@ -321,14 +321,14 @@ class module():
                 except:
                     pass
             if pidisrunning == True:
-                raise ICEModuleException(_("Failed to update {0}: Running Website Applications cannot be updated until they are closed").format(taskdata["packagename"]))
+                raise SolsticeModuleException(_("Failed to update {0}: Running Website Applications cannot be updated until they are closed").format(taskdata["packagename"]))
         
         #Create the .desktop file's home if it doesn't exist
         if not os.path.isdir(os.path.expanduser("~") + "/.local/share/applications"):
             try:
                 os.mkdir(os.path.expanduser("~") + "/.local/share/applications")
             except Exception as exceptionstr:
-                raise ICEModuleException(_("Failed to update {0}: {1} was encountered when trying to create the shortcut's location").format(taskdata["packagename"], exceptionstr))
+                raise SolsticeModuleException(_("Failed to update {0}: {1} was encountered when trying to create the shortcut's location").format(taskdata["packagename"], exceptionstr))
         
         
         #Titlebar branding
@@ -340,19 +340,19 @@ class module():
         progress_callback(12)
             
         #Get some data from the files
-        #if os.path.isfile(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/.storium-default-browser" % taskdata["packagename"]):
-            #with open(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/.storium-default-browser" % taskdata["packagename"], 'r') as fp:
+        #if os.path.isfile(os.path.expanduser("~") + "/.local/share/feren-solstice/%s/.storium-default-browser" % taskdata["packagename"]):
+            #with open(os.path.expanduser("~") + "/.local/share/feren-solstice/%s/.storium-default-browser" % taskdata["packagename"], 'r') as fp:
                 #currenticebrowser = fp.readline()
         #else:
             #currenticebrowser = taskdata["source"] #Fallback
         #TODO: Move above to determining current subsource
-        if os.path.isfile(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/.storium-extra-ids" % taskdata["packagename"]):
-            with open(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/.storium-extra-ids" % taskdata["packagename"], 'r') as fp:
+        if os.path.isfile(os.path.expanduser("~") + "/.local/share/feren-solstice/%s/.storium-extra-ids" % taskdata["packagename"]):
+            with open(os.path.expanduser("~") + "/.local/share/feren-solstice/%s/.storium-extra-ids" % taskdata["packagename"], 'r') as fp:
                 currenticeextraids = ast.literal_eval(fp.readline())
         else:
             currenticeextraids = [] #Fallback
-        if os.path.isfile(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/.storium-bonuses" % taskdata["packagename"]):
-            with open(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/.storium-bonuses" % taskdata["packagename"], 'r') as fp:
+        if os.path.isfile(os.path.expanduser("~") + "/.local/share/feren-solstice/%s/.storium-bonuses" % taskdata["packagename"]):
+            with open(os.path.expanduser("~") + "/.local/share/feren-solstice/%s/.storium-bonuses" % taskdata["packagename"], 'r') as fp:
                 currenticebonuses = ast.literal_eval(fp.readline())
         else:
             currenticebonuses = [] #Fallback
@@ -363,16 +363,16 @@ class module():
         progress_callback(24)
             
         try:
-            if not os.path.isfile(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/First Run" % taskdata["packagename"]):
-                with open(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/First Run" % taskdata["packagename"], 'w') as fp:
+            if not os.path.isfile(os.path.expanduser("~") + "/.local/share/feren-solstice/%s/First Run" % taskdata["packagename"]):
+                with open(os.path.expanduser("~") + "/.local/share/feren-solstice/%s/First Run" % taskdata["packagename"], 'w') as fp:
                     pass
         except Exception as exceptionstr:
-            raise ICEModuleException(_("Failed to update {0}: {1} was encountered when updating the Chromium-based profile").format(taskdata["packagename"], exceptionstr))
+            raise SolsticeModuleException(_("Failed to update {0}: {1} was encountered when updating the Chromium-based profile").format(taskdata["packagename"], exceptionstr))
         try:
-            if not os.path.isdir(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/Default" % taskdata["packagename"]):
-                os.mkdir(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/Default" % taskdata["packagename"])
+            if not os.path.isdir(os.path.expanduser("~") + "/.local/share/feren-solstice/%s/Default" % taskdata["packagename"]):
+                os.mkdir(os.path.expanduser("~") + "/.local/share/feren-solstice/%s/Default" % taskdata["packagename"])
         except Exception as exceptionstr:
-            raise ICEModuleException(_("Failed to update {0}: {1} was encountered when updating the Chromium-based profile").format(taskdata["packagename"], exceptionstr))
+            raise SolsticeModuleException(_("Failed to update {0}: {1} was encountered when updating the Chromium-based profile").format(taskdata["packagename"], exceptionstr))
         
         progress_callback(36)
             
@@ -380,12 +380,12 @@ class module():
         usefallbackicon = False
         #Copy icon for package
         try:
-            if os.path.isfile(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/icon" % taskdata["packagename"]):
-                os.remove(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/icon" % taskdata["packagename"])
+            if os.path.isfile(os.path.expanduser("~") + "/.local/share/feren-solstice/%s/icon" % taskdata["packagename"]):
+                os.remove(os.path.expanduser("~") + "/.local/share/feren-solstice/%s/icon" % taskdata["packagename"])
         except Exception as exceptionstr:
-            raise ICEModuleException(_("Failed to update {0}: {1} was encountered when updating the application icon").format(taskdata["packagename"], exceptionstr))
+            raise SolsticeModuleException(_("Failed to update {0}: {1} was encountered when updating the application icon").format(taskdata["packagename"], exceptionstr))
         try:
-            shutil.copy(self.storebrain.tempdir + "/icons/" + taskdata["packagename"], os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/icon" % taskdata["packagename"])
+            shutil.copy(self.storebrain.tempdir + "/icons/" + taskdata["packagename"], os.path.expanduser("~") + "/.local/share/feren-solstice/%s/icon" % taskdata["packagename"])
         except Exception as exceptionstr:
             usefallbackicon = True
             
@@ -399,10 +399,10 @@ class module():
             profiledefaults = json.loads(fp.read())
             
         try:
-            with open(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/Default/Preferences" % taskdata["packagename"], 'r') as fp:
+            with open(os.path.expanduser("~") + "/.local/share/feren-solstice/%s/Default/Preferences" % taskdata["packagename"], 'r') as fp:
                 profiletoupdate = json.loads(fp.read())
         except Exception as exceptionstr:
-            raise ICEModuleException(_("Failed to update {0}: {1} was encountered when reading the browser profile (is the profile corrupt?)").format(taskdata["packagename"], exceptionstr))
+            raise SolsticeModuleException(_("Failed to update {0}: {1} was encountered when reading the browser profile (is the profile corrupt?)").format(taskdata["packagename"], exceptionstr))
         
         #Remove the custom links (Chromiums) before adding default shortcut back in and updating it again
         profiletoupdate["custom_links"] = {}
@@ -497,10 +497,10 @@ class module():
                 profiletoupdate = self.storebrain.dict_recurupdate(profiletoupdate, profiletoupdateextra)
             
             try:
-                with open(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/.storium-nohistory" % taskdata["packagename"], 'w') as fp:
+                with open(os.path.expanduser("~") + "/.local/share/feren-solstice/%s/.storium-nohistory" % taskdata["packagename"], 'w') as fp:
                     pass
             except Exception as exceptionstr:
-                raise ICEModuleException(_("Failed to install {0}: {1} was encountered when setting up automatic history deletion").format(taskdata["packagename"], exceptionstr))
+                raise SolsticeModuleException(_("Failed to install {0}: {1} was encountered when setting up automatic history deletion").format(taskdata["packagename"], exceptionstr))
             
         #Background Sync, Clipboard, Notifications and Payment Handler ONLY for SSB's websites
         for permtype in ["ar", "autoplay", "automatic_downloads", "background_sync", "clipboard", "file_handling", "font_access", "midi_sysex", "notifications", "payment_handler", "sensors", "sound", "sleeping-tabs", "window_placement", "vr"]:
@@ -591,42 +591,42 @@ class module():
         
         #Write last updated date to be used in update checks
         try:
-            with open(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/.storium-last-updated" % taskdata["packagename"], 'w') as fp:
+            with open(os.path.expanduser("~") + "/.local/share/feren-solstice/%s/.storium-last-updated" % taskdata["packagename"], 'w') as fp:
                 fp.write(datetime.today().strftime('%Y%m%d'))
         except Exception as exceptionstr:
-            raise ICEModuleException(_("Failed to update {0}: {1} was encountered when writing the last updated date").format(taskdata["packagename"], exceptionstr))
+            raise SolsticeModuleException(_("Failed to update {0}: {1} was encountered when writing the last updated date").format(taskdata["packagename"], exceptionstr))
         
         #Write default browser value to be used for the update process
         try:
-            if not os.path.isfile(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/.storium-default-browser" % taskdata["packagename"]):
-                with open(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/.storium-default-browser" % taskdata["packagename"], 'w') as fp:
+            if not os.path.isfile(os.path.expanduser("~") + "/.local/share/feren-solstice/%s/.storium-default-browser" % taskdata["packagename"]):
+                with open(os.path.expanduser("~") + "/.local/share/feren-solstice/%s/.storium-default-browser" % taskdata["packagename"], 'w') as fp:
                     fp.write(taskdata["source"]) # Used by module during updating to determine your browser
         except Exception as exceptionstr:
             self.task_remove_package(taskdata, None, True) #Remove profile's files/folders on failure
-            raise ICEModuleException(_("Failed to update {0}: {1} was encountered when noting the browser selection value").format(taskdata["packagename"], exceptionstr))
+            raise SolsticeModuleException(_("Failed to update {0}: {1} was encountered when noting the browser selection value").format(taskdata["packagename"], exceptionstr))
         
         
         #Write profile
         try:
-            with open(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/Default/Preferences" % taskdata["packagename"], 'w') as fp:
+            with open(os.path.expanduser("~") + "/.local/share/feren-solstice/%s/Default/Preferences" % taskdata["packagename"], 'w') as fp:
                 fp.write(json.dumps(profiletoupdate, separators=(',', ':')))
         except Exception as exceptionstr:
-            raise ICEModuleException(_("Failed to update {0}: {1} was encountered when writing the Chromium-based profile").format(taskdata["packagename"], exceptionstr))
+            raise SolsticeModuleException(_("Failed to update {0}: {1} was encountered when writing the Chromium-based profile").format(taskdata["packagename"], exceptionstr))
             
         
         #Update Local State too
         with open("/usr/share/feren-storium/modules/packagemgmt-ice/chromium-profile/Local State", 'r') as fp:
             profiledefaults = json.loads(fp.read())
         try:
-            with open(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/Local State" % taskdata["packagename"], 'r') as fp:
+            with open(os.path.expanduser("~") + "/.local/share/feren-solstice/%s/Local State" % taskdata["packagename"], 'r') as fp:
                 profiletoupdate = json.loads(fp.read())
         except Exception as exceptionstr:
-            raise ICEModuleException(_("Failed to update {0}: {1} was encountered when reading the browser's local state (is the local state corrupt?)").format(taskdata["packagename"], exceptionstr))
+            raise SolsticeModuleException(_("Failed to update {0}: {1} was encountered when reading the browser's local state (is the local state corrupt?)").format(taskdata["packagename"], exceptionstr))
         try:
-            with open(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/Local State" % taskdata["packagename"], 'w') as fp:
+            with open(os.path.expanduser("~") + "/.local/share/feren-solstice/%s/Local State" % taskdata["packagename"], 'w') as fp:
                 fp.write(json.dumps(self.storebrain.dict_recurupdate(profiletoupdate, profiledefaults), separators=(',', ':')))
         except Exception as exceptionstr:
-            raise ICEModuleException(_("Failed to update {0}: {1} was encountered when writing the Local State").format(taskdata["packagename"], exceptionstr))
+            raise SolsticeModuleException(_("Failed to update {0}: {1} was encountered when writing the Local State").format(taskdata["packagename"], exceptionstr))
         
             
         progress_callback(72)            
@@ -640,7 +640,7 @@ class module():
                 fp.write("Name={0}\n".format(icepackageinfo["realname"]))
                 fp.write("Comment={0}\n".format(_("Website (obtained from Store)")))
                 
-                fp.write("Exec=/usr/bin/feren-storium-icelaunch {0} {1} {2} {3}\n".format(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s" % taskdata["packagename"], taskdata["source"], '"' + icepackageinfo["website"] + '"', windowclassid))
+                fp.write("Exec=/usr/bin/feren-solsticelaunch {0} {1} {2} {3}\n".format(os.path.expanduser("~") + "/.local/share/feren-solstice/%s" % taskdata["packagename"], taskdata["source"], '"' + icepackageinfo["website"] + '"', windowclassid))
 
                 fp.write("Terminal=false\n")
                 fp.write("X-MultipleArgs=false\n")
@@ -649,7 +649,7 @@ class module():
                 if usefallbackicon == True:
                     fp.write("Icon=text-html\n")
                 else:
-                    fp.write("Icon={0}\n".format(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/icon" % taskdata["packagename"]))
+                    fp.write("Icon={0}\n".format(os.path.expanduser("~") + "/.local/share/feren-solstice/%s/icon" % taskdata["packagename"]))
 
                 #Ice stuff will have their own categories to allow for easier sectioning of items in Store overall
                 if icepackageinfo["category"] == "ice-accessories":
@@ -677,7 +677,7 @@ class module():
                 fp.write("StartupWMClass=%s\n" % windowclassid)
                 fp.write("StartupNotify=true\n")
         except Exception as exceptionstr:
-            raise ICEModuleException(_("Failed to update {0}: {1} was encountered when updating the shortcut in the Applications Menu").format(taskdata["packagename"], exceptionstr))
+            raise SolsticeModuleException(_("Failed to update {0}: {1} was encountered when updating the shortcut in the Applications Menu").format(taskdata["packagename"], exceptionstr))
         
         
         #Remove old extra shortcuts
@@ -686,19 +686,19 @@ class module():
                 if os.path.isfile(os.path.expanduser("~") + "/.local/share/applications/{0}-{1}.desktop".format(taskdata["packagename"], extraid)):
                     os.remove(os.path.expanduser("~") + "/.local/share/applications/{0}-{1}.desktop".format(taskdata["packagename"], extraid))
             except Exception as exceptionstr:
-                raise ICEModuleException(_("Failed to update {0}: {1} was encountered when removing extra shortcuts to replace with new ones").format(taskdata["packagename"], exceptionstr))
+                raise SolsticeModuleException(_("Failed to update {0}: {1} was encountered when removing extra shortcuts to replace with new ones").format(taskdata["packagename"], exceptionstr))
             try:
-                if os.path.isfile(os.path.expanduser("~") + "/.local/share/feren-storium-ice/{0}/icon-{1}".format(taskdata["packagename"], extraid)):
-                    os.remove(os.path.expanduser("~") + "/.local/share/feren-storium-ice/{0}/icon-{1}".format(taskdata["packagename"], extraid))
+                if os.path.isfile(os.path.expanduser("~") + "/.local/share/feren-solstice/{0}/icon-{1}".format(taskdata["packagename"], extraid)):
+                    os.remove(os.path.expanduser("~") + "/.local/share/feren-solstice/{0}/icon-{1}".format(taskdata["packagename"], extraid))
             except Exception as exceptionstr:
-                raise ICEModuleException(_("Failed to update {0}: {1} was encountered when removing extra icons to replace with new ones").format(taskdata["packagename"], exceptionstr))
+                raise SolsticeModuleException(_("Failed to update {0}: {1} was encountered when removing extra icons to replace with new ones").format(taskdata["packagename"], exceptionstr))
         
         #Write the new Extra IDs to be used as a backup
         try:
-            with open(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s/.storium-extra-ids" % taskdata["packagename"], 'w') as fp:
+            with open(os.path.expanduser("~") + "/.local/share/feren-solstice/%s/.storium-extra-ids" % taskdata["packagename"], 'w') as fp:
                 fp.write(str(iceextrasids)) # This means that Storium can manage extras later on in time
         except Exception as exceptionstr:
-            raise ICEModuleException(_("Failed to update {0}: {1} was encountered when making a note of the SSB's extra shortcuts").format(taskdata["packagename"], exceptionstr))
+            raise SolsticeModuleException(_("Failed to update {0}: {1} was encountered when making a note of the SSB's extra shortcuts").format(taskdata["packagename"], exceptionstr))
         
         #Now repeat for extras, if appropriate
         extrascount = 0 #Classic strat for iteration
@@ -714,15 +714,15 @@ class module():
                     fp.write("Name={0}\n".format(icepackageinfo["realnameextras"][extrascount]))
                     fp.write("Comment={0}\n".format(_("Website (part of %s)" % icepackageinfo["realname"])))
                     
-                    fp.write("Exec=/usr/bin/feren-storium-icelaunch {0} {1} {2} {3}\n".format(os.path.expanduser("~") + "/.local/share/feren-storium-ice/%s" % taskdata["packagename"], taskdata["source"], '"' + icepackageinfo["websiteextras"][extrascount] + '"', windowclassid))
+                    fp.write("Exec=/usr/bin/feren-solsticelaunch {0} {1} {2} {3}\n".format(os.path.expanduser("~") + "/.local/share/feren-solstice/%s" % taskdata["packagename"], taskdata["source"], '"' + icepackageinfo["websiteextras"][extrascount] + '"', windowclassid))
 
                     fp.write("Terminal=false\n")
                     fp.write("X-MultipleArgs=false\n")
                     fp.write("Type=Application\n")
                     
                     try:
-                        urllib.request.urlretrieve(icepackageinfo["iconuriextras"][extrascount], (os.path.expanduser("~") + "/.local/share/feren-storium-ice/{0}/icon-{1}".format(taskdata["packagename"], extraid)))
-                        fp.write("Icon=%s\n" % (os.path.expanduser("~") + "/.local/share/feren-storium-ice/{0}/icon-{1}".format(taskdata["packagename"], extraid)))
+                        urllib.request.urlretrieve(icepackageinfo["iconuriextras"][extrascount], (os.path.expanduser("~") + "/.local/share/feren-solstice/{0}/icon-{1}".format(taskdata["packagename"], extraid)))
+                        fp.write("Icon=%s\n" % (os.path.expanduser("~") + "/.local/share/feren-solstice/{0}/icon-{1}".format(taskdata["packagename"], extraid)))
                     except:
                         fp.write("Icon=text-html\n")
 
@@ -750,7 +750,7 @@ class module():
 
                     fp.write("StartupNotify=true\n")
             except Exception as exceptionstr:
-                raise ICEModuleException(_("Failed to update {0}: {1} was encountered when updating extra shortcuts in the Applications Menu").format(taskdata["packagename"], exceptionstr))
+                raise SolsticeModuleException(_("Failed to update {0}: {1} was encountered when updating extra shortcuts in the Applications Menu").format(taskdata["packagename"], exceptionstr))
             os.system("chmod +x " + os.path.expanduser("~") + "/.local/share/applications/{0}-{1}.desktop".format(taskdata["packagename"], extraid))
             extrascount += 1
             
@@ -780,11 +780,11 @@ class module():
 
     def enable_appsource(self, appsource):
         #You SHOULD NOT be able to manage Application Sources for websites anyway, so raise an error
-        raise ICEModuleException(_("You cannot manage sources when the 'sources' are just web browsers."))
+        raise SolsticeModuleException(_("You cannot manage sources when the 'sources' are just web browsers."))
     
     def disable_appsource(self, appsource):
         #You SHOULD NOT be able to manage Application Sources for websites anyway, so raise an error
-        raise ICEModuleException(_("You cannot manage sources when the 'sources' are just web browsers."))
+        raise SolsticeModuleException(_("You cannot manage sources when the 'sources' are just web browsers."))
 
 
 
@@ -792,7 +792,7 @@ class module():
     #////Package Information////
     def build_ids_list(self): #Build list of package IDs
         self.pkg_ids = []
-        for i in [self.moduleshared.json_storage["package-info/peppermint-ice"]]:
+        for i in [self.moduleshared.json_storage["package-info/solstice"]]:
             try:
                 for package in i:
                     if package not in self.pkg_ids:
@@ -808,7 +808,7 @@ class module():
     def getPackageJSON(self):
         #Return a json of all package names
         packagejson = {}
-        for i in [self.moduleshared.json_storage["package-info/peppermint-ice"]]:
+        for i in [self.moduleshared.json_storage["package-info/solstice"]]:
             try:
                 packagejson.update(i)
             except:
@@ -834,14 +834,14 @@ class module():
 
     def getShortDescription(self, packagename):
         try:
-            shortdescription = self.moduleshared.json_storage["package-info/peppermint-ice"][packagename]["shortdescription"]
+            shortdescription = self.moduleshared.json_storage["package-info/solstice"][packagename]["shortdescription"]
         except:
             shortdescription = _("Website Application")
         return shortdescription
     
     def getKeywords(self, packagename):
         try:
-            keywords = self.moduleshared.json_storage["package-info/peppermint-ice"][packagename]["keywords"]
+            keywords = self.moduleshared.json_storage["package-info/solstice"][packagename]["keywords"]
         except:
             raise IceInfoModuleException(packagename, _("has no keywords value in the package metadata. Websites MUST have keywords values when curated."))
             return
@@ -849,63 +849,63 @@ class module():
     
     def getAuthor(self, packagename):
         try:
-            author = self.moduleshared.json_storage["package-info/peppermint-ice"][packagename]["author"]
+            author = self.moduleshared.json_storage["package-info/solstice"][packagename]["author"]
         except:
             author = _("Unknown Author")
         return author
       
     def getBugsURL(self, packagename):
         try:
-            bugsurl = self.moduleshared.json_storage["package-info/peppermint-ice"][packagename]["bugreporturl"]
+            bugsurl = self.moduleshared.json_storage["package-info/solstice"][packagename]["bugreporturl"]
         except:
             bugsurl = ""
         return bugsurl
       
     def getTOSURL(self, packagename):
         try:
-            tosurl = self.moduleshared.json_storage["package-info/peppermint-ice"][packagename]["tos"]
+            tosurl = self.moduleshared.json_storage["package-info/solstice"][packagename]["tos"]
         except:
             tosurl = ""
         return tosurl
       
     def getPrivPolURL(self, packagename):
         try:
-            privpolurl = self.moduleshared.json_storage["package-info/peppermint-ice"][packagename]["privpol"]
+            privpolurl = self.moduleshared.json_storage["package-info/solstice"][packagename]["privpol"]
         except:
             privpolurl = ""
         return privpolurl
       
     def getExtrasIDs(self, packagename):
         try:
-            extrasids = self.moduleshared.json_storage["package-info/peppermint-ice"][packagename]["extrasids"]
+            extrasids = self.moduleshared.json_storage["package-info/solstice"][packagename]["extrasids"]
         except:
             extrasids = []
         return extrasids
       
     def getExtraRealNames(self, packagename):
         try:
-            realnameextras = self.moduleshared.json_storage["package-info/peppermint-ice"][packagename]["realnameextras"]
+            realnameextras = self.moduleshared.json_storage["package-info/solstice"][packagename]["realnameextras"]
         except:
             realnameextras = []
         return realnameextras
       
     def getIconURIExtras(self, packagename):
         try:
-            iconuriextras = self.moduleshared.json_storage["package-info/peppermint-ice"][packagename]["iconuriextras"]
+            iconuriextras = self.moduleshared.json_storage["package-info/solstice"][packagename]["iconuriextras"]
         except:
             iconuriextras = []
         return iconuriextras
       
     def getWebsiteExtras(self, packagename):
         try:
-            websiteextras = self.moduleshared.json_storage["package-info/peppermint-ice"][packagename]["websiteextras"]
+            websiteextras = self.moduleshared.json_storage["package-info/solstice"][packagename]["websiteextras"]
         except:
             websiteextras = []
         return websiteextras
       
     def getKeywordsExtras(self, packagename):
         try:
-            keywordsextras = self.moduleshared.json_storage["package-info/peppermint-ice"][packagename]["keywordsextras"]
+            keywordsextras = self.moduleshared.json_storage["package-info/solstice"][packagename]["keywordsextras"]
         except:
             keywordsextras = []
         return keywordsextras
@@ -923,7 +923,7 @@ class module():
         
         canusethemes = 1 #Disable warning for Website Applications      
         try:
-            if self.moduleshared.json_storage["package-info/peppermint-ice"][packagename]["hasownthemes"] == True:
+            if self.moduleshared.json_storage["package-info/solstice"][packagename]["hasownthemes"] == True:
                 canusethemes = 4 #...unless a website has themes of its own
         except:
             pass
@@ -941,7 +941,7 @@ class module():
     
     def getCanUseAccessibility(self, packagename, packagetype):
         try:
-            canuseaccessibility = self.moduleshared.json_storage["package-info/peppermint-ice"][packagename]["canuseaccessibility"]
+            canuseaccessibility = self.moduleshared.json_storage["package-info/solstice"][packagename]["canuseaccessibility"]
         except:
             canuseaccessibility = True # Use fallback of True when unknown to hide the message
         return canuseaccessibility
@@ -953,7 +953,7 @@ class module():
     
     def getCanUseOnPhone(self, packagename, packagetype):
         try:
-            canuseonphone = self.moduleshared.json_storage["package-info/peppermint-ice"][packagename]["canuseonphone"]
+            canuseonphone = self.moduleshared.json_storage["package-info/solstice"][packagename]["canuseonphone"]
         except:
             canuseonphone = True # Use fallback of True when unknown to hide the message
         return canuseonphone
