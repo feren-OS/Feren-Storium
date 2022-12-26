@@ -521,8 +521,8 @@ class main():
 
         #Make note of the profile name and last updated configs
         profileconfs = {}
-        if os.path.isfile("{0}/{1}/{2}/.ice-settings".format(default_ice_directory, iteminfo["id"], profileid)):
-            with open("{0}/{1}/{2}/.ice-settings".format(default_ice_directory, iteminfo["id"], profileid), 'r') as fp:
+        if os.path.isfile("{0}/{1}/{2}/.solstice-settings".format(default_ice_directory, iteminfo["id"], profileid)):
+            with open("{0}/{1}/{2}/.solstice-settings".format(default_ice_directory, iteminfo["id"], profileid), 'r') as fp:
                 profileconfs = json.loads(fp.read())
 
         #Set user's human-readable name
@@ -671,14 +671,14 @@ class main():
         if "flatpak" in self.sources_storage["browsers"][iteminfo["browser"]]:
             os.system("/usr/bin/flatpak override --user {0} --filesystem={1}/{2}/{3}".format(self.sources_storage["browsers"][iteminfo["browser"]]["flatpak"], default_ice_directory, iteminfo["id"], profileid))
 
-        #Finally, save new last updated date and save to .ice-settings
+        #Finally, save new last updated date and save to .solstice-settings
         profileconfs["lastupdated"] = datetime.today().strftime('%Y%m%d')
 
         try:
-            with open("{0}/{1}/{2}/.ice-settings".format(default_ice_directory, iteminfo["id"], profileid), 'w') as fp:
+            with open("{0}/{1}/{2}/.solstice-settings".format(default_ice_directory, iteminfo["id"], profileid), 'w') as fp:
                 fp.write(json.dumps(profileconfs, separators=(',', ':')))
         except Exception as exceptionstr:
-            raise ICESharedModuleException(_("Failed to write to .ice-settings"))
+            raise ICESharedModuleException(_("Failed to write to .solstice-settings"))
 
 
 
@@ -840,8 +840,8 @@ class main():
             result = json.loads(fp.read())
 
         #Then tweak the values
-        result["roots"]["bookmark_bar"]["children"][0]["children"][0]["meta_info"]["Thumbnail"] = "https://via.placeholder.com/256" #TODO
-        result["roots"]["bookmark_bar"]["children"][0]["children"][0]["name"] = name
+        result["roots"]["bookmark_bar"]["children"][0]["children"][0]["meta_info"]["Thumbnail"] = "data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw=="
+        result["roots"]["bookmark_bar"]["children"][0]["children"][0]["name"] = _("Return to %s") % name
         result["roots"]["bookmark_bar"]["children"][0]["children"][0]["url"] = website
 
         #Then write to Bookmarks

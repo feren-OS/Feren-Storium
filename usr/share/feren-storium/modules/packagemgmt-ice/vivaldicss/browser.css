@@ -1,5 +1,7 @@
 .UrlBar-AddressField .BookmarkButton,
-.UrlBar-AddressField .toolbar-insideinput {
+.UrlBar-AddressField .UrlBar-UrlField,
+.UrlBar-AddressField .BookmarkButton,
+.UrlBar-AddressField .drop-down-menu {
     display: none !important;
 }
 
@@ -8,38 +10,34 @@
     border: none !important;
     outline: none !important;
 }
-
-.UrlField::before {
-    background: transparent;
-    content: "";
-    display: block;
-    position: absolute;
-    height: 100%;
-    width: 100%;
-    z-index: 9999;
+.toolbar-mainbar .SiteInfoButton {
+    background-color: var(--colorBgIntenser);
+    color: var(--colorFg);
+    fill: var(--colorFg);
+    padding: 8px 0;
 }
 
-.toolbar-mainbar .UrlBar-AddressField .SiteInfoButton:not(.insecure),
-.UrlFragment-Wrapper,
-.UrlFragment--Highlight {
+.toolbar-mainbar .UrlBar-AddressField {
     fill: var(--colorFg) !important;
+}
+.color-behind-tabs-off .toolbar-mainbar .UrlBar-AddressField {
+    fill: var(--colorAccentFg) !important;
+}
+.toolbar-mainbar .UrlBar-AddressField,
+.toolbar-mainbar .UrlFragment--Highlight,
+.UrlFragment-Wrapper--ShouldHighlight,
+.toolbar-mainbar .UrlBar-AddressField .pageload {
     color: var(--colorFg) !important;
     --HighlightColor: var(--colorFg) !important;
-    --LowlightColor: var(--colorFg) !important;
+    --LowlightColor: var(--colorFgFaded) !important;
 }
-.color-behind-tabs-off .toolbar-mainbar .UrlBar-AddressField .SiteInfoButton:not(.insecure),
-.color-behind-tabs-off .UrlFragment-Wrapper,
-.color-behind-tabs-off .UrlFragment--Highlight {
-    fill: var(--colorAccentFg) !important;
+.color-behind-tabs-off .toolbar-mainbar .UrlBar-AddressField,
+.color-behind-tabs-off .toolbar-mainbar .UrlFragment--Highlight,
+.color-behind-tabs-off .UrlFragment-Wrapper--ShouldHighlight,
+.color-behind-tabs-off .toolbar-mainbar .UrlBar-AddressField .pageload {
     color: var(--colorAccentFg) !important;
-}
-.UrlFragment-Wrapper--ShouldHighlight {
-    --HighlightColor: var(--colorFg) !important;
-    --LowlightColor: var(--colorFg) !important;
-}
-.color-behind-tabs-off .UrlFragment-Wrapper--ShouldHighlight {
     --HighlightColor: var(--colorAccentFg) !important;
-    --LowlightColor: var(--colorAccentFg) !important;
+    --LowlightColor: var(--colorAccentFgFaded) !important;
 }
 
 .SpeedDialView-SearchField,
@@ -49,6 +47,13 @@
     display: none !important;
 }
 .speeddial .dial-columns .dial:not([tabindex="0"]) {
+    display: none;
+}
+.speeddial .dial-columns .dial {
+    height: auto !important;
+    padding: 16px !important;
+}
+.speeddial .dial-columns .dial .thumbnail-image {
     display: none;
 }
 .speeddial .dial-columns {

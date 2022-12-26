@@ -68,15 +68,14 @@ def getDesktopFileInformation(path):
     parentidtest = entry.get("X-FerenIce-ParentID")
     #Add basic information for GUI
     if parentidtest != '': #If this is a subshortcut, add the values from the original shortcut, alongside an indication for the GUI to use our subshortcut's class
-        desktopfileinformation["name"] = entry.getName()
+        desktopfileinformation["guiname"] = entry.getName()
         desktopfileinformation["guiwmclass"] = entry.getStartupWMClass()
-        desktopfileinformation["website"] = entry.get("X-FerenIce-Website")
+        desktopfileinformation["guiwebsite"] = entry.get("X-FerenIce-Website")
         entry.parse(path.replace(entry.get("X-FerenIce-ID"), parentidtest))
-    else:
-        desktopfileinformation["name"] = entry.getName()
-        desktopfileinformation["website"] = entry.get("X-FerenIce-Website")
 
+    desktopfileinformation["name"] = entry.getName()
     desktopfileinformation["wmclass"] = entry.getStartupWMClass()
+    desktopfileinformation["website"] = entry.get("X-FerenIce-Website")
     desktopfileinformation["browser"] = entry.get("X-FerenIce-Browser")
     desktopfileinformation["browsertype"] = entry.get("X-FerenIce-BrowserType")
     desktopfileinformation["id"] = entry.get("X-FerenIce-ID")
@@ -265,9 +264,15 @@ def onOpenProfile(profileid, alwaysuse, gui=True):
             if os.path.isfile(profilesdir + "/.solstice-autolaunch"):
                 os.remove(profilesdir + "/.solstice-autolaunch")
 
-    IceShared.run_profile(desktopfileinformation["id"], profileid, desktopfileinformation["browser"], desktopfileinformation["browsertype"], desktopfileinformation["website"], desktopfileinformation["wmclass"], desktopfileinformation["nohistory"], closeCallback)
+    #TODO: Update profile before launching if the profile's outdated
+    guiwebsite = desktopfileinformation["website"]
+    if "guiwebsite" in desktopfileinformation:
+        guiwebsite = desktopfileinformation["guiwebsite"]
     if gui == True:
+        IceShared.run_profile(desktopfileinformation["id"], profileid, desktopfileinformation["browser"], desktopfileinformation["browsertype"], guiwebsite, desktopfileinformation["wmclass"], desktopfileinformation["nohistory"], closeCallback)
         app.quit()
+    else:
+        IceShared.run_profile(desktopfileinformation["id"], profileid, desktopfileinformation["browser"], desktopfileinformation["browsertype"], guiwebsite, desktopfileinformation["wmclass"], desktopfileinformation["nohistory"], None) #To prevent an exception
 
 
 #[1]: .desktop file
@@ -295,7 +300,6 @@ for browser in browserSources[desktopfileinformation["browser"]]["required-file"
 automaticProfileLaunch()
 
 
-#TODO: Store if application has been configured to be single profile before, and if so skip the GUI entirely unless an argument's specified
 profilesmodel = ProfilesModel()
 app = QApplication(sys.argv)
 
@@ -318,10 +322,13 @@ mainwnd.enterEditProfile.connect(onEnterEditProfile)
 mainwnd.enterCreateProfile.connect(onEnterCreateProfile)
 mainwnd.deleteProfile.connect(onDeleteProfile)
 
-mainwnd.setProperty('title', desktopfileinformation["name"])
-mainwnd.findChild(QObject, "profilesHeader").setProperty('text', "Who's using %s?" % desktopfileinformation["name"])
-mainwnd.findChild(QObject, "browsersHeader").setProperty('text', "Choose a browser to launch %s" % desktopfileinformation["name"])
-mainwnd.findChild(QObject, "manageHeader").setProperty('text', "Manage %s Profiles" % desktopfileinformation["name"])
+guiname = desktopfileinformation["name"]
+if "guiname" in desktopfileinformation:
+    guiname = desktopfileinformation["guiname"]
+mainwnd.setProperty('title', guiname)
+mainwnd.findChild(QObject, "profilesHeader").setProperty('text', "Who's using %s?" % guiname)
+mainwnd.findChild(QObject, "browsersHeader").setProperty('text', "Choose a browser to launch %s" % guiname)
+mainwnd.findChild(QObject, "manageHeader").setProperty('text', "Manage %s Profiles" % guiname)
 mainwnd.findChild(QObject, "editProfileSubheader").setProperty('text', "Choose your name, and options for your profile.\nOnce you are done. hit Finish below.")
 #TODO: Add in label changing to translate the labels
 
