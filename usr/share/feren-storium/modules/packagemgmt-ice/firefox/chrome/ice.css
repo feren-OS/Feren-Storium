@@ -3,16 +3,30 @@
     /* LIGHT THEME */
     @media (prefers-color-scheme: light) {
         :not(:-moz-lwtheme) {
-            --lwt-selected-tab-background-color: ACCENTBG !important;
-            --lwt-tab-text: ACCENTFG !important;
+            --lwt-accent-color: WINDOWBGLIGHT !important;
+            --lwt-text-color: WINDOWFGLIGHT !important;
+            --toolbar-bgcolor: TABBGLIGHT !important;
+            --toolbar-color: TABFGLIGHT !important;
+            --lwt-selected-tab-background-color: TABBGLIGHT !important;
+            --lwt-tab-text: TABFGLIGHT !important;
+            --chrome-content-separator-color: color-mix(in srgb, WINDOWFGLIGHT 25%, transparent) !important;
+            --toolbarbutton-hover-background: TABFG02LIGHT !important;
+            --toolbarbutton-active-background: TABFG03LIGHT !important;
         }
     }
 
     /* DARK THEME */
     @media (prefers-color-scheme: dark) {
         :not(:-moz-lwtheme) {
-            --lwt-selected-tab-background-color: ACCENTBG !important;
-            --lwt-tab-text: ACCENTFG !important;
+            --lwt-accent-color: WINDOWBGDARK !important;
+            --lwt-text-color: WINDOWFGDARK !important;
+            --toolbar-bgcolor: TABBGDARK !important;
+            --toolbar-color: TABFGDARK !important;
+            --lwt-selected-tab-background-color: TABBGDARK !important;
+            --lwt-tab-text: TABFGDARK !important;
+            --chrome-content-separator-color: color-mix(in srgb, WINDOWFGDARK 25%, transparent) !important;
+            --toolbarbutton-hover-background: TABFG02DARK !important;
+            --toolbarbutton-active-background: TABFG03DARK !important;
         }
     }
 }

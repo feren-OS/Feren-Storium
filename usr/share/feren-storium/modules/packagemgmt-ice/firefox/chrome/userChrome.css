@@ -131,9 +131,9 @@
         }
         :root {
             --toolbar-btn-width: calc((var(--toolbar-start-end-padding) * 2) +
-                16px +
-                (var(--toolbarbutton-outer-padding) * 2) +
-                (var(--toolbarbutton-inner-padding) * 2));
+                (16px * 2) +
+                (var(--toolbarbutton-outer-padding) * 2 * 2) +
+                (var(--toolbarbutton-inner-padding) * 2 * 2));
         }
         #nav-bar-customization-target {
             max-width: var(--toolbarbutton-inner-padding) !important;

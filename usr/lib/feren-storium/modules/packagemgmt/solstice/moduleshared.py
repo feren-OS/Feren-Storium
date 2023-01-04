@@ -284,7 +284,7 @@ class main():
             #Make sure necessary directories exist
             for i in [os.path.expanduser("~") + "/.local", os.path.expanduser("~") + "/.local/share", os.path.expanduser("~") + "/.local/share/icons", os.path.expanduser("~") + "/.local/share/icons/hicolor"]:
                 if not os.path.isdir(i):
-                    os.path.mkdir(i)
+                    os.mkdir(i)
 
             mimetype = magic.Magic(mime=True).from_file(iconsource)
             if mimetype == "image/png" or mimetype == "image/vnd.microsoft.icon" or mimetype == "image/jpeg" or mimetype == "image/bmp": #PNG, JPG, BMP or ICO
@@ -652,16 +652,66 @@ class main():
                 shutil.copy("/usr/share/feren-storium/modules/packagemgmt-ice/firefox/chrome/" + cfile, targetfolder + "chrome/" + cfile)
 
             #...and colourise the UI
-            if self.get_is_light(iteminfo["color"]) == True:
-                foreground = "black"
+            lightbg = ""
+            darkbg = ""
+            lighttabbg = ""
+            darktabbg = ""
+            lightfg = ""
+            darkfg = ""
+            lighttabfg = ""
+            darktabfg = ""
+            if iteminfo["accentonwindow"] == True:
+                lightbg = iteminfo["accent"]
+                darkbg = iteminfo["accentdark"]
+                lighttabbg = iteminfo["bg"]
+                darktabbg = iteminfo["bgdark"]
+                if self.get_is_light(iteminfo["accent"]) == True:
+                    lightfg = "black"
+                else:
+                    lightfg = "white"
+                if self.get_is_light(iteminfo["accentdark"]) == True:
+                    darkfg = "black"
+                else:
+                    darkfg = "white"
+                if self.get_is_light(iteminfo["bg"]) == True:
+                    lighttabfg = "black"
+                else:
+                    lighttabfg = "white"
+                if self.get_is_light(iteminfo["bgdark"]) == True:
+                    darktabfg = "black"
+                else:
+                    darktabfg = "white"
             else:
-                foreground = "white"
+                lightbg = iteminfo["bg"]
+                darkbg = iteminfo["bgdark"]
+                lighttabbg = iteminfo["accent"]
+                darktabbg = iteminfo["accentdark"]
+                if self.get_is_light(iteminfo["bg"]) == True:
+                    lightfg = "black"
+                else:
+                    lightfg = "white"
+                if self.get_is_light(iteminfo["bgdark"]) == True:
+                    darkfg = "black"
+                else:
+                    darkfg = "white"
+                if self.get_is_light(iteminfo["accent"]) == True:
+                    lighttabfg = "black"
+                    lighttabfgrgb = "rgba(0, 0, 0, "
+                else:
+                    lighttabfg = "white"
+                    lighttabfgrgb = "rgba(255, 255, 255, "
+                if self.get_is_light(iteminfo["accentdark"]) == True:
+                    darktabfg = "black"
+                    darktabfgrgb = "rgba(0, 0, 0, "
+                else:
+                    darktabfg = "white"
+                    darktabfgrgb = "rgba(255, 255, 255, "
 
             with open(targetfolder + "chrome/ice.css", 'r') as fp:
                 result = fp.read().splitlines()
             linescounted = 0
             for line in result:
-                result[linescounted] = result[linescounted].replace("ACCENTBG", iteminfo["color"]).replace("ACCENTFG", foreground)
+                result[linescounted] = result[linescounted].replace("WINDOWBGLIGHT", lightbg).replace("WINDOWFGLIGHT", lightfg).replace("TABBGLIGHT", lighttabbg).replace("TABFGLIGHT", lighttabfg).replace("TABFG02LIGHT", lighttabfgrgb + "0.2)").replace("TABFG03LIGHT", lighttabfgrgb + "0.3)").replace("WINDOWBGDARK", darkbg).replace("WINDOWFGDARK", darkfg).replace("TABBGDARK", darktabbg).replace("TABFGDARK", darktabfg).replace("TABFG02DARK", darktabfgrgb + "0.2)").replace("TABFG03DARK", darktabfgrgb + "0.3)")
                 linescounted += 1
 
             with open(targetfolder + "chrome/ice.css", 'w') as fp:
