@@ -652,14 +652,6 @@ class main():
                 shutil.copy("/usr/share/feren-storium/modules/packagemgmt-ice/firefox/chrome/" + cfile, targetfolder + "chrome/" + cfile)
 
             #...and colourise the UI
-            lightbg = ""
-            darkbg = ""
-            lighttabbg = ""
-            darktabbg = ""
-            lightfg = ""
-            darkfg = ""
-            lighttabfg = ""
-            darktabfg = ""
             if iteminfo["accentonwindow"] == True:
                 lightbg = iteminfo["accent"]
                 darkbg = iteminfo["accentdark"]
@@ -667,12 +659,16 @@ class main():
                 darktabbg = iteminfo["bgdark"]
                 if self.get_is_light(iteminfo["accent"]) == True:
                     lightfg = "black"
+                    lightfgrgb = "rgba(0, 0, 0, "
                 else:
                     lightfg = "white"
+                    lightfgrgb = "rgba(255, 255, 255, "
                 if self.get_is_light(iteminfo["accentdark"]) == True:
                     darkfg = "black"
+                    darkfgrgb = "rgba(0, 0, 0, "
                 else:
                     darkfg = "white"
+                    darkfgrgb = "rgba(255, 255, 255, "
                 if self.get_is_light(iteminfo["bg"]) == True:
                     lighttabfg = "black"
                 else:
@@ -688,30 +684,30 @@ class main():
                 darktabbg = iteminfo["accentdark"]
                 if self.get_is_light(iteminfo["bg"]) == True:
                     lightfg = "black"
+                    lightfgrgb = "rgba(0, 0, 0, "
                 else:
                     lightfg = "white"
+                    lightfgrgb = "rgba(255, 255, 255, "
                 if self.get_is_light(iteminfo["bgdark"]) == True:
                     darkfg = "black"
+                    darkfgrgb = "rgba(0, 0, 0, "
                 else:
                     darkfg = "white"
+                    darkfgrgb = "rgba(255, 255, 255, "
                 if self.get_is_light(iteminfo["accent"]) == True:
                     lighttabfg = "black"
-                    lighttabfgrgb = "rgba(0, 0, 0, "
                 else:
                     lighttabfg = "white"
-                    lighttabfgrgb = "rgba(255, 255, 255, "
                 if self.get_is_light(iteminfo["accentdark"]) == True:
                     darktabfg = "black"
-                    darktabfgrgb = "rgba(0, 0, 0, "
                 else:
                     darktabfg = "white"
-                    darktabfgrgb = "rgba(255, 255, 255, "
 
             with open(targetfolder + "chrome/ice.css", 'r') as fp:
                 result = fp.read().splitlines()
             linescounted = 0
             for line in result:
-                result[linescounted] = result[linescounted].replace("WINDOWBGLIGHT", lightbg).replace("WINDOWFGLIGHT", lightfg).replace("TABBGLIGHT", lighttabbg).replace("TABFGLIGHT", lighttabfg).replace("TABFG02LIGHT", lighttabfgrgb + "0.2)").replace("TABFG03LIGHT", lighttabfgrgb + "0.3)").replace("WINDOWBGDARK", darkbg).replace("WINDOWFGDARK", darkfg).replace("TABBGDARK", darktabbg).replace("TABFGDARK", darktabfg).replace("TABFG02DARK", darktabfgrgb + "0.2)").replace("TABFG03DARK", darktabfgrgb + "0.3)")
+                result[linescounted] = result[linescounted].replace("WINDOWBGLIGHT", lightbg).replace("WINDOWFGLIGHT", lightfg).replace("TABBGLIGHT", lighttabbg).replace("TABFGLIGHT", lighttabfg).replace("TABFG02LIGHT", lightfgrgb + "0.2)").replace("TABFG03LIGHT", lightfgrgb + "0.3)").replace("WINDOWBGDARK", darkbg).replace("WINDOWFGDARK", darkfg).replace("TABBGDARK", darktabbg).replace("TABFGDARK", darktabfg).replace("TABFG02DARK", darkfgrgb + "0.2)").replace("TABFG03DARK", darkfgrgb + "0.3)")
                 linescounted += 1
 
             with open(targetfolder + "chrome/ice.css", 'w') as fp:
