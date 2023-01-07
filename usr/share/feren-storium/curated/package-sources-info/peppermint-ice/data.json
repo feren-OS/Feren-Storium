@@ -7,6 +7,8 @@
         "vivaldi": {
             "name": "Vivaldi",
             "command": ["/usr/bin/vivaldi", "%WEBSITEURL%", "--class=%WINCLASS%", "--user-data-dir=%PROFILEDIR%"],
+            "commanddarkmode": ["/usr/bin/vivaldi", "%WEBSITEURL%", "--class=%WINCLASS%", "--user-data-dir=%PROFILEDIR%", "--force-dark-mode"],
+            "darkmode": true,
             "required-file": ["/usr/bin/vivaldi"],
             "pkgidlink": ["vivaldi-vivaldi-webbrowser"],
             "classprefix": "vivaldistoriumice?",
@@ -16,6 +18,8 @@
         "chrome": {
             "name": "Google Chrome",
             "command": ["/usr/bin/google-chrome", "--app=%WEBSITEURL%", "--class=%WINCLASS%", "--user-data-dir=%PROFILEDIR%"],
+            "commanddarkmode": ["/usr/bin/google-chrome", "--app=%WEBSITEURL%", "--class=%WINCLASS%", "--user-data-dir=%PROFILEDIR%", "--force-dark-mode"],
+            "darkmode": true,
             "required-file": ["/usr/bin/google-chrome"],
             "pkgidlink": ["google-chrome-webbrowser"],
             "classprefix": "",
@@ -25,6 +29,8 @@
         "msedge": {
             "name": "Microsoft Edge",
             "command": ["/usr/bin/microsoft-edge", "--app=%WEBSITEURL%", "--class=%WINCLASS%", "--user-data-dir=%PROFILEDIR%"],
+            "commanddarkmode": ["/usr/bin/microsoft-edge", "--app=%WEBSITEURL%", "--class=%WINCLASS%", "--user-data-dir=%PROFILEDIR%", "--force-dark-mode"],
+            "darkmode": true,
             "required-file": ["/usr/bin/microsoft-edge"],
             "pkgidlink": ["microsoft-edge-webbrowser"],
             "classprefix": "",
@@ -34,6 +40,8 @@
         "brave": {
             "name": "Brave",
             "command": ["/usr/bin/brave-browser", "--app=%WEBSITEURL%", "--class=%WINCLASS%", "--user-data-dir=%PROFILEDIR%"],
+            "commanddarkmode": ["/usr/bin/brave-browser", "--app=%WEBSITEURL%", "--class=%WINCLASS%", "--user-data-dir=%PROFILEDIR%", "--force-dark-mode"],
+            "darkmode": true,
             "required-file": ["/usr/bin/brave-browser"],
             "pkgidlink": ["brave-brave-webbrowser"],
             "classprefix": "",
@@ -43,6 +51,8 @@
         "ungoogled-chromium": {
             "name": "Ungoogled Chromium",
             "command": ["/usr/bin/flatpak", "run", "com.github.Eloston.UngoogledChromium", "--app=%WEBSITEURL%", "--class=%WINCLASS%", "--user-data-dir=%PROFILEDIR%"],
+            "commanddarkmode": ["/usr/bin/flatpak", "run", "com.github.Eloston.UngoogledChromium", "--app=%WEBSITEURL%", "--class=%WINCLASS%", "--user-data-dir=%PROFILEDIR%", "--force-dark-mode"],
+            "darkmode": true,
             "required-file": ["/var/lib/flatpak/app/com.github.Eloston.UngoogledChromium/current/active/files/bin/chromium"],
             "pkgidlink": ["ungoogled-chromium-webbrowser"],
             "classprefix": "",

@@ -320,7 +320,7 @@ ApplicationWindow {
             CheckBox {
                 id: forceDarkMode
                 objectName: "forceDarkMode"
-                text: "Force dark mode"
+                text: "Always use dark mode"
                 anchors {
                     left: editingAvatar.right
                     right: parent.right
@@ -331,7 +331,7 @@ ApplicationWindow {
             Label {
                 id: forceDarkModeHint
                 objectName: "forceDarkModeHint"
-                text: "May break some websites"
+                text: "Only works on compatible applications"
                 wrapMode: Text.WordWrap
                 elide: Text.ElideRight
                 font.pointSize: Kirigami.Theme.smallFont.pointSize

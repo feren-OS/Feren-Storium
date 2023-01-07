@@ -264,15 +264,23 @@ def onOpenProfile(profileid, alwaysuse, gui=True):
             if os.path.isfile(profilesdir + "/.solstice-autolaunch"):
                 os.remove(profilesdir + "/.solstice-autolaunch")
 
+    #Load settings
+    darkmode = False
+    if os.path.isfile(profilesdir + "/" + profileid + "/.solstice-settings"):
+        with open(profilesdir + "/" + profileid + "/.solstice-settings", 'r') as fp:
+            icesettings = json.loads(fp.read())
+            if "darkmode" in icesettings:
+                darkmode = icesettings["darkmode"]
+
     #TODO: Update profile before launching if the profile's outdated
     guiwebsite = desktopfileinformation["website"]
     if "guiwebsite" in desktopfileinformation:
         guiwebsite = desktopfileinformation["guiwebsite"]
     if gui == True:
-        IceShared.run_profile(desktopfileinformation["id"], profileid, desktopfileinformation["browser"], desktopfileinformation["browsertype"], guiwebsite, desktopfileinformation["wmclass"], desktopfileinformation["nohistory"], closeCallback)
+        IceShared.run_profile(desktopfileinformation["id"], profileid, desktopfileinformation["browser"], desktopfileinformation["browsertype"], guiwebsite, desktopfileinformation["wmclass"], desktopfileinformation["nohistory"], darkmode, closeCallback)
         app.quit()
     else:
-        IceShared.run_profile(desktopfileinformation["id"], profileid, desktopfileinformation["browser"], desktopfileinformation["browsertype"], guiwebsite, desktopfileinformation["wmclass"], desktopfileinformation["nohistory"], None) #To prevent an exception
+        IceShared.run_profile(desktopfileinformation["id"], profileid, desktopfileinformation["browser"], desktopfileinformation["browsertype"], guiwebsite, desktopfileinformation["wmclass"], desktopfileinformation["nohistory"], darkmode, None) #To prevent an exception
 
 
 #[1]: .desktop file

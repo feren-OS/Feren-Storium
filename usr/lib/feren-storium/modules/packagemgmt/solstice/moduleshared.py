@@ -205,12 +205,17 @@ class main():
 
 
     #### RUNNING PROFILE
-    def run_profile(self, itemid, profileid, browser, browsertype, website, wmclass, nohistory=False, closecallback=None):
+    def run_profile(self, itemid, profileid, browser, browsertype, website, wmclass, nohistory=False, forcedark=False, closecallback=None):
         #string, string, string, string, bool
         profiledir = "{0}/{1}/{2}".format(default_ice_directory, itemid, profileid)
 
         if browser in self.sources_storage["browsers"]:
             commandtorun = self.sources_storage["browsers"][browser]["command"]
+            if forcedark == True: #TODO: Check FreeDesktop preference as well
+                try:
+                    commandtorun = self.sources_storage["browsers"][browser]["commanddarkmode"]
+                except:
+                    print(_("Failed to start browser in dark mode, starting the browser normally..."))
             piececount = 0 #for loop right below
             while piececount < len(commandtorun):
                 #Translate arguments
@@ -568,7 +573,13 @@ class main():
             #Add the Start Page Bookmark
             self.chromi_add_startpage(iteminfo["id"], profileid, iteminfo["name"], iteminfo["website"])
 
-            #Save to the Preferences fileonusIDs
+            #Use appropriate Vivaldi Solstice theme TODO: Check user isn't using a custom theme before setting it
+            if darkmode == True:
+                result["vivaldi"]["theme"]["schedule"]["o_s"]["light"] = "ice-dark"
+            else:
+                result["vivaldi"]["theme"]["schedule"]["o_s"]["light"] = "ice"
+
+            #Save to the Preferences file
             try:
                 with open(PreferencesFile, 'w') as fp:
                     fp.write(json.dumps(result, separators=(',', ':'))) # This dumps minified json (how convenient), which is EXACTLY what Chrome uses for Preferences, so it's literally pre-readied
@@ -576,7 +587,7 @@ class main():
                 raise ICESharedModuleException(_("Failed to write to Preferences"))
 
             #Finally, configure Local State
-            self.chromi_update_local_state(iteminfo["id"], profileid, darkmode)
+            self.chromi_update_local_state(iteminfo["id"], profileid)
 
             #and finish off with this:
             self.chromi_finishing_touches(iteminfo["id"], profileid)
@@ -853,7 +864,7 @@ class main():
         #Return the modified Preferences
         return preferencedict
     
-    def chromi_update_local_state(self, itemid, profileid, darkmode):
+    def chromi_update_local_state(self, itemid, profileid):
         #string, string, bool
         
         LocalStateFile = "{0}/{1}/{2}/Local State".format(default_ice_directory, itemid, profileid)
@@ -864,10 +875,6 @@ class main():
                 result = json.loads(fp.read())
         with open("/usr/share/feren-storium/modules/packagemgmt-ice/chromiums/Local State", 'r') as fp: #Also load default local state, so we can patch
             result = self.dict_recurupdate(result, json.loads(fp.read()))
-
-        #Enable dark mode if on
-        if darkmode == True and not "enable-force-dark@1" in result["browser"]["enabled_labs_experiments"] and not "enable-force-dark@2" in result["browser"]["enabled_labs_experiments"] and not "enable-force-dark@3" in result["browser"]["enabled_labs_experiments"] and not "enable-force-dark@4" in result["browser"]["enabled_labs_experiments"] and not "enable-force-dark@5" in result["browser"]["enabled_labs_experiments"] and not "enable-force-dark@6" in result["browser"]["enabled_labs_experiments"] and not "enable-force-dark@7" in result["browser"]["enabled_labs_experiments"]:
-            result["browser"]["enabled_labs_experiments"].append("enable-force-dark@1")
 
         #Save to the Local State
         try:
