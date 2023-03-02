@@ -6,8 +6,8 @@
     "browsers": {
         "vivaldi": {
             "name": "Vivaldi",
-            "command": ["/usr/bin/vivaldi", "%WEBSITEURL%", "--class=%WINCLASS%", "--user-data-dir=%PROFILEDIR%"],
-            "commanddarkmode": ["/usr/bin/vivaldi", "%WEBSITEURL%", "--class=%WINCLASS%", "--user-data-dir=%PROFILEDIR%", "--force-dark-mode"],
+            "command": ["/usr/bin/vivaldi", "%WEBSITEURL%", "--class=%WINCLASS%", "--user-data-dir=%PROFILEDIR%", "--media-cache-size=0", "--disk-cache-size=0", "--disk-cache-dir=/dev/null"],
+            "commanddarkmode": ["/usr/bin/vivaldi", "%WEBSITEURL%", "--class=%WINCLASS%", "--user-data-dir=%PROFILEDIR%", "--force-dark-mode", "--media-cache-size=0", "--disk-cache-size=0", "--disk-cache-dir=/dev/null"],
             "darkmode": true,
             "required-file": ["/usr/bin/vivaldi"],
             "pkgidlink": ["vivaldi-vivaldi-webbrowser"],

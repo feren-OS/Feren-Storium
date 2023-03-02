@@ -1,3 +1,58 @@
+@-moz-document url-prefix('about:certerror') {
+    @media (prefers-color-scheme: light) {
+        :host,
+        :root {
+            --in-content-page-color: WINDOWFGLIGHT !important;
+            --in-content-page-background: WINDOWBGLIGHT !important;
+            --in-content-link-color: COLORBG !important;
+        }
+    }
+    @media (prefers-color-scheme: dark) {
+        :host,
+        :root {
+            --in-content-page-color: WINDOWFGDARK !important;
+            --in-content-page-background: WINDOWBGDARK !important;
+            --in-content-link-color: COLORBG !important;
+        }
+    }
+    :host,
+    :root {
+        --in-content-primary-button-background: COLORBG !important;
+        --in-content-primary-button-text-color: COLORFG !important;
+        --in-content-primary-button-background-hover: color-mix(in srgb, COLORBG 82%, #FFF) !important;
+        --in-content-primary-button-text-color-hover: COLORFG !important;
+        --in-content-primary-button-background-active: color-mix(in srgb, COLORBG 64%, #FFF) !important;
+        --in-content-primary-button-text-color-active: COLORFG !important;
+    }
+}
+@-moz-document url-prefix('about:neterror') {
+    @media (prefers-color-scheme: light) {
+        :host,
+        :root {
+            --in-content-page-color: WINDOWFGLIGHT !important;
+            --in-content-page-background: WINDOWBGLIGHT !important;
+            --in-content-link-color: COLORBG !important;
+        }
+    }
+    @media (prefers-color-scheme: dark) {
+        :host,
+        :root {
+            --in-content-page-color: WINDOWFGDARK !important;
+            --in-content-page-background: WINDOWBGDARK !important;
+            --in-content-link-color: COLORBG !important;
+        }
+    }
+    :host,
+    :root {
+        --in-content-primary-button-background: COLORBG !important;
+        --in-content-primary-button-text-color: COLORFG !important;
+        --in-content-primary-button-background-hover: color-mix(in srgb, COLORBG 82%, #FFF) !important;
+        --in-content-primary-button-text-color-hover: COLORFG !important;
+        --in-content-primary-button-background-active: color-mix(in srgb, COLORBG 64%, #FFF) !important;
+        --in-content-primary-button-text-color-active: COLORFG !important;
+    }
+}
+
 @-moz-document url-prefix('about:preferences') {
     #category-more-from-mozilla,
     #policies-container,
@@ -66,6 +121,17 @@
         display: none !important;
     }
     .top-sites-list .top-site-outer:not(:first-child) {
+        display: none !important;
+    }
+}
+
+@-moz-document url-prefix('about:privatebrowsing') {
+    :root {
+        --in-content-page-background: WINDOWBGPRIVATE !important;
+        --in-content-page-color: WINDOWFGPRIVATE !important;
+        --in-content-text-color: WINDOWFGPRIVATE !important;
+    }
+    .search-inner-wrapper {
         display: none !important;
     }
 }

@@ -451,6 +451,15 @@
 
 
 
+    /* Unified Extensions */
+    toolbar .customization-target toolbarbutton:is(toolbarbutton.subviewbutton):not([disabled]):hover,
+    toolbar .customization-target toolbarbutton:is(toolbarbutton.subviewbutton):not([disabled]):hover:active {
+        background-color: transparent !important; /* Intended behaviour by unified-extensions.css:83 (Firefox 109) */
+        box-shadow: none !important; /* Removes the redundant shadow */
+    }
+
+
+
     @supports -moz-bool-pref("userChrome.tab.color_like_toolbar") {
         :not(:-moz-lwtheme) #tabbrowser-tabs:not([movingtab]) > #tabbrowser-arrowscrollbox > .tabbrowser-tab > .tab-stack > .tab-background[multiselected="true"], :not(:-moz-lwtheme) #tabbrowser-tabs:not([movingtab]) > #tabbrowser-arrowscrollbox > .tabbrowser-tab > .tab-stack > .tab-background[selected="true"] {
             background-color: var(--toolbar-bgcolor) !important;
@@ -473,9 +482,9 @@
                 --autocomplete-popup-highlight-color: rgb(21, 20, 26) !important;
                 --autocomplete-popup-hover-background: rgb(240, 240, 244) !important;
                 --autocomplete-popup-separator-color: rgb(240, 240, 244) !important;
-                --button-active-bgcolor: rgb(207, 207, 216) !important;
-                --button-bgcolor: rgba(207, 207, 216, 0.33000001311302185) !important;
-                --button-hover-bgcolor: rgba(207, 207, 216, 0.6600000262260437) !important;
+                --button-active-bgcolor: color-mix(in srgb, currentColor 30%, transparent) !important;
+                --button-bgcolor: color-mix(in srgb, currentColor 13%, transparent) !important;
+                --button-hover-bgcolor: color-mix(in srgb, currentColor 17%, transparent) !important;
                 --button-primary-active-bgcolor: rgb(5, 62, 148) !important;
                 --button-primary-bgcolor: rgb(0, 97, 224) !important;
                 --button-primary-color: rgb(251, 251, 254) !important;
@@ -531,9 +540,9 @@
                 --autocomplete-popup-highlight-background: rgb(43, 42, 51) !important;
                 --autocomplete-popup-highlight-color: white !important;
                 --autocomplete-popup-separator-color: rgb(82, 82, 94) !important;
-                --button-active-bgcolor: rgb(91, 91, 102) !important;
-                --button-bgcolor: rgb(43, 42, 51) !important;
-                --button-hover-bgcolor: rgb(82, 82, 94) !important;
+                --button-active-bgcolor: color-mix(in srgb, currentColor 30%, transparent) !important;
+                --button-bgcolor: color-mix(in srgb, currentColor 13%, transparent) !important;
+                --button-hover-bgcolor: color-mix(in srgb, currentColor 17%, transparent) !important;
                 --button-primary-active-bgcolor: rgb(170, 242, 255) !important;
                 --button-primary-bgcolor: rgb(0, 221, 255) !important;
                 --button-primary-color: rgb(43, 42, 51) !important;

@@ -32,7 +32,8 @@
             },
             "tabs": {
                 "show_trash_can": false
-            }
+            },
+            "toolbars": { "navigation": ["AddressField", "DownloadButton", "Extensions", "UpdateButton"] }
         }
     }
 

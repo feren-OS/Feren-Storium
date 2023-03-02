@@ -40,7 +40,20 @@
     #wrapper-stop-reload-button,
     #wrapper-new-tab-button,
     #wrapper-alltabs-button,
-    #wrapper-downloads-button {
+    #wrapper-downloads-button,
+    #context-forward,
+    #context-bookmarkpage,
+    #context_bookmarkSelectedTabs,
+    #context_bookmarkTab,
+    #context-bookmarklink,
+    #toolbar-context-bookmarkSelectedTab,
+    #toolbar-context-bookmarkSelectedTabs,
+    #toggle_PersonalToolbar,
+    #toggle_toolbar-menubar,
+    #viewToolbarsMenuSeparator,
+    #toolbarItemsMenuSeparator,
+    .customize-context-moveToPanel,
+    .customize-context-removeFromToolbar {
         display: none !important;
     }
     #urlbar-container {
@@ -126,7 +139,11 @@
         }
         #back-button,
         #reload-button,
-        #stop-button {
+        #stop-button,
+        #context-back,
+        #context-reload,
+        #context-stop,
+        #context-sep-navigation {
             display: none !important;
         }
         :root {
@@ -148,4 +165,9 @@
         margin-inline-start: 0 !important;
     }
 
+    /* Hide sidebar */
+    #sidebar-box,
+    #sidebar-splitter {
+        display: none !important;
+    }
 }

@@ -133,14 +133,14 @@ class main():
     #Is the color light or dark?
     def get_is_light(self, hexcode):
         #string
-        
+
         #Returns:
         # True: Light
         # False: Dark
         redc, greenc, bluec = tuple(int(hexcode[i:i+2], 16) for i in (1, 3, 5)) #Dodge the # character
         lumi = colorsys.rgb_to_hls(redc, greenc, bluec)[1]
-        
-        if lumi > 168:
+
+        if lumi > 153:
             return True
         else:
             return False
@@ -715,16 +715,35 @@ class main():
                     darktabfg = "black"
                 else:
                     darktabfg = "white"
+            privatebg = self.color_filter(iteminfo["color"], -70.0)
+            privatetabbg = self.color_filter(iteminfo["color"], -46.0)
+            if self.get_is_light(privatebg) == True:
+                privatefg = "black"
+                privatefgrgb = "rgba(0, 0, 0, "
+            else:
+                privatefg = "white"
+                privatefgrgb = "rgba(255, 255, 255, "
+            if self.get_is_light(privatetabbg) == True:
+                privatetabfg = "black"
+            else:
+                privatetabfg = "white"
+            colorbg = iteminfo["color"]
+            if self.get_is_light(colorbg) == True:
+                colorfg = "black"
+            else:
+                colorfg = "white"
 
-            with open(targetfolder + "chrome/ice.css", 'r') as fp:
-                result = fp.read().splitlines()
-            linescounted = 0
-            for line in result:
-                result[linescounted] = result[linescounted].replace("WINDOWBGLIGHT", lightbg).replace("WINDOWFGLIGHT", lightfg).replace("TABBGLIGHT", lighttabbg).replace("TABFGLIGHT", lighttabfg).replace("TABFG02LIGHT", lightfgrgb + "0.2)").replace("TABFG03LIGHT", lightfgrgb + "0.3)").replace("WINDOWBGDARK", darkbg).replace("WINDOWFGDARK", darkfg).replace("TABBGDARK", darktabbg).replace("TABFGDARK", darktabfg).replace("TABFG02DARK", darkfgrgb + "0.2)").replace("TABFG03DARK", darkfgrgb + "0.3)")
-                linescounted += 1
 
-            with open(targetfolder + "chrome/ice.css", 'w') as fp:
-                fp.write('\n'.join(result))
+            for i in ["userContent.css", "ice.css"]:
+                with open(targetfolder + "chrome/" + i, 'r') as fp:
+                    result = fp.read().splitlines()
+                linescounted = 0
+                for line in result:
+                    result[linescounted] = result[linescounted].replace("WINDOWBGLIGHT", lightbg).replace("WINDOWFGLIGHT", lightfg).replace("TABBGLIGHT", lighttabbg).replace("TABFGLIGHT", lighttabfg).replace("TABFG02LIGHT", lightfgrgb + "0.2)").replace("TABFG03LIGHT", lightfgrgb + "0.3)").replace("WINDOWBGDARK", darkbg).replace("WINDOWFGDARK", darkfg).replace("TABBGDARK", darktabbg).replace("TABFGDARK", darktabfg).replace("TABFG02DARK", darkfgrgb + "0.2)").replace("TABFG03DARK", darkfgrgb + "0.3)").replace("WINDOWBGPRIVATE", privatebg).replace("WINDOWFGPRIVATE", privatefg).replace("TABBGPRIVATE", privatetabbg).replace("TABFGPRIVATE", privatetabfg).replace("TABFG02PRIVATE", privatefgrgb + "0.2)").replace("TABFG03PRIVATE", privatefgrgb + "0.3)").replace("COLORBG", colorbg).replace("COLORFG", colorfg)
+                    linescounted += 1
+
+                with open(targetfolder + "chrome/" + i, 'w') as fp:
+                    fp.write('\n'.join(result))
 
         #If Flatpak, grant access to the profile's directory
         if "flatpak" in self.sources_storage["browsers"][iteminfo["browser"]]:
