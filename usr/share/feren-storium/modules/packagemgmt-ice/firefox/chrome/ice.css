@@ -48,6 +48,8 @@
         box-shadow: 0 0 4px rgba(0,0,0,.26) !important;
     }
 
+    browser { background-color: var(--lwt-accent-color) !important; }
+
     :root {
         --button-active-bgcolor: color-mix(in srgb, currentColor 30%, transparent) !important;
         --button-bgcolor: color-mix(in srgb, currentColor 13%, transparent) !important;

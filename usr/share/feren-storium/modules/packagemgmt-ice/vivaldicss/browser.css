@@ -51,11 +51,52 @@
 }
 .speeddial .dial-columns .dial {
     height: auto !important;
-    padding: 16px !important;
+}
+#browser.color-behind-tabs-off .speeddial .dial-columns .dial {
+    background-color: var(--colorAccentBg) !important;
+}
+#browser.color-behind-tabs-on .speeddial .dial-columns .dial {
+    background-color: var(--colorBg) !important;
+}
+#browser.color-behind-tabs-off .speeddial .dial-columns .dial .editable-title-container > .button-title {
+    color: var(--colorAccentFg) !important;
+}
+#browser.color-behind-tabs-on .speeddial .dial-columns .dial .editable-title-container > .button-title {
+    color: var(--colorFg) !important;
+}
+.speeddial .dial-columns .dial .favicon {
+    height: 22px !important;
+    width: 22px !important;
+    opacity: 0 !important;
 }
 .speeddial .dial-columns .dial .thumbnail-image {
     display: none;
 }
 .speeddial .dial-columns {
     height: 100% !important;
+}
+.speeddial .dial-columns .dial .editable-title-container::before {
+    background: transparent;
+    content: "";
+    display: block;
+    position: absolute;
+    height: 100%;
+    width: 100%;
+    z-index: 9999;
+}
+.speeddial .dial-columns .dial .editable-title-container > .button-title::before {
+    display: block;
+    content: "";
+    width: 22px;
+    height: 22px;
+    position: absolute;
+    margin-left: -28px;
+    margin-top: -3px;
+    -webkit-mask: url("data:image/svg+xml,%3Csvg viewBox='0 0 26 26' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M15.2929 20.7071C15.6834 21.0976 16.3166 21.0976 16.7071 20.7071C17.0976 20.3166 17.0976 19.6834 16.7071 19.2929L10.4142 13L16.7071 6.70711C17.0976 6.31658 17.0976 5.68342 16.7071 5.29289C16.3166 4.90237 15.6834 4.90237 15.2929 5.29289L7.58575 13L15.2929 20.7071Z'%3E%3C/path%3E%3C/svg%3E%0A");
+}
+#browser.color-behind-tabs-off .speeddial .dial-columns .dial .editable-title-container > .button-title::before {
+    background: var(--colorAccentFg);
+}
+#browser.color-behind-tabs-on .speeddial .dial-columns .dial .editable-title-container > .button-title::before {
+    background: var(--colorFg);
 }

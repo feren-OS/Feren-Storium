@@ -21,7 +21,7 @@ from threading import Thread
 gettext.install("feren-solstice-pymodule", "/usr/share/locale", names="ngettext")
 from PIL import Image
 import magic
-
+import math
 
 #Developer options
 applications_directory = os.path.expanduser("~") + "/.local/share/applications"
@@ -138,9 +138,16 @@ class main():
         # True: Light
         # False: Dark
         redc, greenc, bluec = tuple(int(hexcode[i:i+2], 16) for i in (1, 3, 5)) #Dodge the # character
-        lumi = colorsys.rgb_to_hls(redc, greenc, bluec)[1]
+        rSRGB = redc / 255
+        gSRGB = greenc / 255
+        bSRGB = bluec / 255
 
-        if lumi > 153:
+        r = rSRGB / 12.92 if rSRGB <= .03928 else math.pow((rSRGB + .055) / 1.055, 2.4)
+        g = gSRGB / 12.92 if rSRGB <= .03928 else math.pow((gSRGB + .055) / 1.055, 2.4)
+        b = rSRGB / 12.92 if bSRGB <= .03928 else math.pow((bSRGB + .055) / 1.055, 2.4)
+        lumi = .2126 * r + .7152 * g + .0722 * b
+
+        if lumi > 0.4:
             return True
         else:
             return False
@@ -872,6 +879,9 @@ class main():
         preferencedict["vivaldi"]["themes"]["system"][0]["colorHighlightBg"] = color
         preferencedict["vivaldi"]["themes"]["system"][1]["colorHighlightBg"] = color
         preferencedict["vivaldi"]["themes"]["system"][2]["colorHighlightBg"] = color
+        preferencedict["vivaldi"]["themes"]["system"][0]["colorWindowBg"] = accent if accentonwindow else bg
+        preferencedict["vivaldi"]["themes"]["system"][1]["colorWindowBg"] = accentdark if accentonwindow else bgdark
+        preferencedict["vivaldi"]["themes"]["system"][2]["colorWindowBg"] = bgprivate
         #Now set text colours where appropriate
         # Normal foregrounds
         if self.get_is_light(bg) == False: #Dark BG (predefined colour is black so no else)
@@ -915,7 +925,7 @@ class main():
 
         #Then tweak the values
         result["roots"]["bookmark_bar"]["children"][0]["children"][0]["meta_info"]["Thumbnail"] = "data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw=="
-        result["roots"]["bookmark_bar"]["children"][0]["children"][0]["name"] = _("Return to %s") % name
+        result["roots"]["bookmark_bar"]["children"][0]["children"][0]["name"] = _("%s") % name
         result["roots"]["bookmark_bar"]["children"][0]["children"][0]["url"] = website
 
         #Then write to Bookmarks
