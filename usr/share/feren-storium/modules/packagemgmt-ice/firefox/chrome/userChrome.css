@@ -60,25 +60,6 @@
         max-width: 0px !important;
         min-width: 0px !important;
     }
-    #customization-content-container {
-        background: #212121 !important;
-        color: #FFFFFF !important;
-    }
-    #customization-footer {
-        background: #383838 !important;
-    }
-    .customizationmode-button {
-        background-color: rgba(255, 255, 255, 0.16) !important;
-        color: #FFFFFF !important;
-    }
-    .customizationmode-button:hover {
-        background-color: rgba(255, 255, 255, 0.32) !important;
-        color: #FFFFFF !important;
-    }
-    .customizationmode-button:active {
-        background-color: rgba(255, 255, 255, 0.46) !important;
-        color: #FFFFFF !important;
-    }
     #customization-uidensity-menuitem-compact {
         list-style-image: url("chrome://browser/skin/customizableui/density-normal.svg") !important;
     }
@@ -169,5 +150,11 @@
     #sidebar-box,
     #sidebar-splitter {
         display: none !important;
+    }
+
+    :root {
+        --button-active-bgcolor: color-mix(in srgb, currentColor 30%, transparent) !important;
+        --button-bgcolor: color-mix(in srgb, currentColor 13%, transparent) !important;
+        --button-hover-bgcolor: color-mix(in srgb, currentColor 17%, transparent) !important;
     }
 }
