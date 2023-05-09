@@ -486,7 +486,6 @@
         "solaccent": "#963CE1",
         "solaccent-dark": "#963CE1",
         "solcolor": "#963CE1",
-        "solaccentwindow": true,
         "solwebsite": "https://www.bbc.com/bitesize",
         "lastupdate": "20211210"
     },
@@ -511,7 +510,6 @@
         "solaccent": "#1D1D1D",
         "solaccent-dark": "#1D1D1D",
         "solcolor": "#C4E90C",
-        "solaccentwindow": true,
         "solwebsite": "https://www.metoffice.gov.uk/weather",
         "lastupdate": "20211210"
     },
@@ -745,7 +743,6 @@
         "solaccent": "#5296FF",
         "solaccent-dark": "#5296FF",
         "solcolor": "#0645AD",
-        "solaccentwindow": true,
         "solwebsite": "https://betawiki.net/wiki/Main_Page",
         "lastupdate": "20220328"
     },
@@ -872,7 +869,6 @@
         "solaccent": "#2E51A2",
         "solaccent-dark": "#222222",
         "solcolor": "#2E51A2",
-        "solaccentwindow": true,
         "solwebsite": "https://myanimelist.net/?_location=homescreen",
         "lastupdate": "20211210"
     },
@@ -922,7 +918,7 @@
         "solaccent": "#4F4F4F",
         "solaccent-dark": "#4F4F4F",
         "solcolor": "#123BB6",
-        "solaccentwindow": true,
+        "solchromicolor": "-11579569",
         "solwebsite": "https://bing.com/search?q=Bing+AI&showconv=1&FORM=hpcodx",
         "lastupdate": "20211210"
     },
@@ -997,32 +993,6 @@
         "solaccent": "#3E8ED0",
         "solaccent-dark": "#3E8ED0",
         "solcolor": "#3E8ED0",
-        "solaccentwindow": true,
-        "solwebsite": "https://phish.report",
-        "lastupdate": "20211210"
-    },
-    "phish-report": {
-        "childids": [],
-        "realname": "Phish Report",
-        "iconname": "phishreport",
-        "iconuri": "https://phish.report/static/android-chrome-512x512-ZT3ULTOQ.png",
-        "shortdescription": "",
-        "description": "TODO",
-        "images": [""],
-        "category": "solstice-accessories",
-        "keywords": "Phishing;Phish;Report;Websites;",
-        "author": "phish.report",
-        "website": "https://phish.report",
-        "donateurl": "",
-        "bugreporturl": "",
-        "tosurl": "",
-        "privpolurl": "",
-        "solbackground": "#FFFFFF",
-        "solbackground-dark": "#FFFFFF",
-        "solaccent": "#3E8ED0",
-        "solaccent-dark": "#3E8ED0",
-        "solcolor": "#3E8ED0",
-        "solaccentwindow": true,
         "solwebsite": "https://phish.report",
         "lastupdate": "20211210"
     },

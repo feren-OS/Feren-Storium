@@ -9,13 +9,111 @@ import sys
 import locale #Translations go brrr
 import gettext #Translations go brrr
 import getpass #Used for finding username
+from functools import partial
 
 import os
 import time
 
 from gi.repository import Gtk, Gio, Gdk, GLib, Pango, GObject, GdkPixbuf
-from threading import Thread
+from threading import Thread, Event
 from queue import Queue, Empty
+
+####Changes confirming dialog
+class ChangesBonusesDialog(Gtk.Window):
+    def __init__(self):
+        #TODO: Check if storeapi is even needed - likely will for icons if nothing else
+        Gtk.Window.__init__(self)
+        self.set_position(Gtk.WindowPosition.CENTER)
+        self.set_title("Preliminary confirmation/bonus-select dialog")
+
+    def prepare(self, storeapi, taskbody, idsadded, idsupdated, idsremoved, bonusavailability):
+        self.windowcontents = Gtk.VBox()
+
+        self.bonuses = []
+        self.response = False
+
+        headerlabel = Gtk.Label(label=_("Personalise your %s experience") % taskbody.itemid)
+        self.windowcontents.pack_start(headerlabel, False, False, 0)
+        subheaderlabel = Gtk.Label(label=_("Select the extra items that you would like to add to %s:") % taskbody.itemid)
+        self.windowcontents.pack_start(subheaderlabel, False, False, 0)
+
+        installsheader = Gtk.Label(label=_("The following will also be installed:"))
+        self.windowcontents.pack_start(installsheader, False, False, 0)
+        for i in idsadded:
+            addition = Gtk.Label(label=i)
+            self.windowcontents.pack_start(addition, False, False, 0)
+
+        updatesheader = Gtk.Label(label=_("The following will also be updated:"))
+        self.windowcontents.pack_start(updatesheader, False, False, 0)
+        for i in idsupdated:
+            update = Gtk.Label(label=i)
+            self.windowcontents.pack_start(update, False, False, 0)
+
+        removalsheader = Gtk.Label(label=_("The following will also be removed:"))
+        self.windowcontents.pack_start(removalsheader, False, False, 0)
+        for i in idsremoved:
+            removal = Gtk.Label(label=i)
+            self.windowcontents.pack_start(removal, False, False, 0)
+
+        bonusesheader = Gtk.Label(label=_("Choose extra items to add to this application:"))
+        self.windowcontents.pack_start(bonusesheader, False, False, 0)
+
+        for i in bonusavailability:
+            bonusoption = Gtk.CheckButton(label=i)
+            bonusoption.connect('toggled', partial(self.set_bonus_selected, i))
+            self.windowcontents.pack_start(bonusoption, False, False, 0)
+
+        okbutton = Gtk.Button(label="Proceed")
+        okbutton.connect('clicked', self.ok_clicked)
+        cancelbutton = Gtk.Button(label="Cancel")
+        cancelbutton.connect('clicked', self.cancel_clicked)
+        self.windowcontents.pack_start(okbutton, False, False, 0)
+        self.windowcontents.pack_start(cancelbutton, False, False, 0)
+
+        self.add(self.windowcontents)
+        self.connect('delete-event', self.cancel_clicked)
+
+        self.show_all()
+
+        if len(idsadded) > 0 or len(idsupdated) > 0 or len(idsremoved) > 0:
+            headerlabel.set_text(_("The following changes will be made"))
+            if taskbody.operation == 0:
+                subheaderlabel.set_text(_("Installing this software will result in the following other changes being made to this computer, would you like to continue?"))
+            elif taskbody.operation == 1:
+                subheaderlabel.set_text(_("Removing this software will result in the following other changes being made to this computer, would you like to continue?"))
+            elif taskbody.operation == 2:
+                subheaderlabel.set_text(_("Updating this software will result in the following other changes being made to this computer, would you like to continue?"))
+            bonusesheader.set_visible(len(bonusavailability) > 0)
+        else:
+            bonusesheader.set_visible(False) #No changes means this is only for bonus selection
+        installsheader.set_visible(len(idsadded) > 0)
+        updatesheader.set_visible(len(idsupdated) > 0)
+        removalsheader.set_visible(len(idsremoved) > 0)
+
+    def set_bonus_selected(self, bonusid, widget, data=None):
+        if widget.get_active() == True:
+            self.bonuses.append(bonusid)
+            print("Added " + bonusid)
+        else:
+            self.bonuses.remove(bonusid)
+            print("Removed " + bonusid)
+
+    def exit_dialog(self):
+        GLib.idle_add(self.hide,)
+        GLib.idle_add(self.windowcontents.destroy,)
+
+    def cancel_clicked(self, button, data=None):
+        self.responded.set() #Ends hold
+
+    def ok_clicked(self, button, data=None):
+        self.response = True
+        self.responded.set()
+
+    def run(self):
+        self.responded = Event() #Because GTK is a big dumdum we can't just have nice things so have to fall back to using threading events to hold code until the user's response happens
+        self.responded.wait()
+        self.exit_dialog()
+        return self.response, self.bonuses
 
 
 ####Application icon (used for application details page, and tasks buttons)
@@ -141,8 +239,8 @@ class AppDetailsHeader(Gtk.VBox):
 
         self.installapp_btn.connect("clicked", self.installapp_pressed)
         #self.installappnosource_btn.connect("clicked", self.installappnosource_pressed)
-        #self.updateapp_btn.connect("clicked", self.updateapp_pressed)
-        #self.removeapp_btn.connect("clicked", self.removeapp_pressed)
+        self.updateapp_btn.connect("clicked", self.updateapp_pressed)
+        self.removeapp_btn.connect("clicked", self.removeapp_pressed)
         #self.cancelapp_btn.connect("clicked", self.cancelapp_pressed)
 
         #For sources
@@ -191,9 +289,7 @@ class AppDetailsHeader(Gtk.VBox):
             n = 0
             for item in self.current_sourcelist:
                 if item == sourceid:
-                    thread = Thread(target=self.guimain.pagearea._sourceChange,
-                            args=( self.guimain.current_itemid, list(self.current_sourcelist.keys())[n] ) )
-                    thread.start()
+                    GLib.idle_add(self.app_source_dropdown.set_active, n)
                     break
                 n += 1
 
@@ -210,9 +306,25 @@ class AppDetailsHeader(Gtk.VBox):
 
         print("TEMPDEBUG SOURCE_DROPDOWN_CHANGED - source changed to " + self.guimain.current_sourceid)
 
-        thread = Thread(target=self.load_subsources,
+        thread = Thread(target=self.load_sourcedata,
                             args=(self.guimain.current_sourceid, self.guimain.current_itemid) )
         thread.start()
+
+
+    def load_sourcedata(self, sourceid, itemid):
+        if itemid != self.guimain.current_itemid:
+            return
+
+        GLib.idle_add(self.app_subsource_dropdown.set_visible, False) #Temporarily hide the subsource selector while loading
+        self.load_subsources(sourceid, itemid)
+
+        if itemid != self.guimain.current_itemid:
+            return
+
+        self.load_item_status(sourceid, itemid)
+
+        if itemid != self.guimain.current_itemid:
+            return
 
 
     def load_subsources(self, sourceid, itemid):
@@ -248,6 +360,47 @@ class AppDetailsHeader(Gtk.VBox):
         print("TEMPDEBUG SUBSOURCE_DROPDOWN_CHANGED - subsource changed to " + self.guimain.current_subsourceid)
 
 
+    def load_item_status(self, sourceid, itemid):
+        if itemid != self.guimain.current_itemid:
+            return
+
+        #Disable all buttons, and hide subsource selection
+        GLib.idle_add(self.installapp_btn.set_sensitive, False)
+        GLib.idle_add(self.installappnosource_btn.set_sensitive, False)
+        GLib.idle_add(self.updateapp_btn.set_sensitive, False)
+        GLib.idle_add(self.removeapp_btn.set_sensitive, False)
+        GLib.idle_add(self.cancelapp_btn.set_sensitive, False)
+        GLib.idle_add(self.app_subsource_dropdown.set_visible, False)
+
+        result, subsource = self.guimain.storeapi.getAppStatus(self.guimain.current_itemid, self.guimain.current_sourceid)
+
+        if subsource != None: #If a subsource was provided, switch to it
+            n = 0
+            for item in self.current_subsources:
+                if item == subsource:
+                    GLib.idle_add(self.app_subsource_dropdown.set_active, n)
+                    break
+                n += 1
+
+        if result >= 20 and result <= 22: #Currently being worked on
+            pass #TODO
+        elif result >= 10 and result <= 12: #Waiting in tasks queue
+            pass #TODO
+        else:
+            if result == 0: #Not installed
+                GLib.idle_add(self.installapp_btn.set_sensitive, True)
+                GLib.idle_add(self.app_subsource_dropdown.set_visible, True)
+            elif result == 1: #Installed
+                GLib.idle_add(self.removeapp_btn.set_sensitive, True)
+            elif result == 2: #Updatable
+                GLib.idle_add(self.updateapp_btn.set_sensitive, True)
+            elif result == 3: #Available in disabled source
+                GLib.idle_add(self.installappnosource_btn.set_sensitive, True)
+                GLib.idle_add(self.app_subsource_dropdown.set_visible, True)
+
+        print("TEMPDEBUG LOAD_ITEM_STATUS - result is {0}, subsource is {1}".format(str(result), subsource))
+
+
     def load_data(self, itemid, pkginfo):
         if self.guimain.current_itemid != itemid:
             return
@@ -269,6 +422,12 @@ class AppDetailsHeader(Gtk.VBox):
 
     def installapp_pressed(self, btn):
         self.guimain.storeapi.installApp(self.guimain.current_itemid, self.guimain.current_sourceid, self.guimain.current_subsourceid)
+
+    def updateapp_pressed(self, btn):
+        self.guimain.storeapi.updateApp(self.guimain.current_itemid, self.guimain.current_sourceid, self.guimain.current_subsourceid)
+
+    def removeapp_pressed(self, btn):
+        self.guimain.storeapi.removeApp(self.guimain.current_itemid, self.guimain.current_sourceid, self.guimain.current_subsourceid)
 
 
 
@@ -720,6 +879,9 @@ class module(object):
         #Program identification for the Desktop Environment
         GLib.set_prgname('/usr/bin/feren-storium')
 
+        #Changes and bonuses dialog, stored now because GTK.
+        self.changesbonusesdialog = ChangesBonusesDialog()
+
 
         # Main window
         self.storewnd = Gtk.Window()
@@ -729,7 +891,6 @@ class module(object):
         self.storewnd.set_size_request(850, 540)
         self.windowcontents = Gtk.VBox()
         self.windowcontents.set_spacing(0)
-
 
         #Top toolbar buttons
         status_img = Gtk.Image()
@@ -763,7 +924,6 @@ class module(object):
         self.gohome_btn.set_name("gohome-btn")
         self.gohome_handle_id = self.gohome_btn.connect("clicked", self._gohome_pressed)
 
-
         #Top toolbar
         self.maintoolbar = Gtk.Box()
         self.maintoolbar.get_style_context().add_class(Gtk.STYLE_CLASS_PRIMARY_TOOLBAR)
@@ -773,7 +933,6 @@ class module(object):
         self.maintoolbar.pack_end(self.search_btn, False, True, 0)
         self.maintoolbar.pack_end(self.status_btn, False, True, 0)
         self.maintoolbar.pack_end(self.gohome_btn, False, True, 0)
-
 
         #Assemble window so far
         self.storewnd.add(self.windowcontents)
@@ -823,20 +982,12 @@ class module(object):
         self.pagearea.gotoID(itemid)
 
     def showTaskConfirmation(self, taskbody, idsadded, idsupdated, idsremoved, bonusavailability):
-        import ast
-
         #TODO: Make an actual GUI for this
-        print("Confirm pending operation " + str(taskbody.operation) + " to " + taskbody.itemid + " of module" + taskbody.moduleid + " in source " + taskbody.sourceid + ", " + taskbody.subsourceid + "?")
+        print("Opened dialog to confirm pending operation of " + str(taskbody.operation) + " to " + taskbody.itemid + " of module" + taskbody.moduleid + " in source " + taskbody.sourceid + ", " + taskbody.subsourceid)
 
-        print("The following bonuses are available:")
-        for bonus in bonusavailability:
-            print("- " + bonus)
+        if len(idsadded) == 0 and len(idsupdated) == 0 and len(idsremoved) == 0 and len(bonusavailability) == 0:
+            return True, [] #Skip the confirmation if there is nothing extra to confirm
 
-        print("")
-        answer = input("Answer: ")
-        if not answer == "yes":
-            return False, []
+        GLib.idle_add(self.changesbonusesdialog.prepare, self.storeapi, taskbody, idsadded, idsupdated, idsremoved, bonusavailability)
+        return self.changesbonusesdialog.run()
 
-        print("")
-        bonuses = ast.literal_eval(input("Choose bonuses: "))
-        return True, bonuses

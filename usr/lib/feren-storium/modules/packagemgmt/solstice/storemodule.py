@@ -94,10 +94,10 @@ class module():
         for browsertype in variables.sources:
             for browser in variables.sources[browsertype]:
                 if "required-file" not in variables.sources[browsertype][browser]:
-                    break #Skip evidently unavailable browsers
+                    continue #Skip evidently unavailable browsers
                 for candidate in variables.sources[browsertype][browser]["required-file"]:
                     if os.path.isfile(candidate):
-                        subsources[browsertype+":"+browser] = {"name": variables.sources[browsertype][browser]["name"]}
+                        subsources[browsertype+"?"+browser] = {"name": variables.sources[browsertype][browser]["name"]}
                         break #Don't need to check more candidates
         
         #Return complete sources value
@@ -132,61 +132,88 @@ class module():
         # 1 - Installed
         # 2 - Updatable
         # 3 - Available in a disabled source (unused here)
-        # 403 - Not in repositories (unused here)
+        # 403 - Not Available (unused here)
 
         #NOTE: sourceid is always 'solstice' due to self.getSources
-        currentsubsource = "chromium:vivaldi" #NOTE: We shouldn't hardcode this, but given the massive unlikelihood the default value will ever change, meh.
+        currentsubsource = None
         desktopfile = ""
 
         #First, look for all possible cases of the .desktop file, to see if it exists
+        donelooking = False
         for browsertype in variables.sources:
+            if donelooking == True:
+                break
             for browser in variables.sources[browsertype]: #NOTE: We don't know the subsource, so we just
                 if "classprefix" not in variables.sources[browsertype][browser]:
-                    break #Skip evidently unavailable browsers
+                    continue #Skip evidently unavailable browsers
+                classprefix = variables.sources[browsertype][browser]["classprefix"]
                 if os.path.isfile(variables.applications_directory + "/" + classprefix + pkgid + ".desktop"):
-                    currentsubsource = browsertype + ":" + browser #Consistent ID with self.getSources
+                    currentsubsource = browsertype + "?" + browser #Consistent ID with self.getSources
                     desktopfile = variables.applications_directory + "/" + classprefix + pkgid + ".desktop"
+                    donelooking = True
                     break
 
         if desktopfile == "":
-            return 0 #No .desktop file means it is not installed
+            return 0, None #No .desktop file means it is not installed
 
         #Open the .desktop file, and check its lastupdated
         entry=DesktopEntry()
         entry.parse(desktopfile)
         lastupdated = entry.get("X-Solstice-LastUpdate")
+        currentsubsource = entry.get("X-Solstice-BrowserType") + "?" + entry.get("X-Solstice-Browser")
         if lastupdated == "":
-            return 2 #Lacking a lastupdated value immediately means it needs an update
+            return 2, currentsubsource #Lacking a lastupdated value immediately means it needs an update
         if lastupdated != self.packagestorage[pkgid]["lastupdate"]:
-            return 2 #Non-matching lastupdate means it needs updating
+            return 2, currentsubsource #Non-matching lastupdate means it needs updating
 
-        return 1 #If code reaches this line, it means the shortcut exists and is up-to-date
-        #TODO: Return currentsubsource too irregardless, just so update works and doesn't reset the shortcut's browser when working
+        return 1, currentsubsource #If code reaches this line, it means the shortcut exists and is up-to-date
     
     
     def cleanupModule(self):
         #Cleanup after package operations
         self.currentpackagename = ""
         self.packagemgmtbusy = False
-        
-    
-    def get_package_changes(self, pkgid, operationtype, pkgtype, sourceid, subsourceid):
+
+
+    def getTaskChanges(self, itemid, operation, sourceid, subsourceid):
         #Return empty values as there is no extra items being added... only bonuses being added.
-        return {"install": [], "update": [], "remove": [], "sourceadd": [], "sourceremove": []}
-        
+        return [], [], [], [], []
+        #install, update, remove, sourceadd, sourceremove
+
+    def getBonuses(self, itemid, sourceid, subsourceid):
+        #TODO: Website-specific bonuses, and website-specific bonus-priorities
+        browsertype, browser = subsourceid.split("?")
+        #Check the browser for bonuses support in Solstice
+        bonusesavailable = False
+        if "bonusesavailable" in variables.sources[browsertype][browser]:
+            bonusesavailable = variables.sources[browsertype][browser]["bonusesavailable"]
+        if bonusesavailable == False:
+            return [] #Return no bonuses on no-bonuses browsers
+
+        #Now get the list of bonuses from Solstice for the respective browser
+        if browsertype == "chromium":
+            result = []
+            with open("/usr/share/solstice/chromium/bonuses.json", 'r') as fp:
+                for i in json.loads(fp.read()):
+                    result.append(i)
+            return result
+
+        return [] #Fallback value
+
     
     #Application management
     def increment_progress(self, tasksdone, tobedone, progress_callback):
         tasksdone += 1
         progress_callback((tasksdone / tobedone) * 100)
         return tasksdone
-    def task_install_package(self, taskdata, progress_callback):
+    def task_install_package(self, taskdata, progress_callback, forupdate=False):
         #Install package and return exit code
-        self.packagemgmtbusy = True
-        self.currentpackagename = taskdata.itemid #FIXME: Do we need this?
+        if forupdate == False:
+            self.packagemgmtbusy = True
+            self.currentpackagename = taskdata.itemid #FIXME: Do we need this?
 
         #Take note of package information so we can reuse its information
-        pkginfo = self.packagestorage[taskdata.itemid] #TODO: Replace this with a call to complete information
+        pkginfo = self.getInfo(taskdata.itemid, "", "") #TODO: Replace this with a call to complete information
         #package_information = self.getInfo(taskdata.itemid, taskdata.sourceid, taskdata.subsourceid)
 
         #{'type-importance': ['solstice'], 'realname': 'BBC News', 'iconname': 'bbc-news', 'iconlocal': '', 'iconuri': 'http://m.files.bbci.co.uk/modules/bbc-morph-news-waf-page-meta/5.2.0/apple-touch-icon.png', 'shortdescription': '', 'description': 'TODO', 'website': 'https://www.bbc.co.uk/news', 'donateurl': '', 'category': 'ice-internet', 'images': [''], 'sources-available': ['all'], 'all': {'keywords': 'BBC;News;UK;World;Africa;Asia;Australia;Europe;America;Canada;', 'author': 'BBC', 'bugreporturl': '', 'tosurl': '', 'privpolurl': '', 'icecolor': '#FFFFFF', 'icecolordark': '#000000', 'icecolorhighlight': '#bb1919', 'icelastupdated': '20211210'}, 'keywords': 'BBC;News;UK;World;Africa;Asia;Australia;Europe;America;Canada;', 'author': 'BBC', 'bugreporturl': '', 'tosurl': '', 'privpolurl': '', 'icecolor': '#FFFFFF', 'icecolordark': '#000000', 'icecolorhighlight': '#bb1919', 'icelastupdated': '20211210'}
@@ -194,37 +221,39 @@ class module():
         #First remove the files just in case there's a partial installation
         #TODO self.task_remove_package(taskdata, None, True)
 
-        tasksdone = 0
-        #Calculate tasks to do
-        tobedone = 1 + len(pkginfo["childids"]) #.desktop files
-        tobedone = tobedone * 2 #icon files - the number of .desktop files = the number of icon IDs created NOTE: This only works due to the code's current order
-
+        if not forupdate:
+            tasksdone = 0
+            #Calculate tasks to do
+            tobedone = 1 + len(pkginfo["childids"]) #.desktop files
+            tobedone = tobedone * 2 #icon files - the number of .desktop files = the number of icon IDs created NOTE: This only works due to the code's current order
 
         #Save main icon to local hicolor icon set
         iconsource = None
         try:
-            iconsource = self.storeapi.getFallbackIconLocation("", package_information["iconuri"], taskdata.itemid)
+            iconsource = self.storeapi.getFallbackIconLocation("", pkginfo["iconuri"], taskdata.itemid)
         except Exception as e:
             print(e) #TODO: Fail here
         if iconsource != None:
             self.export_icon_file(taskdata.itemid, iconsource)
-        tasksdone = self.increment_progress(tasksdone, tobedone, progress_callback)
+        if not forupdate:
+            tasksdone = self.increment_progress(tasksdone, tobedone, progress_callback)
         #...and repeat for the extra icons
         for childsuffix in pkginfo["childids"]:
             iconsource = None
             childid = taskdata.itemid + "-" + childsuffix
             try:
-                childinfo = self.packagestorage[childid] #TODO: Replace this with a call to complete information
+                childinfo = self.getInfo(childid, "", "") #TODO: Replace this with a call to complete information
                 iconsource = self.storeapi.getFallbackIconLocation("", childinfo["iconuri"], taskdata.itemid + "-" + childsuffix)
             except Exception as e:
                 print(e) #TODO: Fail here
             if iconsource != None:
                 self.export_icon_file(childid, iconsource)
-            tasksdone = self.increment_progress(tasksdone, tobedone, progress_callback)
+            if not forupdate:
+                tasksdone = self.increment_progress(tasksdone, tobedone, progress_callback)
 
 
         #Now, create the .desktop file
-        browsertype, browser = taskdata.subsourceid.split(":")
+        browsertype, browser = taskdata.subsourceid.split("?")
         classprefix = variables.sources[browsertype][browser]["classprefix"]
         desktopfile = variables.applications_directory + "/" + classprefix + taskdata.itemid + ".desktop"
         with open(desktopfile, 'w') as fp:
@@ -288,7 +317,7 @@ class module():
             if "solaccentwindow" in pkginfo: #FIXME: Remove all these optionals, instead making them be filled in by self.getInfo
                 fp.write("X-Solstice-AccentWindow=%s\n" % utils.boolean_to_jsonbool(pkginfo["solaccentwindow"]))
             if "solchromicolor" in pkginfo: #chromicolor's optional
-                fp.write("X-Solstice-ChromiColor=%s\n" % utils.boolean_to_jsonbool(pkginfo["solchromicolor"]))
+                fp.write("X-Solstice-ChromiColor=%s\n" % pkginfo["solchromicolor"])
             fp.write("X-Solstice-LastUpdate=%s\n" % pkginfo["lastupdate"])
 
             #Now write the force-manager action
@@ -301,18 +330,19 @@ class module():
             fp.write("Exec=/usr/bin/solstice {0} --force-manager\n".format('"' + desktopfile + '"'))
         #Make the shortcut executable
         os.system("chmod +x " + desktopfile)
-        tasksdone = self.increment_progress(tasksdone, tobedone, progress_callback) #Update progress
+        if not forupdate:
+            tasksdone = self.increment_progress(tasksdone, tobedone, progress_callback) #Update progress
 
         #Then, create the childrens' .desktop files
         for childsuffix in pkginfo["childids"]:
             childid = taskdata.itemid + "-" + childsuffix
-            childinfo = self.packagestorage[childid] #TODO: Replace this with a call to complete information
+            childinfo = self.getInfo(childid, "", "") #TODO: Replace this with a call to complete information
             desktopfile = variables.applications_directory + "/" + classprefix + childid + ".desktop"
             with open(desktopfile, 'w') as fp:
                 fp.write("[Desktop Entry]\n")
                 fp.write("Version=1.0\n")
-                fp.write("Name={0}\n".format(pkginfo["realname"]))
-                fp.write("Comment={0}\n".format(pkginfo["shortdescription"]))
+                fp.write("Name={0}\n".format(childinfo["realname"]))
+                fp.write("Comment={0}\n".format(childinfo["shortdescription"] if "shortdescription" in childinfo else pkginfo["shortdescription"])) #FIXME
                 fp.write("Icon={0}\n".format("solstice-" + childid))
 
                 fp.write("Exec=/usr/bin/solstice {0}\n".format('"' + desktopfile + '"'))
@@ -361,564 +391,151 @@ class module():
                 fp.write("Exec=/usr/bin/solstice {0} --force-manager\n".format('"' + desktopfile + '"'))
             #Make the shortcut executable
             os.system("chmod +x " + desktopfile)
-            tasksdone = self.increment_progress(tasksdone, tobedone, progress_callback)
+            if not forupdate:
+                tasksdone = self.increment_progress(tasksdone, tobedone, progress_callback)
 
         return True
     
     
-    def task_remove_package(self, taskdata, progress_callback, forinstall=False):
-#         if os.path.isfile(os.path.expanduser("~") + "/.local/share/feren-solstice/%s/.solstice-active-pid" % taskdata["packagename"]):
-#             with open(os.path.expanduser("~") + "/.local/share/feren-solstice/%s/.solstice-active-pid" % taskdata["packagename"], 'r') as pidfile:
-#                 currentpid = pidfile.readline()
-#                 try:
-#                     currentpid = int(currentpid)
-#                     os.kill(currentpid, signal.SIGKILL) #Kill the process immediately, so we can remove it
-#                     time.sleep(0.4) #Should give enough time for everything to clear out process-wise
-#                 except:
-#                     pass
-#
-#         if not forinstall: # We call this in the install process to clear out partial installs, so for those times we want to skip THIS code to not confuse Store's Brain or anything that could get confused from this module 'unlocking' temporarily
-#             self.packagemgmtbusy = True
-#             self.currentpackagename = taskdata["packagename"]
-#
-#         icepackageinfo = taskdata["pkginfo"]
-#         if "extrasids" in icepackageinfo:
-#             iceextrasids = iceextrasids
-#         else:
-#             iceextrasids = []
-#
-#         #Delete the files and the folders and done
-#         if os.path.isfile(os.path.expanduser("~") + "/.local/share/color-schemes/%s.colors" % taskdata["packagename"]):
-#             try:
-#                 os.remove(os.path.expanduser("~") + "/.local/share/color-schemes/%s.colors" % taskdata["packagename"])
-#                 #TODO: Remove window rule
-#             except Exception as exceptionstr:
-#                 if not forinstall:
-#                     raise SolsticeModuleException(_("Failed to uninstall {0}: {1} was encountered when removing the colour scheme").format(taskdata["packagename"], exceptionstr))
-#             #os.system("qdbus org.kde.KWin /KWin reconfigure")
-#
-#
-#
-#
-#         try:
-#             if os.path.isfile(os.path.expanduser("~") + "/.local/share/applications/%s.desktop" % taskdata["packagename"]):
-#                 os.remove(os.path.expanduser("~") + "/.local/share/applications/%s.desktop" % taskdata["packagename"])
-#             if os.path.isfile(os.path.expanduser("~") + "/.local/share/applications/vivaldi-%s.desktop" % taskdata["packagename"]):
-#                 os.remove(os.path.expanduser("~") + "/.local/share/applications/vivaldi-%s.desktop" % taskdata["packagename"])
-#         except Exception as exceptionstr:
-#             if not forinstall:
-#                 raise SolsticeModuleException(_("Failed to uninstall {0}: {1} was encountered when removing the shortcut from the Applications Menu").format(taskdata["packagename"], exceptionstr))
-#
-#         #Now repeat for extras, if appropriate
-#         extrascount = 0 #Classic strat for iteration
-#         for extraid in iceextrasids:
-#             try:
-#                 if os.path.isfile(os.path.expanduser("~") + "/.local/share/applications/{0}-{1}.desktop".format(taskdata["packagename"], extraid)):
-#                     os.remove(os.path.expanduser("~") + "/.local/share/applications/{0}-{1}.desktop".format(taskdata["packagename"], extraid))
-#             except Exception as exceptionstr:
-#                 self.task_remove_package(taskdata, None, True) #Remove profile's files/folders on failure
-#                 raise SolsticeModuleException(_("Failed to uninstall {0}: {1} was encountered when removing extra shortcuts from the Applications Menu").format(taskdata["packagename"], exceptionstr))
-#             extrascount += 1
-#
-#         if not forinstall:
-#             progress_callback(50)
-#
-#         try:
-#             shutil.rmtree(os.path.expanduser("~") + "/.local/share/feren-solstice/%s" % taskdata["packagename"])
-#         except Exception as exceptionstr:
-#             if not forinstall:
-#                 raise SolsticeModuleException(_("Failed to uninstall {0}: {1} was encountered when deleting the Chromium-based profile").format(taskdata["packagename"], exceptionstr))
-#
-#         if not forinstall:
-#             progress_callback(100)
+    def task_remove_package(self, taskdata, progress_callback, forupdate=False):
+        #Remove package and return exit code
+        if forupdate == False:
+            self.packagemgmtbusy = True
+            self.currentpackagename = taskdata.itemid #FIXME: Do we need this?
+
+        #Take note of package information so we can reuse its information
+        pkginfo = self.getInfo(taskdata.itemid, "", "") #TODO: Replace this with a call to complete information
+
+        profilesdir = "{0}/{1}".format(variables.solstice_profiles_directory, taskdata.itemid)
+        childids = []
+        itemnames = []
+
+        #Store all existing desktopfiles for this item, including unused ones, to fully delete the shortcuts later
+        parentdesktopfiles = []
+        childdesktopfiles = []
+
+        #Get all .desktop files
+        for browsertype in variables.sources:
+            for browser in variables.sources[browsertype]: #Make sure unwanted .desktop files get nuked too, in case they somehow exist
+                if "classprefix" not in variables.sources[browsertype][browser]:
+                    continue #Skip evidently unavailable browsers
+                classprefix = variables.sources[browsertype][browser]["classprefix"]
+                desktopfile = variables.applications_directory + "/" + classprefix + taskdata.itemid + ".desktop"
+                if os.path.isfile(desktopfile):
+                    if desktopfile not in parentdesktopfiles:
+                        parentdesktopfiles.append(desktopfile)
+
+        #Get childids, and human-readable names, from the .desktop files
+        entry=DesktopEntry()
+        for i in parentdesktopfiles:
+            entry.parse(i)
+            for childid in ast.literal_eval(entry.get("X-Solstice-Children")):
+                if childid not in childids:
+                    childids.append(childid)
+            itemname = entry.getName()
+            if itemname not in itemnames:
+                itemnames.append(itemname)
+        for childid in pkginfo["childids"]: #Fallback just in case, TODO: Replace this with a call to complete information
+            if childid not in childids:
+                childids.append(childid)
+
+        #Get all .desktop files for each children ID, too
+        for childid in childids:
+            for browsertype in variables.sources:
+                for browser in variables.sources[browsertype]: #Same strategy as earlier of ensuring unwanted .desktop files are also nuked
+                    if "classprefix" not in variables.sources[browsertype][browser]:
+                        continue #Skip evidently unavailable browsers
+                    classprefix = variables.sources[browsertype][browser]["classprefix"]
+                    desktopfile = variables.applications_directory + "/" + classprefix + taskdata.itemid + "-" + childid + ".desktop"
+                    if os.path.isfile(desktopfile):
+                        if desktopfile not in childdesktopfiles:
+                            childdesktopfiles.append(desktopfile)
+
+        #Calculate stuff to be done
+        if not forupdate:
+            tasksdone = 0
+            tobedone = 1 + len(childids) #icons
+            tobedone += len(parentdesktopfiles) #.desktop
+            tobedone += len(childdesktopfiles) # files
+            if os.path.isdir(profilesdir):
+                for i in os.listdir(profilesdir):
+                    if os.path.isdir(profilesdir + "/" + i):
+                        tobedone += 1 #profiles
+            tobedone += 1 #Flatpak permissions-revoking
+
+        #Remove all icons, first
+        for size in ["512x512", "256x256", "128x128", "64x64", "48x48", "32x32", "24x24", "16x16"]:
+            if os.path.isfile(os.path.expanduser("~") + "/.local/share/icons/hicolor/" + size + "/apps/solstice-" + taskdata.itemid + ".png"):
+                os.remove(os.path.expanduser("~") + "/.local/share/icons/hicolor/" + size + "/apps/solstice-" + taskdata.itemid + ".png")
+        if os.path.isfile(os.path.expanduser("~") + "/.local/share/icons/hicolor/scalable/apps/solstice-" + taskdata.itemid + ".svg"):
+            os.remove(os.path.expanduser("~") + "/.local/share/icons/hicolor/scalable/apps/solstice-" + taskdata.itemid + ".svg")
+        if not forupdate:
+            tasksdone = self.increment_progress(tasksdone, tobedone, progress_callback)
+        #...and repeat for the extra icons
+        for childsuffix in childids:
+            childid = taskdata.itemid + "-" + childsuffix
+            for size in ["512x512", "256x256", "128x128", "64x64", "48x48", "32x32", "24x24", "16x16"]:
+                if os.path.isfile(os.path.expanduser("~") + "/.local/share/icons/hicolor/" + size + "/apps/solstice-" + childid + ".png"):
+                    os.remove(os.path.expanduser("~") + "/.local/share/icons/hicolor/" + size + "/apps/solstice-" + childid + ".png")
+            if os.path.isfile(os.path.expanduser("~") + "/.local/share/icons/hicolor/scalable/apps/solstice-" + childid + ".svg"):
+                os.remove(os.path.expanduser("~") + "/.local/share/icons/hicolor/scalable/apps/solstice-" + childid + ".svg")
+            if not forupdate:
+                tasksdone = self.increment_progress(tasksdone, tobedone, progress_callback)
+
+        if not forupdate: #Unless we're updating,
+            #then delete the profiles
+            if os.path.isdir(profilesdir):
+                for i in os.listdir(profilesdir):
+                    if os.path.isdir(profilesdir + "/" + i):
+                        utils.delete_profilefolder(profilesdir + "/" + i)
+                        tasksdone = self.increment_progress(tasksdone, tobedone, progress_callback)
+                shutil.rmtree(profilesdir)
+
+            #and revoke Flatpak permissions
+            for browsertype in variables.sources: #Iterate through all possible Flatpaks
+                for browser in variables.sources[browsertype]:
+                    if "flatpak" not in variables.sources[browsertype][browser]:
+                        continue
+                    for name in itemnames:
+                        utils.remove_flatpak_permissions(taskdata.itemid, name, browsertype, browser)
+            tasksdone = self.increment_progress(tasksdone, tobedone, progress_callback)
+
+        #Finally, delete all the .desktop files, to finish the job
+        for i in childdesktopfiles:
+            try:
+                os.remove(i)
+                if not forupdate:
+                    tasksdone = self.increment_progress(tasksdone, tobedone, progress_callback)
+            except Exception as e:
+                raise SolsticeModuleException(_("Failed to uninstall child shortcuts: %s") % e)
+        for i in parentdesktopfiles:
+            try:
+                os.remove(i)
+                if not forupdate:
+                    tasksdone = self.increment_progress(tasksdone, tobedone, progress_callback)
+            except Exception as e:
+                raise SolsticeModuleException(_("Failed to uninstall shortcuts: %s") % e)
+
+        if not forupdate:
+            progress_callback(100)
         
         return True
     
     
     def task_update_package(self, taskdata, progress_callback):
-        
-#         #Update package and return exit code
-#         self.packagemgmtbusy = True
-#         self.currentpackagename = taskdata["packagename"]
-#
-#         windowclassid = taskdata["packagename"]
-#         if taskdata["source"] == "vivaldi": #FIXME: Temporary until Vivaldi adds proper shadows support
-#             windowclassid = "vivaldi-" + taskdata["packagename"]
-#             try:
-#                 if os.path.isfile(os.path.expanduser("~") + "/.local/share/applications/%s.desktop" % taskdata["packagename"]):
-#                     os.remove(os.path.expanduser("~") + "/.local/share/applications/%s.desktop" % taskdata["packagename"])
-#             except Exception as exceptionstr:
-#                 raise SolsticeModuleException(_("Failed to update {0}: {1} was encountered when switching the shortcut in the Applications Menu").format(taskdata["packagename"], exceptionstr))
-#         else:
-#             try:
-#                 if os.path.isfile(os.path.expanduser("~") + "/.local/share/applications/vivaldi-%s.desktop" % taskdata["packagename"]):
-#                     os.remove(os.path.expanduser("~") + "/.local/share/applications/vivaldi-%s.desktop" % taskdata["packagename"])
-#             except Exception as exceptionstr:
-#                 raise SolsticeModuleException(_("Failed to update {0}: {1} was encountered when switching the shortcut in the Applications Menu").format(taskdata["packagename"], exceptionstr))
-#
-#         icepackageinfo = taskdata["pkginfo"]
-#         if "extrasids" in icepackageinfo:
-#             iceextrasids = iceextrasids
-#         else:
-#             iceextrasids = []
-#
-#         if os.path.isfile(os.path.expanduser("~") + "/.local/share/feren-solstice/%s/.storium-active-pid" % taskdata["packagename"]):
-#             with open(os.path.expanduser("~") + "/.local/share/feren-solstice/%s/.storium-active-pid" % taskdata["packagename"], 'r') as pidfile:
-#                 currentpid = pidfile.readline()
-#             pidisrunning = False
-#             try:
-#                 currentpid = int(currentpid)
-#                 try:
-#                     os.kill(currentpid, 0) #Send a You There? to the PID identified
-#                     pidisrunning = True #If we didn't just cause an exception by doing that, the PID exists
-#                 except:
-#                     pass
-#             except:
-#                 try:
-#                     os.kill(currentpid, signal.SIGTERM) #Fallback since we don't know if it's running or not
-#                     time.sleep(0.4)
-#                 except:
-#                     pass
-#             if pidisrunning == True:
-#                 raise SolsticeModuleException(_("Failed to update {0}: Running Website Applications cannot be updated until they are closed").format(taskdata["packagename"]))
-#
-#         #Create the .desktop file's home if it doesn't exist
-#         if not os.path.isdir(os.path.expanduser("~") + "/.local/share/applications"):
-#             try:
-#                 os.mkdir(os.path.expanduser("~") + "/.local/share/applications")
-#             except Exception as exceptionstr:
-#                 raise SolsticeModuleException(_("Failed to update {0}: {1} was encountered when trying to create the shortcut's location").format(taskdata["packagename"], exceptionstr))
-#
-#
-#         #Titlebar branding
-#         #if "icecolor" in icepackageinfo:
-#             #self.color_scheme_iding(icepackageinfo["icecolor"], taskdata, icepackageinfo["icecolorhighlight"])
-#             #os.system("qdbus org.kde.KWin /KWin reconfigure")
-#
-#
-#         progress_callback(12)
-#
-#         #Get some data from the files
-#         #if os.path.isfile(os.path.expanduser("~") + "/.local/share/feren-solstice/%s/.storium-default-browser" % taskdata["packagename"]):
-#             #with open(os.path.expanduser("~") + "/.local/share/feren-solstice/%s/.storium-default-browser" % taskdata["packagename"], 'r') as fp:
-#                 #currenticebrowser = fp.readline()
-#         #else:
-#             #currenticebrowser = taskdata["source"] #Fallback
-#         #TODO: Move above to determining current subsource
-#         if os.path.isfile(os.path.expanduser("~") + "/.local/share/feren-solstice/%s/.storium-extra-ids" % taskdata["packagename"]):
-#             with open(os.path.expanduser("~") + "/.local/share/feren-solstice/%s/.storium-extra-ids" % taskdata["packagename"], 'r') as fp:
-#                 currenticeextraids = ast.literal_eval(fp.readline())
-#         else:
-#             currenticeextraids = [] #Fallback
-#         if os.path.isfile(os.path.expanduser("~") + "/.local/share/feren-solstice/%s/.storium-bonuses" % taskdata["packagename"]):
-#             with open(os.path.expanduser("~") + "/.local/share/feren-solstice/%s/.storium-bonuses" % taskdata["packagename"], 'r') as fp:
-#                 currenticebonuses = ast.literal_eval(fp.readline())
-#         else:
-#             currenticebonuses = [] #Fallback
-#         if "bonuses" in taskdata:
-#             currenticebonuses.extend(taskdata["bonuses"])
-#
-#
-#         progress_callback(24)
-#
-#         try:
-#             if not os.path.isfile(os.path.expanduser("~") + "/.local/share/feren-solstice/%s/First Run" % taskdata["packagename"]):
-#                 with open(os.path.expanduser("~") + "/.local/share/feren-solstice/%s/First Run" % taskdata["packagename"], 'w') as fp:
-#                     pass
-#         except Exception as exceptionstr:
-#             raise SolsticeModuleException(_("Failed to update {0}: {1} was encountered when updating the Chromium-based profile").format(taskdata["packagename"], exceptionstr))
-#         try:
-#             if not os.path.isdir(os.path.expanduser("~") + "/.local/share/feren-solstice/%s/Default" % taskdata["packagename"]):
-#                 os.mkdir(os.path.expanduser("~") + "/.local/share/feren-solstice/%s/Default" % taskdata["packagename"])
-#         except Exception as exceptionstr:
-#             raise SolsticeModuleException(_("Failed to update {0}: {1} was encountered when updating the Chromium-based profile").format(taskdata["packagename"], exceptionstr))
-#
-#         progress_callback(36)
-#
-#
-#         usefallbackicon = False
-#         #Copy icon for package
-#         try:
-#             if os.path.isfile(os.path.expanduser("~") + "/.local/share/feren-solstice/%s/icon" % taskdata["packagename"]):
-#                 os.remove(os.path.expanduser("~") + "/.local/share/feren-solstice/%s/icon" % taskdata["packagename"])
-#         except Exception as exceptionstr:
-#             raise SolsticeModuleException(_("Failed to update {0}: {1} was encountered when updating the application icon").format(taskdata["packagename"], exceptionstr))
-#         try:
-#             shutil.copy(self.storebrain.tempdir + "/icons/" + taskdata["packagename"], os.path.expanduser("~") + "/.local/share/feren-solstice/%s/icon" % taskdata["packagename"])
-#         except Exception as exceptionstr:
-#             usefallbackicon = True
-#
-#
-#         progress_callback(48)
-#
-#
-#
-#         #Now to update the JSON file
-#         with open("/usr/share/feren-storium/modules/packagemgmt-ice/chromium-profile/Preferences", 'r') as fp:
-#             profiledefaults = json.loads(fp.read())
-#
-#         try:
-#             with open(os.path.expanduser("~") + "/.local/share/feren-solstice/%s/Default/Preferences" % taskdata["packagename"], 'r') as fp:
-#                 profiletoupdate = json.loads(fp.read())
-#         except Exception as exceptionstr:
-#             raise SolsticeModuleException(_("Failed to update {0}: {1} was encountered when reading the browser profile (is the profile corrupt?)").format(taskdata["packagename"], exceptionstr))
-#
-#         #Remove the custom links (Chromiums) before adding default shortcut back in and updating it again
-#         profiletoupdate["custom_links"] = {}
-#
-#         profiletoupdate = self.storebrain.dict_recurupdate(profiletoupdate, profiledefaults)
-#
-#
-#         #Update extensions permissions too
-#         with open("/usr/share/feren-storium/modules/packagemgmt-ice/chromium-profile/and-plasmaintegration", 'r') as fp:
-#             profiletoupdateextra = json.loads(fp.read())
-#             for item in profiletoupdateextra["extensions"]["settings"]:
-#                 if item in profiletoupdate["extensions"]["settings"]:
-#                     profiletoupdateextra["extensions"]["settings"][item].pop("path", None)
-#                     profiletoupdateextra["extensions"]["settings"][item]["manifest"].pop("name", None)
-#                     profiletoupdateextra["extensions"]["settings"][item]["manifest"].pop("version", None) #Prevent the extension version and name from reverting
-#         profiletoupdate = self.storebrain.dict_recurupdate(profiletoupdate, profiletoupdateextra)
-#         if "nekocap" in currenticebonuses:
-#             with open("/usr/share/feren-storium/modules/packagemgmt-ice/chromium-profile/and-nekocap", 'r') as fp:
-#                 profiletoupdateextra = json.loads(fp.read()) #This is how you make json.load work with file paths, I guess
-#                 for item in profiletoupdateextra["extensions"]["settings"]:
-#                     if item in profiletoupdate["extensions"]["settings"]:
-#                         profiletoupdateextra["extensions"]["settings"][item].pop("path", None)
-#                         profiletoupdateextra["extensions"]["settings"][item]["manifest"].pop("name", None)
-#                         profiletoupdateextra["extensions"]["settings"][item]["manifest"].pop("version", None)
-#             profiletoupdate = self.storebrain.dict_recurupdate(profiletoupdate, profiletoupdateextra)
-#         if "ublock" in currenticebonuses:
-#             with open("/usr/share/feren-storium/modules/packagemgmt-ice/chromium-profile/and-ublock", 'r') as fp:
-#                 profiletoupdateextra = json.loads(fp.read())
-#                 for item in profiletoupdateextra["extensions"]["settings"]:
-#                     if item in profiletoupdate["extensions"]["settings"]:
-#                         profiletoupdateextra["extensions"]["settings"][item].pop("path", None)
-#                         profiletoupdateextra["extensions"]["settings"][item]["manifest"].pop("name", None)
-#                         profiletoupdateextra["extensions"]["settings"][item]["manifest"].pop("version", None)
-#             profiletoupdate = self.storebrain.dict_recurupdate(profiletoupdate, profiletoupdateextra)
-#         if "darkreader" in currenticebonuses:
-#             with open("/usr/share/feren-storium/modules/packagemgmt-ice/chromium-profile/and-darkreader", 'r') as fp:
-#                 profiletoupdateextra = json.loads(fp.read())
-#                 for item in profiletoupdateextra["extensions"]["settings"]:
-#                     if item in profiletoupdate["extensions"]["settings"]:
-#                         profiletoupdateextra["extensions"]["settings"][item].pop("path", None)
-#                         profiletoupdateextra["extensions"]["settings"][item]["manifest"].pop("name", None)
-#                         profiletoupdateextra["extensions"]["settings"][item]["manifest"].pop("version", None)
-#             profiletoupdate = self.storebrain.dict_recurupdate(profiletoupdate, profiletoupdateextra)
-#         if "imagus" in currenticebonuses:
-#             with open("/usr/share/feren-storium/modules/packagemgmt-ice/chromium-profile/and-imagus", 'r') as fp:
-#                 profiletoupdateextra = json.loads(fp.read())
-#                 for item in profiletoupdateextra["extensions"]["settings"]:
-#                     if item in profiletoupdate["extensions"]["settings"]:
-#                         profiletoupdateextra["extensions"]["settings"][item].pop("path", None)
-#                         profiletoupdateextra["extensions"]["settings"][item]["manifest"].pop("name", None)
-#                         profiletoupdateextra["extensions"]["settings"][item]["manifest"].pop("version", None)
-#             profiletoupdate = self.storebrain.dict_recurupdate(profiletoupdate, profiletoupdateextra)
-#         if "googleytdislikes" in currenticebonuses:
-#             with open("/usr/share/feren-storium/modules/packagemgmt-ice/chromium-profile/and-googleytdislikes", 'r') as fp:
-#                 profiletoupdateextra = json.loads(fp.read())
-#                 for item in profiletoupdateextra["extensions"]["settings"]:
-#                     if item in profiletoupdate["extensions"]["settings"]:
-#                         profiletoupdateextra["extensions"]["settings"][item].pop("path", None)
-#                         profiletoupdateextra["extensions"]["settings"][item]["manifest"].pop("name", None)
-#                         profiletoupdateextra["extensions"]["settings"][item]["manifest"].pop("version", None)
-#             profiletoupdate = self.storebrain.dict_recurupdate(profiletoupdate, profiletoupdateextra)
-#
-#
-#         #Extra site-specific tweaks
-#         profiletoupdate["homepage"] = icepackageinfo["website"]
-#         profiletoupdate["custom_links"]["list"][0]["title"] = icepackageinfo["realname"]
-#         profiletoupdate["custom_links"]["list"][0]["url"] = icepackageinfo["website"]
-#         profiletoupdate["session"]["startup_urls"] = [icepackageinfo["website"]]
-#         profiletoupdate["download"]["default_directory"] = GLib.get_user_special_dir(GLib.UserDirectory.DIRECTORY_DOWNLOAD) + "/" + _("{0} Downloads").format(icepackageinfo["realname"])
-#         profiletoupdate["profile"]["name"] = _("Ice - {0}").format(icepackageinfo["realname"])
-#         profiletoupdate["ntp"]["custom_background_dict"]["attribution_line_1"] = _("Feren OS Ice Website Application - {0}").format(icepackageinfo["realname"])
-#         profiletoupdate["vivaldi"]["tabs"]["new_page"]["custom_url"] = "https://feren-os.github.io/start-page/ice?ice-text="+(_("Feren OS Ice Website Application - {0}").format(icepackageinfo["realname"]))+"&home-url={0}".format(parse.quote(icepackageinfo["website"], safe=""))+"&home-icon={0}".format(parse.quote(icepackageinfo["iconuri"], safe=""))
-#         profiletoupdate["vivaldi"]["homepage"] = icepackageinfo["website"]
-#         profiletoupdate["vivaldi"]["homepage_cache"] = icepackageinfo["website"]
-#
-#
-#         #Update these as well
-#         if "icegoogleinteg" in icepackageinfo and icepackageinfo["icegoogleinteg"] == True:
-#             pass
-#         else:
-#             with open("/usr/share/feren-storium/modules/packagemgmt-ice/chromium-profile/disable-google", 'r') as fp:
-#                 profiletoupdateextra = json.loads(fp.read())
-#             profiletoupdate = self.storebrain.dict_recurupdate(profiletoupdate, profiletoupdateextra)
-#         if "icegooglehangouts" in icepackageinfo and icepackageinfo["icegooglehangouts"] == True:
-#             profiletoupdate["vivaldi"]["privacy"]["google_component_extensions"]["hangout_services"] = True
-#         else:
-#             profiletoupdate["vivaldi"]["privacy"]["google_component_extensions"]["hangout_services"] = False
-#
-#         if "icenohistory" in icepackageinfo and icepackageinfo["icenohistory"] == True:
-#             with open("/usr/share/feren-storium/modules/packagemgmt-ice/chromium-profile/disable-browsehistory", 'r') as fp:
-#                 profiletoupdateextra = json.loads(fp.read())
-#                 profiletoupdate = self.storebrain.dict_recurupdate(profiletoupdate, profiletoupdateextra)
-#
-#             try:
-#                 with open(os.path.expanduser("~") + "/.local/share/feren-solstice/%s/.storium-nohistory" % taskdata["packagename"], 'w') as fp:
-#                     pass
-#             except Exception as exceptionstr:
-#                 raise SolsticeModuleException(_("Failed to install {0}: {1} was encountered when setting up automatic history deletion").format(taskdata["packagename"], exceptionstr))
-#
-#         #Background Sync, Clipboard, Notifications and Payment Handler ONLY for SSB's websites
-#         for permtype in ["ar", "autoplay", "automatic_downloads", "background_sync", "clipboard", "file_handling", "font_access", "midi_sysex", "notifications", "payment_handler", "sensors", "sound", "sleeping-tabs", "window_placement", "vr"]:
-#             profiletoupdate["profile"]["content_settings"]["exceptions"][permtype] = {}
-#             if "icedomain" in icepackageinfo:
-#                 try:
-#                     shortenedurl = icepackageinfo["icedomain"].split("://")[1:]
-#                     shortenedurl = ''.join(shortenedurl)
-#                 except:
-#                     shortenedurl = icepackageinfo["icedomain"]
-#             else:
-#                 try:
-#                     shortenedurl = icepackageinfo["website"].split("://")[1:]
-#                     shortenedurl = ''.join(shortenedurl)
-#                 except:
-#                     shortenedurl = icepackageinfo["website"]
-#             try:
-#                 shortenedurl = shortenedurl.split("/")[0]
-#             except:
-#                 pass
-#             profiletoupdate["profile"]["content_settings"]["exceptions"][permtype]["[*.]"+shortenedurl+",*"] = {"expiration": "0", "model": 0, "setting": 1}
-#             profiletoupdate["profile"]["content_settings"]["exceptions"][permtype][shortenedurl+",*"] = {"expiration": "0", "model": 0, "setting": 1}
-#             #Repeat for extra shortcuts' URLs
-#             extrascount = 0
-#             for extraid in iceextrasids:
-#                 try:
-#                     shortenedurl = icepackageinfo["websiteextras"][extrascount].split("://")[1:]
-#                     shortenedurl = ''.join(shortenedurl)
-#                 except:
-#                     shortenedurl = icepackageinfo["websiteextras"][extrascount]
-#                 try:
-#                     shortenedurl = shortenedurl.split("/")[0]
-#                 except:
-#                     pass
-#                 profiletoupdate["profile"]["content_settings"]["exceptions"][permtype]["[*.]"+shortenedurl+",*"] = {"expiration": "0", "model": 0, "setting": 1}
-#                 profiletoupdate["profile"]["content_settings"]["exceptions"][permtype][shortenedurl+",*"] = {"expiration": "0", "model": 0, "setting": 1}
-#                 extrascount += 1
-#
-#
-#         #Update Vivaldi colour changes
-#         #   Vivaldi colour changes
-#         if "icecolor" in icepackageinfo and "icecolorhighlight" in icepackageinfo and "icecolordark" in icepackageinfo:
-#             vivaldihighlightcol = icepackageinfo["icecolorhighlight"]
-#             vivaldihighlightcoldark = self.colourFilter(icepackageinfo["icecolorhighlight"], 0.7, True, True)
-#             if self.get_are_colours_different(icepackageinfo["icecolor"], icepackageinfo["icecolorhighlight"]) and self.get_colour_bg_suitable(icepackageinfo["icecolor"]): #Suitable background colour used
-#                 vivaldiaccentcol = icepackageinfo["icecolorhighlight"]
-#                 vivaldiaccentcoldark = icepackageinfo["icecolorhighlight"]
-#                 vivaldiwinbgcol = icepackageinfo["icecolor"]
-#                 vivaldiwinbgcoldark = icepackageinfo["icecolordark"]
-#                 vivaldiaccentinchrome = False
-#
-#             else: #Otherwise use fallback colours
-#                 vivaldiaccentcol = icepackageinfo["icecolor"]
-#                 vivaldiwinbgcol = ""
-#                 vivaldiaccentcoldark = self.colourFilter(icepackageinfo["icecolordark"], 0.7, True, True)
-#                 vivaldiwinbgcoldark = ""
-#                 vivaldiaccentinchrome = True
-#
-#
-#             #Now to make the Private theme
-#             vivaldiaccentcolprivate = self.colourFilter(icepackageinfo["icecolorhighlight"], 46.0, True)
-#             vivaldiwinbgcolprivate = self.colourFilter(icepackageinfo["icecolorhighlight"], 70.0, True)
-#
-#
-#             profiletoupdate["vivaldi"]["themes"]["system"][0]["accentOnWindow"] = vivaldiaccentinchrome
-#             profiletoupdate["vivaldi"]["themes"]["system"][1]["accentOnWindow"] = vivaldiaccentinchrome
-#             profiletoupdate["vivaldi"]["themes"]["system"][2]["accentOnWindow"] = False
-#             profiletoupdate["vivaldi"]["themes"]["system"][0]["colorAccentBg"] = vivaldiaccentcol
-#             profiletoupdate["vivaldi"]["themes"]["system"][1]["colorAccentBg"] = vivaldiaccentcoldark
-#             profiletoupdate["vivaldi"]["themes"]["system"][2]["colorAccentBg"] = vivaldiaccentcolprivate
-#             profiletoupdate["vivaldi"]["themes"]["system"][0]["colorHighlightBg"] = vivaldihighlightcol
-#             profiletoupdate["vivaldi"]["themes"]["system"][1]["colorHighlightBg"] = vivaldihighlightcoldark
-#             profiletoupdate["vivaldi"]["themes"]["system"][2]["colorHighlightBg"] = vivaldihighlightcol
-#             if vivaldiwinbgcol != "":
-#                 if self.get_luminant(vivaldiwinbgcol) == False: #Dark BG (in-Preferences default is Light, so no need for Light BG else)
-#                     profiletoupdate["vivaldi"]["themes"]["system"][0]["colorFg"] = "#FFFFFF"
-#                 profiletoupdate["vivaldi"]["themes"]["system"][0]["colorBg"] = vivaldiwinbgcol
-#             if vivaldiwinbgcoldark != "":
-#                 if self.get_luminant(vivaldiwinbgcoldark) == True: #Light BG (in-Preferences default is Dark, so no need for Dark BG else)
-#                     profiletoupdate["vivaldi"]["themes"]["system"][1]["colorFg"] = "#000000"
-#                 profiletoupdate["vivaldi"]["themes"]["system"][1]["colorBg"] = vivaldiwinbgcoldark
-#             #Private foreground
-#             if self.get_luminant(vivaldiwinbgcolprivate) == True: #Light BG (in-Preferences default is Dark, so no need for Dark BG else)
-#                 profiletoupdate["vivaldi"]["themes"]["system"][2]["colorFg"] = "#000000"
-#             profiletoupdate["vivaldi"]["themes"]["system"][2]["colorBg"] = vivaldiwinbgcolprivate
-#
-#
-#
-#         #Write last updated date to be used in update checks
-#         try:
-#             with open(os.path.expanduser("~") + "/.local/share/feren-solstice/%s/.storium-last-updated" % taskdata["packagename"], 'w') as fp:
-#                 fp.write(datetime.today().strftime('%Y%m%d'))
-#         except Exception as exceptionstr:
-#             raise SolsticeModuleException(_("Failed to update {0}: {1} was encountered when writing the last updated date").format(taskdata["packagename"], exceptionstr))
-#
-#         #Write default browser value to be used for the update process
-#         try:
-#             if not os.path.isfile(os.path.expanduser("~") + "/.local/share/feren-solstice/%s/.storium-default-browser" % taskdata["packagename"]):
-#                 with open(os.path.expanduser("~") + "/.local/share/feren-solstice/%s/.storium-default-browser" % taskdata["packagename"], 'w') as fp:
-#                     fp.write(taskdata["source"]) # Used by module during updating to determine your browser
-#         except Exception as exceptionstr:
-#             self.task_remove_package(taskdata, None, True) #Remove profile's files/folders on failure
-#             raise SolsticeModuleException(_("Failed to update {0}: {1} was encountered when noting the browser selection value").format(taskdata["packagename"], exceptionstr))
-#
-#
-#         #Write profile
-#         try:
-#             with open(os.path.expanduser("~") + "/.local/share/feren-solstice/%s/Default/Preferences" % taskdata["packagename"], 'w') as fp:
-#                 fp.write(json.dumps(profiletoupdate, separators=(',', ':')))
-#         except Exception as exceptionstr:
-#             raise SolsticeModuleException(_("Failed to update {0}: {1} was encountered when writing the Chromium-based profile").format(taskdata["packagename"], exceptionstr))
-#
-#
-#         #Update Local State too
-#         with open("/usr/share/feren-storium/modules/packagemgmt-ice/chromium-profile/Local State", 'r') as fp:
-#             profiledefaults = json.loads(fp.read())
-#         try:
-#             with open(os.path.expanduser("~") + "/.local/share/feren-solstice/%s/Local State" % taskdata["packagename"], 'r') as fp:
-#                 profiletoupdate = json.loads(fp.read())
-#         except Exception as exceptionstr:
-#             raise SolsticeModuleException(_("Failed to update {0}: {1} was encountered when reading the browser's local state (is the local state corrupt?)").format(taskdata["packagename"], exceptionstr))
-#         try:
-#             with open(os.path.expanduser("~") + "/.local/share/feren-solstice/%s/Local State" % taskdata["packagename"], 'w') as fp:
-#                 fp.write(json.dumps(self.storebrain.dict_recurupdate(profiletoupdate, profiledefaults), separators=(',', ':')))
-#         except Exception as exceptionstr:
-#             raise SolsticeModuleException(_("Failed to update {0}: {1} was encountered when writing the Local State").format(taskdata["packagename"], exceptionstr))
-#
-#
-#         progress_callback(72)
-#
-#
-#         try:
-#             with open(os.path.expanduser("~") + "/.local/share/applications/%s.desktop" % windowclassid, 'w') as fp:
-#                 # I mean, this needs no explanation, it's a .desktop file
-#                 fp.write("[Desktop Entry]\n")
-#                 fp.write("Version=1.0\n")
-#                 fp.write("Name={0}\n".format(icepackageinfo["realname"]))
-#                 fp.write("Comment={0}\n".format(_("Website (obtained from Store)")))
-#
-#                 fp.write("Exec=/usr/bin/feren-solsticelaunch {0} {1} {2} {3}\n".format(os.path.expanduser("~") + "/.local/share/feren-solstice/%s" % taskdata["packagename"], taskdata["source"], '"' + icepackageinfo["website"] + '"', windowclassid))
-#
-#                 fp.write("Terminal=false\n")
-#                 fp.write("X-MultipleArgs=false\n")
-#                 fp.write("Type=Application\n")
-#
-#                 if usefallbackicon == True:
-#                     fp.write("Icon=text-html\n")
-#                 else:
-#                     fp.write("Icon={0}\n".format(os.path.expanduser("~") + "/.local/share/feren-solstice/%s/icon" % taskdata["packagename"]))
-#
-#                 #Ice stuff will have their own categories to allow for easier sectioning of items in Store overall
-#                 if icepackageinfo["category"] == "ice-accessories":
-#                     location = "Utility;"
-#                 elif icepackageinfo["category"] == "ice-games":
-#                     location = "Game;"
-#                 elif icepackageinfo["category"] == "ice-graphics":
-#                     location = "Graphics;"
-#                 elif icepackageinfo["category"] == "ice-internet":
-#                     location = "Network;"
-#                 elif icepackageinfo["category"] == "ice-office":
-#                     location = "Office;"
-#                 elif icepackageinfo["category"] == "ice-programming":
-#                     location = "Development;"
-#                 elif icepackageinfo["category"] == "ice-multimedia":
-#                     location = "AudioVideo;"
-#                 elif icepackageinfo["category"] == "ice-system":
-#                     location = "System;"
-#
-#                 fp.write("Categories=GTK;Qt;{0}\n".format(location))
-#                 fp.write("MimeType=text/html;text/xml;application/xhtml_xml;\n")
-#
-#                 fp.write("Keywords=%s\n" % icepackageinfo["keywords"])
-#
-#                 fp.write("StartupWMClass=%s\n" % windowclassid)
-#                 fp.write("StartupNotify=true\n")
-#         except Exception as exceptionstr:
-#             raise SolsticeModuleException(_("Failed to update {0}: {1} was encountered when updating the shortcut in the Applications Menu").format(taskdata["packagename"], exceptionstr))
-#
-#
-#         #Remove old extra shortcuts
-#         for extraid in currenticeextraids:
-#             try:
-#                 if os.path.isfile(os.path.expanduser("~") + "/.local/share/applications/{0}-{1}.desktop".format(taskdata["packagename"], extraid)):
-#                     os.remove(os.path.expanduser("~") + "/.local/share/applications/{0}-{1}.desktop".format(taskdata["packagename"], extraid))
-#             except Exception as exceptionstr:
-#                 raise SolsticeModuleException(_("Failed to update {0}: {1} was encountered when removing extra shortcuts to replace with new ones").format(taskdata["packagename"], exceptionstr))
-#             try:
-#                 if os.path.isfile(os.path.expanduser("~") + "/.local/share/feren-solstice/{0}/icon-{1}".format(taskdata["packagename"], extraid)):
-#                     os.remove(os.path.expanduser("~") + "/.local/share/feren-solstice/{0}/icon-{1}".format(taskdata["packagename"], extraid))
-#             except Exception as exceptionstr:
-#                 raise SolsticeModuleException(_("Failed to update {0}: {1} was encountered when removing extra icons to replace with new ones").format(taskdata["packagename"], exceptionstr))
-#
-#         #Write the new Extra IDs to be used as a backup
-#         try:
-#             with open(os.path.expanduser("~") + "/.local/share/feren-solstice/%s/.storium-extra-ids" % taskdata["packagename"], 'w') as fp:
-#                 fp.write(str(iceextrasids)) # This means that Storium can manage extras later on in time
-#         except Exception as exceptionstr:
-#             raise SolsticeModuleException(_("Failed to update {0}: {1} was encountered when making a note of the SSB's extra shortcuts").format(taskdata["packagename"], exceptionstr))
-#
-#         #Now repeat for extras, if appropriate
-#         extrascount = 0 #Classic strat for iteration
-#         if iceextrasids != []:
-#             import urllib.request #Grabbing files from internet
-#             import urllib.error
-#         for extraid in iceextrasids:
-#             try:
-#                 with open(os.path.expanduser("~") + "/.local/share/applications/{0}-{1}.desktop".format(taskdata["packagename"], extraid), 'w') as fp:
-#                     # I mean, this needs no explanation, it's a .desktop file
-#                     fp.write("[Desktop Entry]\n")
-#                     fp.write("Version=1.0\n")
-#                     fp.write("Name={0}\n".format(icepackageinfo["realnameextras"][extrascount]))
-#                     fp.write("Comment={0}\n".format(_("Website (part of %s)" % icepackageinfo["realname"])))
-#
-#                     fp.write("Exec=/usr/bin/feren-solsticelaunch {0} {1} {2} {3}\n".format(os.path.expanduser("~") + "/.local/share/feren-solstice/%s" % taskdata["packagename"], taskdata["source"], '"' + icepackageinfo["websiteextras"][extrascount] + '"', windowclassid))
-#
-#                     fp.write("Terminal=false\n")
-#                     fp.write("X-MultipleArgs=false\n")
-#                     fp.write("Type=Application\n")
-#
-#                     try:
-#                         urllib.request.urlretrieve(icepackageinfo["iconuriextras"][extrascount], (os.path.expanduser("~") + "/.local/share/feren-solstice/{0}/icon-{1}".format(taskdata["packagename"], extraid)))
-#                         fp.write("Icon=%s\n" % (os.path.expanduser("~") + "/.local/share/feren-solstice/{0}/icon-{1}".format(taskdata["packagename"], extraid)))
-#                     except:
-#                         fp.write("Icon=text-html\n")
-#
-#                     if icepackageinfo["category"] == "ice-accessories":
-#                         location = "Utility;"
-#                     elif icepackageinfo["category"] == "ice-games":
-#                         location = "Game;"
-#                     elif icepackageinfo["category"] == "ice-graphics":
-#                         location = "Graphics;"
-#                     elif icepackageinfo["category"] == "ice-internet":
-#                         location = "Network;"
-#                     elif icepackageinfo["category"] == "ice-office":
-#                         location = "Office;"
-#                     elif icepackageinfo["category"] == "ice-programming":
-#                         location = "Development;"
-#                     elif icepackageinfo["category"] == "ice-multimedia":
-#                         location = "AudioVideo;"
-#                     elif icepackageinfo["category"] == "ice-system":
-#                         location = "System;"
-#
-#                     fp.write("Categories=GTK;Qt;{0}\n".format(location))
-#                     fp.write("MimeType=text/html;text/xml;application/xhtml_xml;\n")
-#
-#                     fp.write("Keywords=%s\n" % icepackageinfo["keywordsextras"][extrascount])
-#
-#                     fp.write("StartupNotify=true\n")
-#             except Exception as exceptionstr:
-#                 raise SolsticeModuleException(_("Failed to update {0}: {1} was encountered when updating extra shortcuts in the Applications Menu").format(taskdata["packagename"], exceptionstr))
-#             os.system("chmod +x " + os.path.expanduser("~") + "/.local/share/applications/{0}-{1}.desktop".format(taskdata["packagename"], extraid))
-#             extrascount += 1
-#
-#         progress_callback(99)
-#
-#         #Otherwise they'll refuse to launch from the Applications Menu (bug seen in Mint's own Ice code fork)
-#         os.system("chmod +x " + os.path.expanduser("~") + "/.local/share/applications/%s.desktop" % windowclassid)
-#
-#         progress_callback(100)
+        #Update package and return exit code
+        self.packagemgmtbusy = True
+        self.currentpackagename = taskdata.itemid #FIXME: Do we need this?
+
+        #Remove most of the website application files first
+        self.task_remove_package(taskdata, progress_callback, True)
+
+        progress_callback(50)
+
+        #Now re-run the installation process, so that newer files are used
+        self.task_install_package(taskdata, progress_callback, True)
+
+        progress_callback(100)
         
         return True
 
@@ -1021,8 +638,35 @@ class module():
     def getInfo(self, itemid, sourceid, subsourceid):
         #Get information on a package using the JSON data
         result = self.packagestorage[itemid]
+
+        if "parentitemid" in result: #If this is a child item, just ensure the child item requirements are met
+            defaultvalues = {"iconuri": "", "images": "", "keywords": ""}
+            valuesrequired = ["realname", "category", "solwebsite"]
+        else:
+            defaultvalues = {"childids": [],
+                            "iconuri": "",
+                            "shortdescription": _("Website Application"),
+                            "description": "",
+                            "images": [],
+                            "keywords": "",
+                            "website": "",
+                            "donateurl": "",
+                            "bugreporturl": "",
+                            "tosurl": "",
+                            "privpolurl": "",
+                            "solnohistory": False,
+                            "solgooglehangouts": False,
+                            "solworkspaces": False,
+                            "solaccentwindow": True}
+            valuesrequired = ["realname", "category", "author", "solbackground", "solbackground-dark", "solaccent", "solaccent-dark", "solcolor", "solwebsite", "lastupdate"]
+        for item in valuesrequired:
+            if item not in result or result[item] == "":
+                raise SolsticeModuleException(_("Invalid item information for {0} - {1} is missing").format(itemid, item))
+        for item in defaultvalues:
+            if item not in result or result[item] == "":
+                result[item] = defaultvalues[item]
         result["iconlocal"] = ""
-        return result #TODO: Use this def as a means of providing complete information, filling out the blanks, and translating if needed translation-jsons are present, and then use this in those calls
+        return result
         
         
     def getSourceList(self, packagename, packagetype):
@@ -1035,7 +679,7 @@ class module():
             
         return [] #FIXME: Remove, as we have self.getSources
         
-
+    #TODO: Do we need these? I think they are kinda pointless now.
     def getShortDescription(self, packagename):
         try:
             shortdescription = self.packagestorage[packagename]["shortdescription"]

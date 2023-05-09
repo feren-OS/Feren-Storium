@@ -46,6 +46,7 @@ class StoreGenericAPI():
         #self.getItemInformation = Store.getItemInformation
         #self.getAvailableSources = Store.getAvailableSources
         #self.canceltask = Tasks.cancelTask
+        #self.getAppStatus = Store.getAppStatus
         #self.installApp = Store.installApp
         #self.updateApp = Store.updateApp
         #self.removeApp = Store.removeApp
@@ -67,6 +68,8 @@ class StoreGenericAPI():
 #Tasks (for ONLY Tasks module)
 class StoreTasksAPI():
     def __init__(self):
+        #self.getTaskChanges = Store.getTaskChanges
+        #self.getBonuses = Store.getBonuses
         #self.addConfirmedTask = Store.addConfirmedTask
         #self.deleteTask = Store.deleteTask
         #self.runTask = Store.runTask
@@ -208,9 +211,13 @@ class TaskManager():
                 tasksdonethisloop += 1
 
                 #TODO: Make call to module to get package changes made
-                itemsadded, itemsupdated, itemsremoved, bonusoptions = {"mozilla-firefox"}, {}, {}, {"ice-extra-darkreader-chromium"} #FIXME: Test values
+                itemsadded, itemsupdated, itemsremoved, sourcesadded, sourcesremoved = self.storeTasksAPI.getTaskChanges(pendingtasks[item])
+                if pendingtasks[item].operation == 0: #Only offer bonuses during installation
+                    bonusoptions = self.storeTasksAPI.getBonuses(pendingtasks[item])
+                else:
+                    bonusoptions = []
 
-                response, bonusids = self.storeAPI.showTaskConfirmation(self.tasks["pending"][moduleid][item], itemsadded, itemsupdated, itemsremoved, bonusoptions)
+                response, bonusids = self.storeAPI.showTaskConfirmation(pendingtasks[item], itemsadded, itemsupdated, itemsremoved, bonusoptions)
 
                 if response == False:
                     self.tasks["pending"][moduleid].pop(item)
@@ -233,8 +240,6 @@ class TaskManager():
 
                 #Re-run queued tasks management in case it quit
                 self.begin_tasks()
-
-                print(self.tasks)
             
             
         self.tasks_running[0][moduleid] = False
@@ -457,6 +462,42 @@ class StoreBrain():
         self.storeTasksAPI.deleteTask(taskid)
 
 
+    def APIgetAppStatus(self, itemid, modulesourceid): #TODO: Split moduleid and sourceid in the call line instead?
+        moduleid = modulesourceid.split(":")[0]
+        sourceid = modulesourceid.split(":")[1]
+        #Gets the status of the item of itemid from sourceid : subsourceid, via moduleid
+
+        #Possible returns:
+        # 0 (Not installed), 1 (Installed), 2 (Updatable), 3 (Available in a disabled source), 403 (Not Available) TODO: Move Not Available checking to its own call?
+        # 10: Removing..., 11: Installing..., 12: Updating...
+        # 20: Pending removal, 21: Pending installation, 22: Pending update
+        #NOTE: Also returns subsourceid so GUI can default subsource select to it
+
+        #First, check for the item in taskManager's currenttask
+        if self.taskManager.tasks["currenttask"][moduleid] != "":
+            canditemid, operation, candsourceid, subsourceid = i.split(":")[1:]
+            if canditemid == itemid and candsourceid == sourceid:
+                if operation == 0: #Install
+                    return 11, subsourceid
+                elif operation == 1: #Remove
+                    return 10, subsourceid
+                elif operation == 3: #Update
+                    return 12, subsourceid
+        #Then check for the item in taskManager's pending, queue, and staged
+        for taskstype in ["pending", "queue", "staged"]:
+            for i in self.taskManager.tasks["pending"][moduleid]:
+                canditemid, operation, candsourceid, subsourceid = i.split(":")[1:]
+                if canditemid == itemid and candsourceid == sourceid:
+                    if operation == 0: #Install
+                        return 21, subsourceid
+                    elif operation == 1: #Remove
+                        return 20, subsourceid
+                    elif operation == 3: #Update
+                        return 22, subsourceid
+
+        #Finally fallback to asking the module in question for the application's status
+        return self.modules[moduleid].get_status(itemid, "", sourceid)
+
     def APIinstallApp(self, itemid, modulesourceid, subsourceid):
         moduleid = modulesourceid.split(":")[0]
         sourceid = modulesourceid.split(":")[1]
@@ -467,13 +508,13 @@ class StoreBrain():
         moduleid = modulesourceid.split(":")[0]
         sourceid = modulesourceid.split(":")[1]
         #Same as APIinstallApp, except it triggers an Update task instead
-        self.taskManager.add_task(itemid, moduleid, 2, sourceid, subsourceid, "", "", itemid, False)
+        self.taskManager.add_task(itemid, moduleid, 2, sourceid, subsourceid, "", "", False)
 
     def APIremoveApp(self, itemid, modulesourceid, subsourceid):
         moduleid = modulesourceid.split(":")[0]
         sourceid = modulesourceid.split(":")[1]
         #Same as APIinstallApp, except it triggers a Remove task instead
-        self.taskManager.add_task(itemid, moduleid, 1, sourceid, subsourceid, "", "", itemid, False)
+        self.taskManager.add_task(itemid, moduleid, 1, sourceid, subsourceid, "", "", False)
 
     def APIaddSource(self, modulesourceid):
         moduleid = modulesourceid.split(":")[0]
@@ -489,7 +530,6 @@ class StoreBrain():
 
     def APIshowTaskConfirmation(self, taskbody, idsadded, idsupdated, idsremoved, bonusavailability):
         #Tells GUI to show task confirmation dialog, and then waits for value (True/False), alongside a bonus installs list, to be returned.
-        #FIXME: Uh... how DO we even hold code in this context until we return a value from user input?
         return self.modules["gui"].showTaskConfirmation(taskbody, idsadded, idsupdated, idsremoved, bonusavailability)
 
     def APIgotoID(self, itemid):
@@ -618,6 +658,14 @@ class StoreBrain():
 
     # API functions passed from Store into TasksAPI
     ##############################################
+    def APIgetTaskChanges(self, taskbody):
+        itemid, operation, sourceid, subsourceid = taskbody.itemid, taskbody.operation, taskbody.sourceid, taskbody.subsourceid
+        return self.modules[taskbody.moduleid].getTaskChanges(itemid, operation, sourceid, subsourceid)
+
+    def APIgetBonuses(self, taskbody):
+        itemid, sourceid, subsourceid = taskbody.itemid, taskbody.sourceid, taskbody.subsourceid
+        return self.modules[taskbody.moduleid].getBonuses(itemid, sourceid, subsourceid)
+
     def APIaddConfirmedTask(self, itemid, moduleid, operation, sourceid, subsourceid, becauseof="", dependson="", directto=""):
         #Add a task but make it confirmed right from the start
         self.taskManager.add_task(itemid, moduleid, operation, sourceid, subsourceid, becauseof, dependson, directto, True)
@@ -641,7 +689,7 @@ class StoreBrain():
         elif taskbody.operation == 1: #Remove
             self.modules[taskbody.moduleid].task_remove_package(taskbody, partial(self.taskManager.task_set_progress, taskid, taskbody.moduleid))
         elif taskbody.operation == 2: #Update
-            self.modules[taskbodymoduleid].task_update_package(taskbody, partial(self.taskManager.task_set_progress, taskid, taskbody.moduleid))
+            self.modules[taskbody.moduleid].task_update_package(taskbody, partial(self.taskManager.task_set_progress, taskid, taskbody.moduleid))
 
     def APIshowFailure(self, taskbody, exceptionstr):
         #Show a failure dialog in the GUI to indicate that an item failed to install/remove/update/etc. and indicate the why
@@ -700,6 +748,7 @@ class StoreBrain():
         self.genericapi.getAvailableSources = self.APIgetAvailableSources
         self.genericapi.getCuratedJSON = self.APIgetCuratedJSON
         self.genericapi.cancelTask = self.APIcancelTask
+        self.genericapi.getAppStatus = self.APIgetAppStatus
         self.genericapi.installApp = self.APIinstallApp
         self.genericapi.updateApp = self.APIupdateApp
         self.genericapi.removeApp = self.APIremoveApp
@@ -722,6 +771,8 @@ class StoreBrain():
 
         # Tasks
         self.tasksapi = StoreTasksAPI()
+        self.tasksapi.getTaskChanges = self.APIgetTaskChanges
+        self.tasksapi.getBonuses = self.APIgetBonuses
         self.tasksapi.addConfirmedTask = self.APIaddConfirmedTask
         self.tasksapi.deleteTask = self.APIdeleteTask
         self.tasksapi.runTask = self.APIrunTask
