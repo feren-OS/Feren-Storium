@@ -634,14 +634,14 @@
         "tosurl": "",
         "privpolurl": "",
         "solgoogleinteg": true,
-        "solbackground": "#FFFFFF",
-        "solbackground-dark": "#FFFFFF",
-        "solaccent": "#1E1E1E",
-        "solaccent-dark": "#1E1E1E",
+        "solbackground": "#EBEBEB",
+        "solbackground-dark": "#222222",
+        "solaccent": "#D9D9D9",
+        "solaccent-dark": "#444444",
         "solcolor": "#F15D22",
         "solaccentwindow": false,
         "solwebsite": "https://www.omgubuntu.co.uk/?utm_source=a2hs",
-        "lastupdate": "20220328"
+        "lastupdate": "20230511"
     },
     "omg-linux": {
         "childids": [],
