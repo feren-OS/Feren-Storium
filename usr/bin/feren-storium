@@ -1,106 +1,61 @@
 #!/usr/bin/python3
 
+############################################
+# Dependencies
+############################################
 import sys
 import os
-import importlib
-import signal
-from threading import Thread
-import gi
-from gi.repository import GLib
-import gettext
-import getpass
-import collections.abc
-import copy
+import time #FIXME: Is this still necessary for icon downloading?
 import json
+from threading import Thread
+from functools import partial #Used to pre-supply callbacks with some/all arguments
+import gettext #Translation support
 import locale
-from functools import partial
-import time
+import importlib #Used for module loading
+import collections.abc #Required for dict_recurupdate
+import copy #Used to create clones of variables
 
 import requests #Grabbing files from internet
 
-class StoreBrainException(Exception): # Name this according to the module to allow easier debugging
+
+############################################
+# Exceptions
+############################################
+class StoriumBrainException(Exception):
     pass
 
-#TODO: Brain API instead of storebrain access for everything, and simplify the GUI and Brain code
-#TODO: Move package information stuff to package manager plugins, and merge generic into the other plugins
-#TODO: Make Store Brain trigger refresh_memory on modules when loaded, and allow refreshing of modules pool
-#TODO: For subsources and sources, default the values to the one belonging to the first installed case, if possible (but for sources only in the event of entering the page)
-# ICE: dewit
-# APT: dewit (maybe later?)
-# Snap: dewit
-# Flatpak: dewit
-# Brain: dewit
-# GUI: dewit
 
-#Merge notes
-# Removed lastpkgviewed, pkgmgmtbusy, locale (move to Store API), pkg_categoryids, get_generic_information, get_information, get_subsources (now part of getSources)
-# pkg_ids is now dict (stores category in each one)
-# curated data.json value obtaining is now in API
-# task_* now returns Success?, and Output (for failure)
+############################################
+# API and Module Containers
+############################################
 
-#The API modules use to interface with the Brain (this code)
-#Generic (for all modules)
-class StoreGenericAPI():
+#Generic - single-instance API for all modules
+class GenericAPI():
     def __init__(self):
         #self.getDefaultSource = Store.getDefaultSource
-        #self.getItemInformation = Store.getItemInformation
-        #self.getAvailableSources = Store.getAvailableSources
-        #self.canceltask = Tasks.cancelTask
-        #self.getAppStatus = Store.getAppStatus
-        #self.installApp = Store.installApp
-        #self.updateApp = Store.updateApp
-        #self.removeApp = Store.removeApp
-        #self.addSource = Store.addSource
-        #self.removeSource = Store.removeSource
-        #self.showTaskConfirmation = Store.showTaskConfirmation
-        #self.gotoID = Store.gotoID
-        #self.refreshMemory = Store.refreshMemory
-        #self.reloadStore = Store.reloadStore
-        #self.reloadPages = Store.reloadPages
-        #self.reloadPkgStates = Store.reloadPkgStates
-        #self.fullUpdate = Store.fullUpdate
-        #self.itemSearch = Store.itemSearch
-        #self.getAutoUpdateOn = Store.getAutoUpdateOn
-        #self.getAutoUpdateBandwidthOn = Store.getAutoUpdateBandwidthOn
-        pass
+        pass #The functions will be mapped by Brain when initialising
 
-
-#Tasks (for ONLY Tasks module)
-class StoreTasksAPI():
+#Tasks API - single-instance API for Tasks Management
+class TasksAPI():
     def __init__(self):
-        #self.getTaskChanges = Store.getTaskChanges
-        #self.getBonuses = Store.getBonuses
-        #self.addConfirmedTask = Store.addConfirmedTask
-        #self.deleteTask = Store.deleteTask
-        #self.runTask = Store.runTask
-        #self.showFailure = Store.showFailure
-        #self.cleanupModule = Store.cleanupModule
         pass
 
-
-#Settings (for ONLY Settings modules)
-class StoreSettingsAPI():
+#GUI API - single-instance API for GUI Module
+class GUIAPI():
     def __init__(self):
-        #self.changeAutoUpdateOn = Store.changeAutoUpdateOn
-        #self.getAutoUpdateSupported = Store.getAutoUpdateSupported
-        #self.changeAutoUpdateBandwidthOn = Store.changeAutoUpdateBandwidthOn
-        #self.getAutoUpdateBandwidthSupported = Store.getAutoUpdateBandwidthSupported
-        #self.getPackageMgmtModulesInfo = Store.getPackageMgmtModulesInfo
         pass
 
+#ItemMgmt API - instance-per-module API for item management modules
+class ItemMgmtAPI():
+    def __init__(self):
+        pass #Functions will be mapped by Brain when initialising,
+        #    however they will get their moduleid pre-filled by partial,
+        #    thus multiple instances of this API are used per module.
+    
 
-
-#This class here is the main brains that connect the pieces of code together per each module
-class StoreModuleContainer():
-    def __init__(self, path):
-        pass
-    
-    
-        
-    
-    
-    
-#Tasks body for Tasks storage
+############################################
+# Task Storage
+############################################
 class TaskBody():
     def __init__(self, itemid, moduleid, operation, sourceid, subsourceid, becauseof="", depends=""):
         self.moduleid = moduleid #ID of module, e.g.: packagemgmt-apt
@@ -117,18 +72,43 @@ class TaskBody():
         self.bonusids = [] #These get appended to by confirmation dialog
         
         self.progress = 0 #Progress percent
-        
-        
-class TaskManager():    
+
+
+############################################
+# Tasks Execution and Management
+############################################
+class TaskManager():
     def __init__(self):
         self.tasks = {"pending": {"order": {}}, "queue": {"order": {}}, "staged": {"order": {}}, "currenttask": {}} #List of Tasks, in chronological order and modules order
-        #self.storeAPI = StoreGenericAPI NOTE: StoreBrain gives it this
-        #self.storeTasksAPI = StoreTasksAPI NOTE: StoreBrain gives it this
+        #self.storeAPI = StoreGenericAPI NOTE: StoriumBrain gives it this
+        #self.storeTasksAPI = StoreTasksAPI NOTE: StoriumBrain gives it this
         
         self.stage_tasks = False #Are we logging out, or is Store about to restart (if so, stage future tasks instead)
         
         #For Tasks Management
         self.tasks_running = [{}, {}] #Are tasks management calls running? [Pending, Queued]
+
+
+    def newTask(self, itemid, moduleid, operation, sourceid, subsourceid, becauseof="", dependson=""):
+        #Creates task given information supplied, and adds it to pending, staged or queue depending on multiple factors
+        #RETURNS THE TASK'S ID
+        pass #TODO
+
+        #TODO: For systemd mode return the task id in response to the task creation signal that was just given.
+        #Also TODO: Superuser tasks are stored in userland until confirmed in which case their task body is sent to systemd via signal, and also deleted from userland.
+
+
+
+
+
+
+
+
+
+
+
+
+
     
 
     def add_module_to_data(self, moduleid): #Add moduleid to self.tasks sections so task information can be added between them
@@ -175,9 +155,9 @@ class TaskManager():
         
     def cancel_task(self, taskid): #Cancel task
         if taskid not in self.tasks["order"]:
-            raise StoreBrainException("The task %s could not be cancelled as it does not exist as a task. Perhaps the task finished?" % taskid)
+            raise StoriumBrainException("The task %s could not be cancelled as it does not exist as a task. Perhaps the task finished?" % taskid)
         if self.tasks["order"][taskid].cancellable == False:
-            raise StoreBrainException("The task %s could not be cancelled." % taskid)
+            raise StoriumBrainException("The task %s could not be cancelled." % taskid)
         self.storeAPI.cancelTask(taskid)
         
         
@@ -317,34 +297,435 @@ class TaskManager():
         #TODO tell gui to refresh progress
 
 
-class StoreBrain():
-    # Modules Management
-    ##############################################
-    def new_module(self, modulepath):
-        #First off, check module is even valid in the first place
-        if not os.path.isfile(modulepath + "/storemodule.py"):
-            raise StoreBrainException("Invalid module")
-        with open(modulepath + "/storemodule.py", 'r') as modulecheck:
+############################################
+# Settings Storage
+############################################
+class Settings():
+    def __init__(self):
+        pass #TODO
+
+
+############################################
+# The Brain
+############################################
+class StoriumBrain():
+
+    ############################################
+    # Brain initialisation
+    ############################################
+    def run(self):
+        #signal.signal(signal.SIGINT, signal.SIG_DFL)
+        pass #FIXME: Do we need that?^
+
+    def __init__(self):
+        ############################################
+        # CONFIGURABLE VARIABLES
+        ############################################
+        self.configdir = "/etc/feren-storium"
+        self.usrdir = "/usr/share/feren-storium"
+        self.libdir = "/usr/lib/feren-storium"
+        self.userconfigdir = os.path.expanduser("~")+"/.config/feren-storium"
+        self.usercachedir = os.path.expanduser("~")+"/.cache/feren-storium"
+        self.debug = True #Enables additional debug output TODO: Move to Settings portion
+        self.frontendversion = "2023.07"
+
+        #Enable translations
+        gettext.install("feren-storium", "/usr/share/locale", names="ngettext")
+
+        #Create important variables
+        self.modules = {}
+        self.moduleinfo = {} #Module information is cached mainly for GUI purposes
+        self.modulefilewatch = {} #NOTE: Include .py modification time inside these too
+        self.configs = {}
+        #Storium API version (DO NOT CHANGE - USED FOR MODULE COMPATIBILITY CHECKING)
+        self.apiversion = 1
+
+        #Map the Storium API
+        self.initialiseAPIs()
+
+        #Pass over to the arguments response code
+        self.respondToArguments()
+
+    def respondToArguments(self):
+        command = ""
+        targetid = ""
+        moduleid = ""
+        sourceid = ""
+        subsourceid = ""
+        autoyes = False
+        #Initialise depending on arguments given
+        if len(sys.argv) != 1:
+            for arg in sys.argv[1:]:
+                if (arg == "system" or arg == "system-updates") and command == "":
+                    print("Superuser mode Will be added in 2023.07 Beta 1!")
+                    return
+                if arg == "--yes" or arg == "-y":
+                    autoyes = True
+                elif arg == "--help" or arg == "-h":
+                    self.showCLIHelp()
+                    return #Quit after showing help
+                elif arg.startswith("--subsource=") and subsourceid == "":
+                    subsourceid = "".join(arg.split("=")[1:])
+                elif arg.startswith("--source=") and sourceid == "":
+                    sourceid = "".join(arg.split("=")[1:])
+                elif arg.startswith("--module=") and moduleid == "":
+                    moduleid = "".join(arg.split("=")[1:])
+                elif (arg == "tasks" or arg == "update" or arg == "category" \
+                    or arg == "install" or arg == "reinstall" or arg == "remove" \
+                    or arg == "info" or arg == "warnings") and command == "":
+                    command = arg
+                elif command == "" and (arg.startswith("/") or arg.startswith("./")):
+                    command = "open"
+                    targetid = arg
+                    break #We have our argument, continue to initialisation
+                elif command == "":
+                    print(_("Unknown command %s - use --help for available options") % arg)
+                    return
+                elif targetid == "":
+                    targetid = arg
+        #Error checking
+        if subsourceid != "" and sourceid == "":
+            print(_("--subsource cannot be used without a source and module specified"))
+            return
+        elif sourceid != "" and moduleid == "":
+            print(_("--source cannot be used without a module specified"))
+            return
+        elif command == "update" or command == "install" or command == "reinstall" or command == "remove":
+            print("Single-instance mode Will be added in 2023.07 Beta 1!")
+            return
+
+        #Load settings and GUI's settings
+        self.initSettings()
+
+        #Initialise GUI, system mode or single-instance mode depending on arguments etc.
+        #TODO
+
+        #Initialise modules and tasks manager
+        self.initTasksModules()
+
+        #Load GUI-specific modules and inform GUI that the backend finished loading
+        self.finishInitGUI()
+        self.spawnGUI(command, targetid, moduleid, sourceid, subsourceid)
+
+    def showCLIHelp(self):
+        print(_("""Usage:
+  %s [OPTION...] [ID or full file path...]""") % sys.argv[0].split("/")[-1] + "\n")
+        print(_("Manage packages and other items on this system or user") + "\n")
+        print(_("Item Management Options:"))
+        print(_("  install ITEMID - Installs ITEMID"))
+        print(_("  reinstall ITEMID - Reinstalls ITEMID"))
+        print(_("  update ITEMID - Updates ITEMID"))
+        print(_("    update - Performs a system update"))
+        print(_("  remove ITEMID - Removes ITEMID"))
+        print(_("  info ITEMID - Displays information about ITEMID"))
+        print(_("  warnings ITEMID - Displays warnings for ITEMID") + "\n")
+        print(_("Options for Item Management Options:"))
+        print(_("  --module=ID - Only search for the item in this module"))
+        print(_("  --source=ID - Manage the item from this source (requires --moduleid)"))
+        print(_("  --subsource=ID - Use this subsource (only works on install, requires --sourceid)"))
+        print(_("  -y - Answer with yes on prompts") + "\n")
+        print(_("Options:"))
+        print(_("  category ID - Open the ID category"))
+        print(_("  tasks - Open the tasks page"))
+        print(_("  full file path - Opens the file if compatible"))
+
+    def initialiseAPIs(self):
+        ############################################
+        # Generic API
+        ############################################
+        self.genericapi = GenericAPI()
+        self.genericapi.enterStagingMode = self.APIenterStagingMode
+        self.genericapi.getItemInformation = self.APIgetItemInformation
+        self.genericapi.getItemName = self.APIgetItemName
+        self.genericapi.getDefaultSource = self.APIgetDefaultSource
+        self.genericapi.getIcon = self.APIgetIcon
+        self.genericapi.getImages = self.APIgetImages
+        self.genericapi.isModuleAvailable = self.APIisModuleAvailable
+        #self.genericapi.dict_recurupdate = self.dict_recurupdate #FIXME: Is this needed?
+        ############################################
+        # Tasks API
+        ############################################
+        self.tasksapi = TasksAPI()
+        self.tasksapi.updateTask = self.APIupdateTask
+        self.tasksapi.setTaskCancellable = self.APIsetTaskCancellable
+        self.tasksapi.showItemErrorDialog = self.APIshowItemErrorDialog
+        self.tasksapi.refreshItemInfo = self.APIrefreshItemInfo
+        self.tasksapi.invalidateItemInfoCache = self.APIinvalidateItemInfoCache
+        self.tasksapi.invalidateItemStatusCache = self.APIinvalidateItemStatusCache
+        self.tasksapi.reinitModulesIfFileWatch = self.APIreinitModulesIfFileWatch
+        ############################################
+        # GUI API
+        ############################################
+        self.guiapi = GUIAPI()
+        self.guiapi.getAvailableSources = self.APIgetAvailableSources
+        self.guiapi.installItemSource = self.APIinstallItemSource
+        self.guiapi.installItem = self.APIinstallItem
+        self.guiapi.reinstallItem = self.APIreinstallItem
+        self.guiapi.updateItem = self.APIupdateItem
+        self.guiapi.removeItem = self.APIremoveItem
+        self.guiapi.getAvailableBonuses = self.APIgetAvailableBonuses
+        self.guiapi.changeItemBonuses = self.APIchangeItemBonuses
+        self.guiapi.checkForUpdates = self.APIcheckForUpdates
+
+    def initialiseItemMgmtAPI(self, apicontainer, moduleid):
+        ############################################
+        # ItemMgmt API
+        ############################################
+        apicontainer.showGUIToast = partial(self.APIshowGUIToast, moduleid)
+        apicontainer.pkgMgrWaiting = partial(self.APIpkgMgrWaiting, moduleid)
+        apicontainer.getPreferSysInst = partial(self.APIgetPreferSysInst, moduleid)
+
+
+    def initSettings(self):
+        #Fill self.configs using settings and GUI's settings class
+        pass #TODO
+
+
+    def initGUI(self):
+        #Start the GUI in a splash screen state
+        pass #TODO
+
+
+    def initTasksModules(self):
+        self.taskManager = TaskManager()
+
+        #TODO: Skip modules disabled in settings
+        if os.path.exists(self.libdir+"/modules"):
+            for candidateid in sorted(os.listdir(self.libdir+"/modules/itemmgmt")):
+                module = None #Modules love to get reused if we don't do this.
+                path = self.libdir+"/modules/itemmgmt/"+candidateid
+                moduleid = "itemmgmt-"+candidateid
+
+                #Create an instance of ItemMgmtAPI
+                itemmgmtapi = ItemMgmtAPI()
+                self.initialiseItemMgmtAPI(itemmgmtapi, moduleid)
+
+                try:
+                    #Initialise module
+                    module, moduleinfo, filewatch = self.newModule(path, moduleid, itemmgmtapi)
+                    #Add module to modules
+                    self.modules[moduleid] = module
+                    #Add module's metadata to cache
+                    self.moduleinfo[moduleid] = moduleinfo
+                    #Initiate filewatches for this module
+                    result = {}
+                    for i in filewatch:
+                        try:
+                            result[i] = os.path.getmtime(i)
+                        except Exception as e:
+                            print(_("Failed to add %s to filewatch: %s") % (i, e))
+                    self.modulefilewatch[moduleid] = result
+                except Exception as e:
+                    print(_("Failed to load item management module %s: %s") % (candidateid, e))
+
+        print("TEMPORARY")
+        print(self.modules)
+        print(self.moduleinfo)
+        print(self.modulefilewatch)
+
+
+
+
+
+
+
+    def finishInitGUI(self):
+        #Signal the GUI to finish its loading process and go past its splash screen
+        #TODO: Pass GUI settings instance into GUI module
+        pass #TODO
+
+    def spawnGUI(self, command="", targetid="", moduleid="", sourceid="", subsourceid=""):
+        #Reopen GUI if closed, and go to a page in the GUI if one is given
+        pass #TODO
+
+
+    # def todo(self):
+    #
+    #     self.taskManager = TaskManager()
+    #
+    #     self.modules = {}
+    #
+    #     #Prepare the APIs and map the calls:
+    #     # Generic
+    #     self.genericapi = StoreGenericAPI()
+    #     self.genericapi.getDefaultSource = self.APIgetDefaultSource
+    #     self.genericapi.getItemInformation = self.APIgetItemInformation
+    #     self.genericapi.getAvailableSources = self.APIgetAvailableSources
+    #     self.genericapi.getCuratedJSON = self.APIgetCuratedJSON
+    #     self.genericapi.cancelTask = self.APIcancelTask
+    #     self.genericapi.getAppStatus = self.APIgetAppStatus
+    #     self.genericapi.installApp = self.APIinstallApp
+    #     self.genericapi.updateApp = self.APIupdateApp
+    #     self.genericapi.removeApp = self.APIremoveApp
+    #     self.genericapi.addSource = self.APIaddSource
+    #     self.genericapi.removeSource = self.APIremoveSource
+    #     self.genericapi.showTaskConfirmation = self.APIshowTaskConfirmation
+    #     self.genericapi.gotoID = self.APIgotoID
+    #     self.genericapi.refreshMemory = self.APIrefreshMemory
+    #     self.genericapi.reloadStore = self.APIreloadStore
+    #     self.genericapi.reloadPages = self.APIreloadPages
+    #     self.genericapi.reloadPkgStates = self.APIreloadPkgStates
+    #     self.genericapi.fullUpdate = self.APIfullUpdate
+    #     self.genericapi.itemSearch = self.APIitemSearch
+    #     self.genericapi.getAutoUpdateOn = self.APIgetAutoUpdateOn
+    #     self.genericapi.getAutoUpdateBandwidthOn = self.APIgetAutoUpdateBandwidthOn
+    #     self.genericapi.getItemIDs = self.APIgetItemIDs
+    #
+    #     self.genericapi.getFallbackIconLocation = self.APIgetFallbackIconLocation
+    #     #self.genericapi.dict_recurupdate = self.dict_recurupdate
+    #
+    #     # Tasks
+    #     self.tasksapi = StoreTasksAPI()
+    #     self.tasksapi.getTaskChanges = self.APIgetTaskChanges
+    #     self.tasksapi.getBonuses = self.APIgetBonuses
+    #     self.tasksapi.addConfirmedTask = self.APIaddConfirmedTask
+    #     self.tasksapi.deleteTask = self.APIdeleteTask
+    #     self.tasksapi.runTask = self.APIrunTask
+    #     self.tasksapi.showFailure = self.APIshowFailure
+    #     self.tasksapi.cleanupModule = self.APIcleanupModule
+    #
+    #     self.taskManager.storeAPI = self.genericapi
+    #     self.taskManager.storeTasksAPI = self.tasksapi #Pass the APIs Tasks uses into Tasks
+    #
+    #     # Settings
+    #     self.settingsapi = StoreSettingsAPI()
+    #     self.settingsapi.changeAutoUpdateOn = self.APIchangeAutoUpdateOn
+    #     self.settingsapi.getAutoUpdateSupported = self.APIgetAutoUpdateSupported
+    #     self.settingsapi.changeAutoUpdateBandwidthOn = self.APIchangeAutoUpdateBandwidthOn
+    #     self.settingsapi.getAutoUpdateBandwidthSupported = self.APIgetAutoUpdateBandwidthSupported
+    #     self.settingsapi.getPackageMgmtModulesInfo = self.APIgetPackageMgmtModulesInfo
+    #
+    #     #Load the GUI while it loads
+    #     self.modules["gui"] = self.new_module("/usr/lib/feren-storium/modules/gui/gtk3-demo")
+    #     # TODO: Have GUI be determined by gsettings
+    #
+    #
+    #     #Make the folder if it doesn't exist
+    #     if not os.path.isdir(self.cachedir):
+    #         os.mkdir(self.cachedir)
+    #     if not os.path.isdir(self.cachedir + "/icons"):
+    #         os.mkdir(self.cachedir + "/icons")
+    #
+    #     self.modules["gui"].prepareGUI()
+    #     self.post_init()
+    #     self.modules["gui"].showGUIHold()
+
+
+    def post_init(self):
+        thread = Thread(target=self._post_init,
+                        args=())
+        thread.daemon = True
+        thread.start()
+
+    def _post_init(self):
+        #Load in the modules
+        # TODO: Have the loaded modules be determined by gsettings
+        self.load_modules()
+
+
+        #Headers information for requests
+        self.reqHeaders = {'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.114 Safari/537.36'}
+
+
+
+
+        #TODO: Use idle_add to exit the splash screen and load the pages
+        #GLib.idle_add(self.__post_init)
+
+
+
+        self.modules["gui"].GUILoadingFinished()
+
+
+    ############################################
+    # Module Initialisation
+    ############################################
+    def newModule(self, modulepath, moduleid, extraapi=None, guisettings=False):
+        #Initialise module and its information
+        ############################################
+        # Metadata Checks/Initialisation
+        ############################################
+        if not os.path.isfile(modulepath + "/metadata.json"):
+            raise StoriumBrainException(_("Module does not contain information"))
+        with open(modulepath + "/metadata.json", 'r') as fp:
+            moduleinfo = json.loads(fp.read())
+        if "APIVersion" not in moduleinfo:
+            raise StoriumBrainException(_("Invalid module"))
+        elif moduleinfo["APIVersion"] != self.apiversion:
+            raise StoriumBrainException(_("Module is not compatible"))
+        if "conditionFilesExist" in moduleinfo:
+            for i in moduleinfo["conditionFilesExist"]:
+                if not os.path.isfile(i):
+                    #Attempt to show the dependency's name in the correct language in the exception message
+                    missingitem = self.getTranslation(moduleinfo["conditionFilesExist"][i])
+                    if missingitem == None:
+                        #If there is no name for the dependency, we show this double-error
+                        raise StoriumBrainException(_("While trying to show a dependency error, an invalid module error occurred"))
+                    else:
+                        raise StoriumBrainException(_("%s is not installed, but is required by this module") % missingitem)
+        #Check that required values, in the current API, are present
+        for i in ["canManageAutoUpdates", "canUpdatesRunOnShutdown"]:
+            if i not in moduleinfo:
+                raise StoriumBrainException(_("%s is missing from module information") % i)
+        if guisettings == False: #Might as well skip all this when initialising Settings
+            if "watchFiles" in moduleinfo:
+                filewatch = moduleinfo["watchFiles"]
+            else:
+                filewatch = []
+            #Clean up remaining module information
+            moduleinfo.pop("conditionFilesExist", None)
+            moduleinfo.pop("watchFiles", None)
+            moduleinfo.pop("APIVersion")
+            for i in ["fullName", "summary", "appsourcesFullName"]:
+                keeplang = self.getTranslation(moduleinfo[i], True)
+                #Clear out unused translations from our current cache
+                ii = moduleinfo[i][keeplang]
+                moduleinfo[i].clear() #...by nuking the cache entirely,
+                moduleinfo[i][keeplang] = ii #...and re-adding the used translation.
+            count = 0
+            while count < len(moduleinfo["authors"]):
+                keeplang = self.getTranslation(moduleinfo["authors"][count]["name"], True)
+                #Clear out unused translations from our current cache here too
+                i = moduleinfo["authors"][count]["name"][keeplang]
+                moduleinfo["authors"][count]["name"].clear()
+                moduleinfo["authors"][count]["name"][keeplang] = i
+                count += 1
+
+        #Check the module has code, and that said code is valid
+        if not os.path.isfile(modulepath + "/module.py"):
+            raise StoriumBrainException(_("Module does not contain code"))
+        with open(modulepath + "/module.py", 'r') as modulecheck:
             check = False
             for i in modulecheck:
-                if "class module(" in i:
+                if i.startswith("class module(") and guisettings == False:
+                    check = True
+                elif i.startswith("class settings(") and guisettings == True:
                     check = True
             if check == False:
-                raise StoreBrainException("Invalid module")
-        
-        #Create new module and return it
-        result = StoreModuleContainer(modulepath)
-        
+                raise StoriumBrainException(_("Module does not contain required class"))
+
+        ############################################
+        # Module Initialisation
+        ############################################
         sys.path.insert(1, modulepath)
         exceptionstr = ""
         try:
-            import storemodule
-            importlib.reload(storemodule) #Otherwise only one module will be loaded across all variables
-            
-            result = storemodule.module(self.genericapi)
+            import module
+            importlib.reload(module) #Otherwise only one module will be loaded across all variables
 
-            #Now give the module an ID so Store can store it later
-            result.moduleid = modulepath.split("/")[-2] + "-" + modulepath.split("/")[-1]
+            if guisettings == False:
+                if extraapi == None:
+                    result = module.module(self.genericapi)
+                else:
+                    result = module.module(self.genericapi, extraapi)
+                result.refresh_memory()
+            else:
+                result = module.settings()
+
+            #Now give the module an ID so Storium can store it later
+            # result.moduleid = modulepath.split("/")[-2] + "-" + modulepath.split("/")[-1]
+            result.moduleid = moduleid
+            #FIXME: Do we need the module to know its ID now?
         except Exception as e:
             exceptionstr = e
 
@@ -352,10 +733,23 @@ class StoreBrain():
         sys.path.remove(modulepath)
 
         if exceptionstr != "":
-            raise StoreBrainException(exceptionstr)
+            raise StoriumBrainException(exceptionstr)
         else:
-            result.refresh_memory()
-            return result
+            if guisettings == False:
+                return result, moduleinfo, filewatch
+            else:
+                return result
+
+    def getTranslation(self, value, getid=False):
+        for i in [locale.getlocale()[0], locale.getlocale()[0].split("_")[0], "C"]:
+            if i in value:
+                if getid == False:
+                    return value[i]
+                else:
+                    return i
+        return None
+
+
         
     #Load the initial modules
     def load_modules(self):
@@ -397,789 +791,212 @@ class StoreBrain():
                     print("Failed to load settings module %s: \n%s\n" % (dir_name, e))
                     
                     
-    # API functions passed from Store into StoreAPI
-    ##############################################
+    ############################################
+    # API Callbacks - Generic API
+    ############################################
+    def APIenterStagingMode(self):
+        #Check we're in systemd mode before continuing
+        if True: #TODO: Add systemd mode, and a check to ensure we're in it
+            return
+        #Enables tasks staging in systemd mode, and sends a signal to all userland Storium instances to also enter staging mode
+        pass #TODO
+
+    def APIgetItemInformation(self, itemid, moduleid, sourceid):
+        #Returns information of the supplied item
+        pass #TODO
+
+    def APIgetItemName(self, itemid, moduleid, sourceid):
+        #Returns only the human-readable name of the supplied item
+        pass #TODO
+
     def APIgetDefaultSource(self, itemid):
-        #Get the most recommended source itemid is available in, and return the sourceid
-        pass #TODO: Check item availability first, then go by source order of what is available to find the information
+        #Returns the first source in GUI API's getAvailableSources
+        pass #TODO
 
-    def APIgetItemInformation(self, itemid, moduleid, sourceid, subsourceid):
-        #Get information about an item from the specified source
-        result = self.modules[moduleid].getInfo(itemid, sourceid, subsourceid)
-        return result
+    def APIgetIcon(self, itemid, moduleid, sourceid, iconurl, fallbacklocation):
+        #Downloads the icon to cache and returns it, and failing that checks for the icon in its fallback location and returns it
+        #Also returns the icon in cache if it's already downloaded and not older than 4 days
 
+        #Check the icon exists in our cache
+            #Check the icon is not older than 4 days
+            #If it is, delete it
+            #Else, return the icon in cache: itemid:moduleid:sourceid.png/.svg/.whatever
+        #If not, download it
+        #If that fails, check fallbacklocation exists
+            #If it does, return it
+            #Else return ""
+        pass #TODO
+
+    def APIgetImages(self, folder, images):
+        #Gets each image from the images dict, and puts them in the cache folder named the folder variable value
+        pass #TODO
+
+    def APIisModuleAvailable(self, moduleid):
+        #If the module moduleid is currently enabled and running, return True, else return False.
+        pass #TODO
+
+    ############################################
+    # Brain-only Callbacks - Generic
+    ############################################
+    def checkLockFile(self, lockfilelocation):
+        #Checks the PID in lockfilelocation exists - if so, returns True
+        #Otherwise, and if lockfilelocation does not exist, return False
+        pass #TODO
+
+    def searchItemSort(self, results):
+        #Sorts results given, before removing all characters up to their first ':' and returning the sorted version of results with these changes
+        pass #TODO
+
+
+    ############################################
+    # API Callbacks - Tasks API
+    ############################################
+    def APIupdateTask(self, taskid, newstatus, newprogress):
+        #Sends signal to GUI to update any representations of the task taskid, and the item it is managing, to reflect a change of status and/or progress in the task.
+        pass #TODO
+
+    def APIsetTaskCancellable(self, taskid, value):
+        #Sets if the task can be cancelled, and sends signal to GUI to update task representations' cancel button to reflect this change
+        pass #TODO
+
+    def APIshowItemErrorDialog(self, itemid, moduleid, sourceid, extras, errormsg):
+        #Shows an error dialog, via the GUI, informing the user that the task has failed and why it failed.
+        pass #TODO
+
+    def APIrefreshItemInfo(self, itemid, moduleid, sourceid):
+        #Tells GUI to refresh any representations', of itemid from sourceid of moduleid, package information (not the installation status)
+        pass #TODO
+
+    def APIinvalidateItemInfoCache(self, moduleids=[], itemids=[]):
+        #Tells modules in moduleids to delete their item information cache for items in itemids
+        #Then, launches APIrefreshItemInfo for each possible source
+        pass #TODO
+
+    def APIinvalidateItemStatusCache(self, moduleids=[], itemids=[]):
+        #Tells modules in moduleids to delete their item status cache for items in itemids
+        #Then, tells the GUI to refresh the status shown on their representations of the affected itemids.
+        pass #TODO
+
+    def APIreinitModulesIfFileWatch(self, finishedtaskid):
+        #Reinitialises modules that have file watches on files that have changed after this task
+
+        #To reinitialise modules, call queueReinitModule(moduleid) so that the module only reinitialises once its update tasks are completed
+        pass #TODO
+
+    ############################################
+    # Brain-only Callbacks - Tasks
+    ############################################
+    def refreshTasksOrder(self):
+        #Merges superuser tasks list with userland tasks list, in chronological order, and stores it as the tasksorder variable the GUI references
+        pass #TODO
+
+    def holdUntilTasksCompleted(self):
+        #Enables tasks staging, and then holds code until all tasks in all modules are complete in userland, or superuser in systemd mode, are complete.
+        pass #TODO
+
+    def runShutdownUpdates(self):
+        #Moves all tasks in 'waitingforshutdown' to queue, changes Plymouth mode to Updates, and runs the queue, while removing each task from updatetasks.json as they complete.
+        pass #TODO
+
+    def beginQueueCountdown(self):
+        #Waits 1 hour before automatically starting the queued tasks.
+        pass #TODO
+
+    def queueReinitModule(self, moduleid):
+        #Queues module for reinitialisation once unimportant tasks are the only queued tasks left for it
+        pass #TODO
+
+    def reinitModule(self, moduleid):
+        #Reinitialises a module unless there are still update or related-to-update tasks queued in which case the function instantly returns
+        #If reinitialisation fails, restartStorium() is triggered.
+        pass #TODO
+
+
+    ############################################
+    # API Callbacks - GUI API
+    ############################################
     def APIgetAvailableSources(self, itemid):
-        #Get the sources for this package id {sourcename: subsources]}, split into "recommended", "normal", and "nonrecommended"
-        #TODO: Split into 3 types, listed on above line
-        result = {"recommended": {}, "normal": {}, "nonrecommended": {}}
-
-        for module in self.modules:
-            if module.startswith("packagemgmt-"):
-                try:
-                    sources = self.modules[module].getSources(itemid)
-                    for source in sources:
-                        if self.modules[module].getAvailable(itemid, source) != 1:
-                            #Add to available sources return if available
-                            result["normal"][module+":"+source] = sources[source]
-                            result["normal"][module+":"+source]["id"] = module+":"+source
-                except Exception as e:
-                    print("TEMPDEBUG APIGETAVAILABLESOURCES: " + module + " " + str(e))
-
-
-        #TODO: Iterate over them to check that no names match, and if so append their sourcesmodulename to them in brackets
-
-        return result
-
-    def APIgetCuratedJSON(self, jsonpath):
-        result = {}
-
-        #Returns dict consisting of data from a JSON file in the curated folder
-        with open("/usr/share/feren-storium/curated/" + jsonpath + "/data.json", 'r') as fp:
-            result = json.loads(fp.read())
-        if os.path.isfile("/usr/share/feren-storium/curated/" + locale.getlocale()[0] + "/" + jsonpath + "/data.json"):
-            with open("/usr/share/feren-storium/curated/" + locale.getlocale()[0] + "/" + jsonpath + "/data.json", 'r') as fp: #Also overwrite with language-specifics if they exist
-                result = self.dict_recurupdate(result, json.loads(fp.read()))
-
-        return result
-
-
-    def APIcancelTask(self, taskid):
-        #TODO
-        return
-
-        #Cancels the task of that Task ID
-        # If it isn't found or cannot be cancelled, throw an exception.
-        if taskid not in self.taskManager.tasks:
-            raise StoreBrainException(_("%s does not exist as a task. Perhaps the task finished?") % taskid)
-        if self.taskManager.tasks[taskid].cancellable == False:
-            raise StoreBrainException(_("The task %s cannot be cancelled.") % taskid)
-        #Get the module to cancel the task, otherwise
-        try:
-            self.modules[self.taskManager.tasks[taskid].moduleid].taskCancel(taskid)
-        except Exception as e:
-            raise StoreBrainException(_("The task {0} could not be cancelled as the following error occurred while cancelling it: {1}").format(taskid, e))
-        #Now delete the task since it was cancelled
-        self.storeTasksAPI.deleteTask(taskid)
-
-
-    def APIgetAppStatus(self, itemid, modulesourceid): #TODO: Split moduleid and sourceid in the call line instead?
-        moduleid = modulesourceid.split(":")[0]
-        sourceid = modulesourceid.split(":")[1]
-        #Gets the status of the item of itemid from sourceid : subsourceid, via moduleid
-
-        #Possible returns:
-        # 0 (Not installed), 1 (Installed), 2 (Updatable), 3 (Available in a disabled source), 403 (Not Available) TODO: Move Not Available checking to its own call?
-        # 10: Removing..., 11: Installing..., 12: Updating...
-        # 20: Pending removal, 21: Pending installation, 22: Pending update
-        #NOTE: Also returns subsourceid so GUI can default subsource select to it
-
-        #First, check for the item in taskManager's currenttask
-        if self.taskManager.tasks["currenttask"][moduleid] != "":
-            canditemid, operation, candsourceid, subsourceid = i.split(":")[1:]
-            if canditemid == itemid and candsourceid == sourceid:
-                if operation == 0: #Install
-                    return 11, subsourceid
-                elif operation == 1: #Remove
-                    return 10, subsourceid
-                elif operation == 3: #Update
-                    return 12, subsourceid
-        #Then check for the item in taskManager's pending, queue, and staged
-        for taskstype in ["pending", "queue", "staged"]:
-            for i in self.taskManager.tasks["pending"][moduleid]:
-                canditemid, operation, candsourceid, subsourceid = i.split(":")[1:]
-                if canditemid == itemid and candsourceid == sourceid:
-                    if operation == 0: #Install
-                        return 21, subsourceid
-                    elif operation == 1: #Remove
-                        return 20, subsourceid
-                    elif operation == 3: #Update
-                        return 22, subsourceid
-
-        #Finally fallback to asking the module in question for the application's status
-        return self.modules[moduleid].get_status(itemid, "", sourceid)
-
-    def APIinstallApp(self, itemid, modulesourceid, subsourceid):
-        moduleid = modulesourceid.split(":")[0]
-        sourceid = modulesourceid.split(":")[1]
-        #Installs the item of itemid from sourceid : subsourceid, using moduleid
-        self.taskManager.add_task(itemid, moduleid, 0, sourceid, subsourceid, "", "", False)
-
-    def APIupdateApp(self, itemid, modulesourceid, subsourceid):
-        moduleid = modulesourceid.split(":")[0]
-        sourceid = modulesourceid.split(":")[1]
-        #Same as APIinstallApp, except it triggers an Update task instead
-        self.taskManager.add_task(itemid, moduleid, 2, sourceid, subsourceid, "", "", False)
-
-    def APIremoveApp(self, itemid, modulesourceid, subsourceid):
-        moduleid = modulesourceid.split(":")[0]
-        sourceid = modulesourceid.split(":")[1]
-        #Same as APIinstallApp, except it triggers a Remove task instead
-        self.taskManager.add_task(itemid, moduleid, 1, sourceid, subsourceid, "", "", False)
-
-    def APIaddSource(self, modulesourceid):
-        moduleid = modulesourceid.split(":")[0]
-        sourceid = modulesourceid.split(":")[1]
-        #Tells the module of moduleid matching to add the source of ID sourceid
-        self.taskManager.add_task(sourceid, moduleid, 0, "", "", "", "", itemid, False)
-
-    def APIremoveSource(self, modulesourceid):
-        moduleid = modulesourceid.split(":")[0]
-        sourceid = modulesourceid.split(":")[1]
-        #Same as APIaddSource, except it removes it instead
-        self.taskManager.add_task(sourceid, moduleid, 1, "", "", "", "", itemid, False)
-
-    def APIshowTaskConfirmation(self, taskbody, idsadded, idsupdated, idsremoved, bonusavailability):
-        #Tells GUI to show task confirmation dialog, and then waits for value (True/False), alongside a bonus installs list, to be returned.
-        return self.modules["gui"].showTaskConfirmation(taskbody, idsadded, idsupdated, idsremoved, bonusavailability)
-
-    def APIgotoID(self, itemid):
-        #Tells GUI to go to the 'package page' for ID itemid, that's it.
-        self.modules["gui"].gotoID(itemid)
-
-    def APIrefreshMemory(self):
-        #Store calls refreshMemory on EVERY single module that Store knows of
-        for module in self.modules:
-            self.modules[module].refreshMemory()
-
-    def APIreloadStore(self):
-        #Straight up restarts Store
-        pass #TODO: Revisit this once we have a means of safely exiting the Store
-
-    def APIreloadPages(self):
-        #Reloads every single Store GUI page that's loaded right now
-        self.storeAPI.reloadPkgStates(["all"])
-        self.modules["gui"].reloadPages()
-
-    def APIreloadPkgStates(self, moduleids, packageids=["all"]):
-        #moduleids: List of all module IDs to affect
-        #packageids: Optional - List of all package IDs to affect
-
-        #Refresh install status of all packageids from all the sources managed by the moduleids
-        #Also uncache any install statuses for them that are cached
-
-        if moduleids == "all":
-            moduleidsloop = self.modules
-        else:
-            moduleidsloop = moduleids
-
-        for module in moduleids:
-            self.modules[module].reloadPkgStates(packageids)
-
-    def APIfullUpdate(self):
-        #Run updateApp on every single updatable item
-        #TODO: Consolidate all changes into big confirmation
-        #TODO: Revisit this when we've figured out how we want to store updates lists
+        #Returns all available sources, from all modules, for this itemid
         pass #TODO
 
-    def APIitemSearch(self, searchstring):
-        #1. For each Search module, do a search with searchstring as the search term
-        #2. Get the package information of each one by querying APIgetDefaultSource
-        # Then, sort by numeralphabetical based on the human-readable names, though prior
-        #Finally, return the itemids in a sorted dictionary with the priorities
-        #TODO: Priority levels: Exact, ID match, ID starts with, Starts with, Contains, Ends with, ID ends with
-        results = {"idmatch": [], "exact": [], "idstarts": [], "starts": [], "contains": [], "ends": [], "idends": []}
-
-        for module in self.search_modules:
-            moduletemp = self.search_modules[module].getResults(searchterm)
-            moduletemp = dict(moduletemp) #For some reason, not doing this pops it inside the module(s) too on the next line
-            moduletemp.pop('status', None)
-            try:
-                for item in results:
-                    results[item] = self.dict_recurupdate(results[item], moduletemp[item])
-            except Exception as e:
-                #TODO: API for generic errors
-                print("DEBUG: {0} failed to search due to the following exception or missing value: {1}".format(module, e))
-
-        #FIXME: Is there not a more efficient way to remove duplicate results? (proritise is over begins with, contains and ends with, begins with over contains and ends with, and contains over ends with)
-        #for result in overall_results["exactmatch"]:
-            #if result in overall_results["begins"]:
-                #overall_results["begins"].pop(result, None)
-            #elif result in overall_results["contains"]:
-                #overall_results["contains"].pop(result, None)
-            #elif result in overall_results["ends"]:
-                #overall_results["ends"].pop(result, None)
-        #for result in overall_results["begins"]:
-            #if result in overall_results["contains"]:
-                #overall_results["contains"].pop(result, None)
-            #elif result in overall_results["ends"]:
-                #overall_results["contains"].pop(result, None)
-        #for result in overall_results["contains"]:
-            #if result in overall_results["ends"]:
-                #overall_results["ends"].pop(result, None)
-
-        return results
-
-
-    def APIgetAutoUpdateOn(self, moduleid):
-        #Module returns true/false for if automatic updates are on
-        return self.modules[moduleid].getAutoUpdateOn()
-
-    def APIgetAutoUpdateBandwidthOn(self, moduleid):
-        #Module returns true/false for automatic updates bandwidth
-        return self.modules[moduleid].getAutoUpdateOn()
-
-
-    def APIgetItemIDs(self, categories):
-        #Gets all available item IDs from each module, belonging to the category ID category provides (if ['all'], all available item IDs without filtering), and returns them as a dictionary of listings per category
-        result = {}
-        for item in categories:
-            result[item] = []
-            for module in self.modules:
-                if module.startswith("packagemgmt-"):
-                    for cateresult in self.modules[module].getCategoryIDs(item):
-                        if cateresult not in result[item]:
-                            result[item].append(cateresult)
-
-        return result
-
-    def APIgetFallbackIconLocation(self, iconlocal, iconuri, itemid): #TODO: Move icons from /tmp to ~/.cache, and set a disk space cap on it
-        #In case the icon set cannot be used to supply an icon:
-        # try to use the file path provided by iconlocal to provide the icon image
-        # otherwise try retrieving it from iconuri and then returning that filepath
-        # if all else fails, return None
-
-        if iconlocal != "" and os.path.isfile(iconlocal):
-            return iconlocal
-        else:
-            try:
-                if iconuri == "":
-                    raise
-                #Download the application icon
-                if not os.path.isfile(self.cachedir+"/icons/"+itemid):
-                    r=requests.get(iconuri, headers=self.reqHeaders)
-                    with open(self.cachedir+"/icons/"+itemid, "wb") as f:
-                        f.write(r.content)
-                    time.sleep(0.1) #Can return too early and cause an exception, thus sleep
-                return self.cachedir+"/icons/"+itemid
-            except Exception as e:
-                print(_("Failed to retrieve the icon of "+itemid+" because: %s") % e)
-                return None
-
-
-    # API functions passed from Store into TasksAPI
-    ##############################################
-    def APIgetTaskChanges(self, taskbody):
-        itemid, operation, sourceid, subsourceid = taskbody.itemid, taskbody.operation, taskbody.sourceid, taskbody.subsourceid
-        return self.modules[taskbody.moduleid].getTaskChanges(itemid, operation, sourceid, subsourceid)
-
-    def APIgetBonuses(self, taskbody):
-        itemid, sourceid, subsourceid = taskbody.itemid, taskbody.sourceid, taskbody.subsourceid
-        return self.modules[taskbody.moduleid].getBonuses(itemid, sourceid, subsourceid)
-
-    def APIaddConfirmedTask(self, itemid, moduleid, operation, sourceid, subsourceid, becauseof="", dependson="", directto=""):
-        #Add a task but make it confirmed right from the start
-        self.taskManager.add_task(itemid, moduleid, operation, sourceid, subsourceid, becauseof, dependson, directto, True)
-
-    def APIdeleteTask(self, taskid):
-        moduleid = taskid.split(":")[0]
-
-        for category in "pending", "queue", "staged":
-            if taskid in self.taskManager.tasks[category][moduleid]:
-                self.taskManager.tasks[category][moduleid].pop(taskid, None)
-            if taskid in self.taskManager.tasks[category]["order"]:
-                self.taskManager.tasks[category]["order"].pop(taskid, None)
-
-        #TODO: Now reload Tasks in the GUI
-        #self.storeAPI.reloadPkgStates([moduleid], [itemid])
-
-    def APIrunTask(self, taskid, taskbody):
-        #Run a task, matching taskbody
-        if taskbody.operation == 0: #Install/Add
-            self.modules[taskbody.moduleid].task_install_package(taskbody, partial(self.taskManager.task_set_progress, taskid, taskbody.moduleid))
-        elif taskbody.operation == 1: #Remove
-            self.modules[taskbody.moduleid].task_remove_package(taskbody, partial(self.taskManager.task_set_progress, taskid, taskbody.moduleid))
-        elif taskbody.operation == 2: #Update
-            self.modules[taskbody.moduleid].task_update_package(taskbody, partial(self.taskManager.task_set_progress, taskid, taskbody.moduleid))
-
-    def APIshowFailure(self, taskbody, exceptionstr):
-        #Show a failure dialog in the GUI to indicate that an item failed to install/remove/update/etc. and indicate the why
-        print("DEBUG: {0} failed: {1}".format(taskbody.moduleid+":"+taskbody.itemid+":"+taskbody.sourceid+":"+taskbody.subsourceid+":"+str(taskbody.operation), exceptionstr)) #FIXME: Temporary method
+    def APIinstallItemSource(self, sourceitemid, itemid, moduleid, sourceid, subsourceid):
+        #Adds the necessary source needing installing to pending, as well as adding the item itself to pending with a follows value of this task
         pass #TODO
 
-    def APIcleanupModule(self, moduleid):
-        #Trigger post-task cleanup in the module matching moduleid
-        self.modules[moduleid].cleanupModule()
+    def APIinstallItem(self, itemid, moduleid, sourceid, subsourceid):
+        #Adds the item to pending tasks to be confirmed, before starting the tasks runner if it is not currently running
+        #Also runs invalidateItemStatus cache on this specific itemid.
+        pass #TODO
 
+    def APIreinstallItem(self, itemid, moduleid, sourceid, subsourceid):
+        #APIinstallitem, but reinstallation instead.
+        pass #TODO
 
-    # API functions passed from Store into SettingsAPI
-    ##############################################
-    def APIchangeAutoUpdateOn(self, moduleid, newvalue):
-        #Module changes automatic updates value to newvalue (bool)
-        self.modules[moduleid].changeAutoUpdateOn(newvalue)
+    def APIupdateItem(self, itemid, moduleid, sourceid, subsourceid):
+        pass #TODO
 
-    def APIchangeAutoUpdateBandwidthOn(self, moduleid, newvalue):
-        #Module changes automatic updates disabling on metered connections to newvalue (bool)
-        self.modules[moduleid].changeAutoUpdateBandwidthOn(newvalue)
+    def APIremoveItem(self, itemid, moduleid, sourceid, subsourceid):
+        pass #TODO
 
-    def APIgetAutoUpdateSupported(self, moduleid):
-        #Get module's value for autoUpdateSupported
-        return self.modules[moduleid].getAutoUpdateSupported()
+    def APIgetAvailableBonuses(self, itemid, moduleid, sourceid, subsourceid):
+        #Returns list of available bonus IDs
+        pass #TODO
 
-    def APIgetAutoUpdateBandwidthSupported(self, moduleid):
-        #Get module's value for autoUpdateBandwidthSupported
-        return self.modules[moduleid].getAutoUpdateBandwidthSupported()
+    def APIchangeItemBonuses(self, itemid, moduleid, sourceid, subsourceid, bonuses):
+        #Ran upon user confirming changes to bonuses - initiates a new queued task with the 'changebonuses' operation, before starting the tasks runner if it is not currently running
+        #Tasks for each bonus change, with becauseof values set to the resulting task as well as having matching operations, will be added
+        pass #TODO
 
-    def APIgetPackageMgmtModulesInfo(self, moduleid=["all"]):
-        #Gets dictionary of information about the package modules in moduleid, or if all then all the package modules
-        result = {}
+    def APIcheckForUpdates(self):
+        #Gets the values of getProblemItems from all item management modules, then getUpdates, getDrivers, and getInstalled. Then, assembles them and runs reloadInstalledPage in the GUI with the IDs in those aforementioned segmented-lists, while making sure each ID only appears once.
+        pass #TODO
 
-        for module in moduleids:
-            result[module] = {"title": self.modules[module].humanreadabletitle, "sourcestitle": self.modules[module].sourcesmodulename}
-            #TODO: More values maybe needed in the future?
+    #TODO: put this in GUI
+    #reloadInstalledPage(problemItems, updates, drivers, installed):
+    #    #Reloads all the parts of the drivers/problems/updates/drivers/installed page, except for Tasks, using the lists provided in the function's arguments.
 
-        return result
+    ############################################
+    # Brain-only Callbacks - GUI
+    ############################################
+    def getPreferSystemWideInstalls(self):
+        #Returns the value of the preference according to the GUI module
+        pass #TODO
 
+    def confirmPendingItem(self, taskgroupid):
+        #Shows a confirmation dialog, and returns True if the user chose to continue, else False
+        pass #TODO
 
-    # Main functionality of Store Brain
-    ##############################################
-    def __init__(self):
-        self.taskManager = TaskManager()
+    def refreshSources(self, itemid):
+        #Calls refreshSources in the GUI with this itemid.
+        pass #TODO
 
-        self.last_module_path = ""
-        self.modules = {}
-        #TODO: Store each module with IDs, such as package module 'apt' having an ID of pmapt
-        #Then, have the module storage be something along the lines of {..., 'pmapt': self.new_module(path), ...} so the API knows which module to call for what
+    def taskProgress(self, taskid):
+        #Displays the progress and status of a task in a Terminal-friendly format
+        #Used in single instance mode, or when running this executable with a management argument
+        pass #TODO
 
-        #Prepare the APIs and map the calls:
-        # Generic
-        self.genericapi = StoreGenericAPI()
-        self.genericapi.getDefaultSource = self.APIgetDefaultSource
-        self.genericapi.getItemInformation = self.APIgetItemInformation
-        self.genericapi.getAvailableSources = self.APIgetAvailableSources
-        self.genericapi.getCuratedJSON = self.APIgetCuratedJSON
-        self.genericapi.cancelTask = self.APIcancelTask
-        self.genericapi.getAppStatus = self.APIgetAppStatus
-        self.genericapi.installApp = self.APIinstallApp
-        self.genericapi.updateApp = self.APIupdateApp
-        self.genericapi.removeApp = self.APIremoveApp
-        self.genericapi.addSource = self.APIaddSource
-        self.genericapi.removeSource = self.APIremoveSource
-        self.genericapi.showTaskConfirmation = self.APIshowTaskConfirmation
-        self.genericapi.gotoID = self.APIgotoID
-        self.genericapi.refreshMemory = self.APIrefreshMemory
-        self.genericapi.reloadStore = self.APIreloadStore
-        self.genericapi.reloadPages = self.APIreloadPages
-        self.genericapi.reloadPkgStates = self.APIreloadPkgStates
-        self.genericapi.fullUpdate = self.APIfullUpdate
-        self.genericapi.itemSearch = self.APIitemSearch
-        self.genericapi.getAutoUpdateOn = self.APIgetAutoUpdateOn
-        self.genericapi.getAutoUpdateBandwidthOn = self.APIgetAutoUpdateBandwidthOn
-        self.genericapi.getItemIDs = self.APIgetItemIDs
+    def restartStore(self):
+        #Runs holdUntilTasksCompleted in the Tasks API, saves staged tasks, deletes its lockfile, spawns a new Store process and then exits.
+        #In systemd mode, restarts the service before exiting.
+        pass #TODO
 
-        self.genericapi.getFallbackIconLocation = self.APIgetFallbackIconLocation
-        self.genericapi.dict_recurupdate = self.dict_recurupdate
+    ############################################
+    # API Callbacks - ItemMgmt API
+    ############################################
+    def APIshowGUIToast(self, moduleid, text, icon="info"):
+        pass #TODO
 
-        # Tasks
-        self.tasksapi = StoreTasksAPI()
-        self.tasksapi.getTaskChanges = self.APIgetTaskChanges
-        self.tasksapi.getBonuses = self.APIgetBonuses
-        self.tasksapi.addConfirmedTask = self.APIaddConfirmedTask
-        self.tasksapi.deleteTask = self.APIdeleteTask
-        self.tasksapi.runTask = self.APIrunTask
-        self.tasksapi.showFailure = self.APIshowFailure
-        self.tasksapi.cleanupModule = self.APIcleanupModule
+    def APIpkgMgrWaiting(self, moduleid, value, taskid):
+        pass #TODO
 
-        self.taskManager.storeAPI = self.genericapi
-        self.taskManager.storeTasksAPI = self.tasksapi #Pass the APIs Tasks uses into Tasks
-
-        # Settings
-        self.settingsapi = StoreSettingsAPI()
-        self.settingsapi.changeAutoUpdateOn = self.APIchangeAutoUpdateOn
-        self.settingsapi.getAutoUpdateSupported = self.APIgetAutoUpdateSupported
-        self.settingsapi.changeAutoUpdateBandwidthOn = self.APIchangeAutoUpdateBandwidthOn
-        self.settingsapi.getAutoUpdateBandwidthSupported = self.APIgetAutoUpdateBandwidthSupported
-        self.settingsapi.getPackageMgmtModulesInfo = self.APIgetPackageMgmtModulesInfo
-
-        #Load the GUI while it loads
-        self.modules["gui"] = self.new_module("/usr/lib/feren-storium/modules/gui/gtk3-demo")
-        # TODO: Have GUI be determined by gsettings
-
-        self.cachedir = os.path.expanduser("~")+"/.cache/feren-storium"
-        #Make the folder if it doesn't exist
-        if not os.path.isdir(self.cachedir):
-            os.mkdir(self.cachedir)
-        if not os.path.isdir(self.cachedir + "/icons"):
-            os.mkdir(self.cachedir + "/icons")
-
-        self.modules["gui"].prepareGUI()
-        self.post_init()
-        self.modules["gui"].showGUIHold()
-
-
-    def post_init(self):
-        thread = Thread(target=self._post_init,
-                        args=())
-        thread.daemon = True
-        thread.start()
-
-    def _post_init(self):
-        #Load in the modules
-        # TODO: Have the loaded modules be determined by gsettings
-        self.load_modules()
-
-
-        #Headers information for requests
-        self.reqHeaders = {'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.114 Safari/537.36'}
+    def APIgetPreferSysInst(self, moduleid):
+        pass #TODO
 
 
 
-
-        #TODO: Use idle_add to exit the splash screen and load the pages
-        #GLib.idle_add(self.__post_init)
-
-
-
-        self.modules["gui"].GUILoadingFinished()
-
-
-
-
-
-
-
-    def refresh_modules(self):
-        for module in self.localpkgmgmt_modules:
-            try:
-                self.localpkgmgmt_modules[module].refresh_memory()
-            except Exception as e:
-                print(e)
-        for module in self.pkgmgmt_modules:
-            try:
-                self.pkgmgmt_modules[module].refresh_memory()
-            except Exception as e:
-                print(e)
-        for module in self.pkginfo_modules:
-            try:
-                self.pkginfo_modules[module].refresh_memory()
-            except Exception as e:
-                print(e)
-        for module in self.search_modules:
-            try:
-                self.search_modules[module].refresh_memory()
-            except Exception as e:
-                print(e)
-        for module in self.sourceinfo_modules:
-            try:
-                self.sourceinfo_modules[module].refresh_memory()
-            except Exception as e:
-                print(e)
-        for module in self.settings_modules:
-            try:
-                self.settings_modules[module].refresh_memory()
-            except Exception as e:
-                print(e)
-                
-                
-    def refresh_overall_package_data(self):
-        #Make the generic module make a {category: [ids]} dictionary for homepage and whatnot
-        self.pkginfo_modules[self.generic_module].build_categories_ids()
-        #Build each module's ID lists
-        for module in self.pkginfo_modules:
-            self.pkginfo_modules[module].build_ids_list()
-        
-            
-        
-    def item_search(self, searchterm):
-        overall_results = {}
-        temp_var = {}
-        for module in self.search_modules:
-            temp_var = self.search_modules[module].getResults(searchterm)
-            temp_var = dict(temp_var) #For some reason, not doing this pops it inside the module(s) too on the next line
-            temp_var.pop('status', None)
-            overall_results = self.dict_recurupdate(overall_results, temp_var)
-            
-        #FIXME: Is there not a more efficient way to remove duplicate results? (proritise is over begins with, contains and ends with, begins with over contains and ends with, and contains over ends with)
-        for result in overall_results["exactmatch"]:
-            if result in overall_results["begins"]:
-                overall_results["begins"].pop(result, None)
-            elif result in overall_results["contains"]:
-                overall_results["contains"].pop(result, None)
-            elif result in overall_results["ends"]:
-                overall_results["ends"].pop(result, None)
-        for result in overall_results["begins"]:
-            if result in overall_results["contains"]:
-                overall_results["contains"].pop(result, None)
-            elif result in overall_results["ends"]:
-                overall_results["contains"].pop(result, None)
-        for result in overall_results["contains"]:
-            if result in overall_results["ends"]:
-                overall_results["ends"].pop(result, None)
-            
-        return overall_results
-    
-    def dict_alphasort(self, d):
-        sortedkeys = {}
-        #Sort the search results
-        for result in sorted(d.keys(), key=lambda x:x.lower()):
-            sortedkeys[result] = d[result]
-        return sortedkeys
-    
-    def dict_recurupdate(self, d, u): # I'm sure it's a recursive dictionary updater function, from what I can read of this function
-        for k, v in u.items():
-            if isinstance(v, collections.abc.Mapping):
-                d[k] = self.dict_recurupdate(d.get(k, {}), v)
-            else:
-                d[k] = v
-        return d
-    
-    
-    def module_type_query(self, moduleslist, packagetype, addgeneric=True): # Get modules out of modules dict that can handle package type queried
-        results = []
-        
-        for item in moduleslist:
-            if moduleslist[item].modulename == self.generic_module and addgeneric != True:
-                continue
-            if packagetype in moduleslist[item].types_supported or "all" in moduleslist[item].types_supported:
-                results.append(moduleslist[item])
-        
-        return results
-    
-    
-    def add_to_packageinfo(self, packageid):
-        # Add package name to all packagestorages of modules that can house this package
-        for module in self.pkgmgmt_modules:
-            try:
-                self.pkgmgmt_modules[module].pkgstorage_add(packageid)
-            except:
-                pass
-    
-    
-    def get_sources(self, packagename):
-        #Get sources of modules
-        
-        #Package information works like this:
-        # - all: All sources information
-        # - sourcenamehere: Information specific to the source
-        
-        #packagename: package name
-        #pkgtype: package type (e.g.: apt, snap...)
-        #sourcename: Internal name of source
-        #  (subsources don't get specific information)
-        
-        genericiteminfo = {}
-        allsources = {}
-        sourceslist = []
-        nameslist = [] #Translated names
-        
-        try:
-            genericiteminfo = self.pkginfo_modules[self.generic_module].getInfo(packagename, "all") #No source specified so that we can get all the extra information pieces
-        except:
-            return [], []
-        
-        #First collect all possible sources into a dict
-        for pkgtype in genericiteminfo["type-importance"]:
-            modules = self.module_type_query(self.pkginfo_modules, pkgtype, False)
-            
-            allsources[pkgtype] = {}
-            
-            if modules == []:
-                continue #Skip to next pkgtype if no modules available
-            
-            for module in modules:
-                allsources[pkgtype][module.modulename] = module.getSourceList(packagename, pkgtype)
-                
-        #Now get an accurate list using the module to check        
-        for pkgtype in allsources:
-            mgmtmodules = self.module_type_query(self.pkgmgmt_modules, pkgtype, False)
-            
-            for module in allsources[pkgtype]:
-                for mgmtmodule in mgmtmodules:
-                    try:
-                        for actualsource in mgmtmodule.sourceQuery(packagename, pkgtype, allsources[pkgtype][module]):
-                            nameslist.append(actualsource + " (" + mgmtmodule.modulename + ", " + pkgtype + ")") #Temporary, TODO: Translate name via module
-                            sourceslist.append(mgmtmodule.modulename + ":" + pkgtype + ":" + actualsource)
-                    except Exception as e:
-                        print("GET SOURCES DEBUG: {0} couldn't check sourcelist {1} from package type {2}: {3}".format(mgmtmodule.humanreadabletitle, str(allsources[pkgtype][module]), pkgtype, e))
-                        #Make sure nothing gets in there that shouldn't
-                        if len(nameslist) > len(sourceslist):
-                            nameslist.pop(-1)
-                        elif len(nameslist) < len(sourceslist):
-                            sourceslist.pop(-1)
-                    
-                
-        return sourceslist, nameslist
-    
-    def get_subsources(self, sourceid, packagename):
-        subsourceslist = []
-        nameslist = [] #Translated names
-        
-        modulename, pkgtype, source = sourceid.split(":")
-        
-        try:
-            for subsource in self.pkgmgmt_modules[modulename].get_subsources(packagename, pkgtype, source):
-                nameslist.append(subsource) #Temporary, TODO: Translate name via module
-                subsourceslist.append(subsource)
-        except Exception as e:
-            print("GET SUBSOURCES DEBUG: {0} couldn't get a subsources list for {1} on sourceid {2}: {3}".format(modulename, packagename, sourceid, e))
-            return [], []
-            
-        return subsourceslist, nameslist
-    
-    
-    def get_package_moduleorder(self, packagename):
-        try:
-            return self.pkginfo_modules[self.generic_module].getPackageJSON()[packagename]["type-importance"]
-        except:
-            pass
-        
-        
-    def get_generic_item_info(self, packagename, pkgtype): #Get generic package information
-        #Note: Generic only uses the 'all' source
-        try:
-            genericinfo = self.pkginfo_modules[self.generic_module].getInfo(packagename, pkgtype, "all") #We use 'all' as a placebo since it's not important in a generic module
-            return genericinfo
-        except:
-            raise StoreBrainException(_("No information was found for %s") % packagename)
-        
-    
-    def get_item_info_specific(self, packagename, pkgtype, sourcename, generictoo=False): #Get package information for specific source (no generic)
-        #Package information works like this:
-        # - all: All sources information
-        # - sourcenamehere: Information specific to the source
-        
-        #packagename: package name
-        #pkgtype: package type (e.g.: apt, snap...)
-        #sourcename: Internal name of source
-        #  (subsources don't get specific information)
-        
-        modules = self.module_type_query(self.pkginfo_modules, pkgtype, False)
-        iteminfo = {}
-        
-        if generictoo == True:
-            iteminfo = self.get_generic_item_info(packagename, pkgtype)
-        
-        for module in modules:
-            try:
-                iteminfo = self.dict_recurupdate(iteminfo, module.getInfo(packagename, pkgtype, sourcename))
-            except Exception as e:
-                print("GET ITEM INFO DEBUG: {0} couldn't get item information for {1} from package type {2} of source name {3}: {4}".format(module.humanreadabletitle, packagename, pkgtype, sourcename, e))
-                pass
-            
-        if iteminfo == {}:
-            raise StoreBrainException(_("No information was provided for {0} of type {1} in source {2}".format(packagename, pkgtype, sourcename)))
-        
-        return iteminfo
-        
-    
-    def get_item_info_default(self, packagename): #Get default package information
-        #Package information works like this:
-        # - all: All sources information
-        # - sourcenamehere: Information specific to the source
-        
-        #packagename: package name
-        #pkgtype: package type (e.g.: apt, snap...)
-        #sourcename: Internal name of source
-        #  (subsources don't get specific information)
-        
-        #TODO: Make modules provide fallback information
-        iteminfo = {}
-        genericiteminfo = {}
-        
-        try:
-            genericiteminfo = self.pkginfo_modules[self.generic_module].getInfo(packagename, "all") #No source specified so that we can get all the extra information pieces
-            iteminfo = copy.deepcopy(genericiteminfo) #Python3's normal behaviour is to link them together, thus meaning updating one updates the other, which we DON'T want
-        except Exception as e:
-            print(e)
-            pass
-        
-        for pkgtype in iteminfo["type-importance"]:
-            modules = self.module_type_query(self.pkginfo_modules, pkgtype, False)
-            
-            if modules == []:
-                continue #Skip to next module if no modules available
-            
-            for module in modules:
-                skipahead = False
-                resultinfo = {}
-                
-                try:
-                    if "all" not in iteminfo:
-                        iteminfo["all"] = {}
-                    iteminfo["all"] = self.dict_recurupdate(iteminfo["all"], module.getInfo(packagename, pkgtype, "all"))
-                except:
-                    pass
-                if "all" in iteminfo:
-                    resultinfo = iteminfo["all"]
-                
-                tempsources = module.getSourceList(packagename, pkgtype)
-                
-                for sourcename in tempsources:
-                    if skipahead == True:
-                        break
-                    
-                    if sourcename not in iteminfo:
-                        iteminfo[sourcename] = {}
-                    try:
-                        iteminfo[sourcename] = self.dict_recurupdate(iteminfo[sourcename], module.getInfo(packagename, pkgtype, sourcename))
-                        resultinfo = self.dict_recurupdate(resultinfo, iteminfo[sourcename])
-                        skipahead = True #We only want the first possible source's information, that's it
-                    except Exception as e:
-                        print("GET ITEM INFO DEBUG: {0} couldn't get item information for {1} from package type {2}: {3}".format(module.humanreadabletitle, packagename, pkgtype, e))
-                        pass
-                
-            if iteminfo != genericiteminfo:                
-                return resultinfo #We're done here.
-        
-        
-        raise StoreBrainException(_("No information was found for %s") % packagename)
-        
-        
-    
-    def package_module(self, packagetype, name=False): #TODO: Remove
-        #Return the first one we find's name
-        for module in self.pkgmgmt_modules:
-            if packagetype in self.pkgmgmt_modules[module].types_supported:
-                if name:
-                    return module
-                else:
-                    return self.pkgmgmt_modules[module]
-        raise StoreBrainException(_("No package module was found for managing %s") % packagetype)
-        
-    def local_package_module(self, packagetype, name=False):
-        #Return the first one we find's name
-        for module in self.localpkgmgmt_modules:
-            if packagetype in self.localpkgmgmt_modules[module].types_supported:
-                if name:
-                    return module
-                else:
-                    return self.localpkgmgmt_modules[module]
-        raise StoreBrainException(_("No local package module was found for managing %s") % packagetype)
-        
-    def package_info_module(self, packagetype, name=False):
-        #Return the first one we find's name
-        for module in self.pkginfo_modules:
-            if packagetype in self.pkginfo_modules[module].types_provided:
-                if name:
-                    return module
-                else:
-                    return self.pkginfo_modules[module]
-        raise StoreBrainException(_("No package info module was found for %s") % packagetype)
-        
-    def source_info_module(self, sourcetype, name=False):
-        #Return the first one we find's name
-        for module in self.sourceinfo_modules:
-            if sourcetype in self.sourceinfo_modules[module].types_provided:
-                if name:
-                    return module
-                else:
-                    return self.sourceinfo_modules[module]
-        for module in self.sourceinfo_modules: #TODO: Figure out how to combine outputs
-            if "all" in self.sourceinfo_modules[module].types_provided:
-                if name:
-                    return module
-                else:
-                    return self.sourceinfo_modules[module]
-        raise StoreBrainException(_("No source info module was found for %s") % sourcetype)
-
-        
-    def run(self):
-        signal.signal(signal.SIGINT, signal.SIG_DFL)
-     
-     
-
-     
-     
+############################################
+# Initialise Storium API
+############################################
 if __name__ == "__main__":
-    app = StoreBrain()
+    app = StoriumBrain()
     app.run()
-    

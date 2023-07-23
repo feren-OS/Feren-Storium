@@ -1,0 +1,25 @@
+{
+    "fullName": {
+        "C": "Example Applications Management Module"
+    },
+    "summary": {
+        "C": "Example module to show off different scenarios in Storium and what they trigger. Use this module purely as a reference, along with the Storium Wiki, to make item management modules easier to understand."
+    },
+    "authors": [
+        {
+            "email": "ferenosdev@outlook.com",
+            "name": {
+                "C": "Dominic Hayes",
+                "ja": "ヘイズドミニク"
+            }
+        }
+    ],
+    "appsourcesFullName": {
+        "C": "Example Module Sources"
+    },
+    "conditionFilesExist": {},
+    "watchFiles": [],
+    "canManageAutoUpdates": false,
+    "canUpdatesRunOnShutdown": false,
+    "APIVersion": 1
+}

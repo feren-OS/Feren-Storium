@@ -4,7 +4,7 @@
 Terminal=false
 Type=Application
 StartupNotify=false
-Name=Feren Storium
+Name=Feren Storium API Demo
 Exec=/usr/bin/feren-storium
 Icon=softwarecenter
 Comment=Modular Package Management Backend
