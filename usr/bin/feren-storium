@@ -505,6 +505,9 @@ class StoriumBrain():
         #Initialise modules and tasks manager
         self.initTasksModules()
 
+        #Initialise search modules
+        #TODO
+
         #Load GUI-specific modules and inform GUI that the backend finished loading
         self.finishInitGUI()
         self.spawnGUI(command, targetid, moduleid, sourceid, subsourceid)
@@ -517,7 +520,6 @@ class StoriumBrain():
         pass #TODO
 
 
-
     def startCLI(self, command, targetid="", moduleid="", sourceid="", subsourceid=""):
         print("Terminal-specific commands Will be added in 2023.07 Beta 1!")
         return
@@ -525,7 +527,6 @@ class StoriumBrain():
 
         #Check that Storium is running, first - if not, we bail out.
         #print(_("Failed to communicate with %s, exiting.") % self.frontendname)
-
 
 
     def initSettings(self):
@@ -571,7 +572,14 @@ class StoriumBrain():
                     print(_("Failed to load item management module %s: %s") % (candidateid, e))
 
 
+    def finishInitGUI(self):
+        #Signal the GUI to finish its loading process and go past its splash screen
+        #TODO: Pass GUI settings instance into GUI module
+        pass #TODO
 
+    def spawnGUI(self, command="", targetid="", moduleid="", sourceid="", subsourceid=""):
+        #Reopen GUI if closed, and go to a page in the GUI if one is given
+        pass #TODO
 
 
     def dbusSessionSignals(self):
@@ -582,16 +590,6 @@ class StoriumBrain():
         #Receive DBus signals to perform certain actions in the system bus
         pass #TODO
         #FIXME: this should probably be moved into a separate class or something for the system mode
-
-
-    def finishInitGUI(self):
-        #Signal the GUI to finish its loading process and go past its splash screen
-        #TODO: Pass GUI settings instance into GUI module
-        pass #TODO
-
-    def spawnGUI(self, command="", targetid="", moduleid="", sourceid="", subsourceid=""):
-        #Reopen GUI if closed, and go to a page in the GUI if one is given
-        pass #TODO
 
 
     # def todo(self):
