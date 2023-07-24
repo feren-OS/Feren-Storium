@@ -506,7 +506,7 @@ class StoriumBrain():
         self.initTasksModules()
 
         #Initialise search modules
-        #TODO
+        self.initSearchModules()
 
         #Load GUI-specific modules and inform GUI that the backend finished loading
         self.finishInitGUI()
@@ -570,6 +570,9 @@ class StoriumBrain():
                     self.modulefilewatch[moduleid] = result
                 except Exception as e:
                     print(_("Failed to load item management module %s: %s") % (candidateid, e))
+
+    def initSearchModules(self):
+        pass #TODO
 
 
     def finishInitGUI(self):
