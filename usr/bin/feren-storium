@@ -327,6 +327,7 @@ class StoriumBrain():
         self.userconfigdir = os.path.expanduser("~")+"/.config/feren-storium"
         self.usercachedir = os.path.expanduser("~")+"/.cache/feren-storium"
         self.debug = True #Enables additional debug output TODO: Move to Settings portion
+        self.frontendname = "Storium"
         self.frontendversion = "2023.07"
 
         #Enable translations
@@ -347,18 +348,18 @@ class StoriumBrain():
         self.respondToArguments()
 
     def respondToArguments(self):
+        guiargs = ["tasks", "category"]
+        cliargs = ["install", "reinstall", "update", "remove", "info", "warnings"]
+        rootargs = ["system", "system-updates"]
+
         command = ""
         targetid = ""
         moduleid = ""
         sourceid = ""
         subsourceid = ""
         autoyes = False
-        #Initialise depending on arguments given
         if len(sys.argv) != 1:
             for arg in sys.argv[1:]:
-                if (arg == "system" or arg == "system-updates") and command == "":
-                    print("Superuser mode Will be added in 2023.07 Beta 1!")
-                    return
                 if arg == "--yes" or arg == "-y":
                     autoyes = True
                 elif arg == "--help" or arg == "-h":
@@ -370,9 +371,7 @@ class StoriumBrain():
                     sourceid = "".join(arg.split("=")[1:])
                 elif arg.startswith("--module=") and moduleid == "":
                     moduleid = "".join(arg.split("=")[1:])
-                elif (arg == "tasks" or arg == "update" or arg == "category" \
-                    or arg == "install" or arg == "reinstall" or arg == "remove" \
-                    or arg == "info" or arg == "warnings") and command == "":
+                elif (arg in guiargs or arg in cliargs or arg in rootargs) and command == "":
                     command = arg
                 elif command == "" and (arg.startswith("/") or arg.startswith("./")):
                     command = "open"
@@ -390,22 +389,26 @@ class StoriumBrain():
         elif sourceid != "" and moduleid == "":
             print(_("--source cannot be used without a module specified"))
             return
-        elif command == "update" or command == "install" or command == "reinstall" or command == "remove":
-            print("Single-instance mode Will be added in 2023.07 Beta 1!")
+        elif (command in rootargs) and os.getuid() != 0:
+            print(_("System mode is not available inside user sessions"))
+            return
+        elif (command in guiargs or command == "") and os.getuid() == 0:
+            print(_("%s cannot be run as root") % self.frontendname)
             return
 
-        #Load settings and GUI's settings
-        self.initSettings()
+        #Launch commands in existing instance, if there is one
+        if self.communicateWithStore(command, targetid, moduleid, sourceid, subsourceid) == True:
+            return #Exit here if we successfully communicated with an existing Storium
 
-        #Initialise GUI, system mode or single-instance mode depending on arguments etc.
-        #TODO
+        #If not, let's initiate the appropriate frontend
+        if command == "system":
+            self.startSystemMode()
+            return
+        elif command in cliargs or command in rootargs: #system is handled above instead
+            self.startCLI(command, targetid, moduleid, sourceid, subsourceid)
+        else:
+            self.startNormalMode(command, targetid, moduleid, sourceid, subsourceid)
 
-        #Initialise modules and tasks manager
-        self.initTasksModules()
-
-        #Load GUI-specific modules and inform GUI that the backend finished loading
-        self.finishInitGUI()
-        self.spawnGUI(command, targetid, moduleid, sourceid, subsourceid)
 
     def showCLIHelp(self):
         print(_("""Usage:
@@ -423,6 +426,7 @@ class StoriumBrain():
         print(_("  --module=ID - Only search for the item in this module"))
         print(_("  --source=ID - Manage the item from this source (requires --moduleid)"))
         print(_("  --subsource=ID - Use this subsource (only works on install, requires --sourceid)"))
+        #TODO: --bonuses=id1,id2
         print(_("  -y - Answer with yes on prompts") + "\n")
         print(_("Options:"))
         print(_("  category ID - Open the ID category"))
@@ -476,6 +480,54 @@ class StoriumBrain():
         apicontainer.getPreferSysInst = partial(self.APIgetPreferSysInst, moduleid)
 
 
+    def communicateWithStore(self, command, targetid="", moduleid="", sourceid="", subsourceid=""):
+        #Send signal to existing Store instance to power the command in certain scenarios, else return False or return False if communication fails
+        print("communicateWithStore", command, targetid, moduleid, sourceid, subsourceid)
+        #Skip if Terminal-specific commands are used
+        if command == "install" or command == "reinstall" or command == "update" or command == "remove" or command == "info" or command == "warnings":
+            return False
+        #Skip if we are root - only Terminal commands are usable
+        if os.getuid() == 0:
+            return False
+
+        return False
+        #TODO: Check Storium lock file exists, and if so send signal to existing Storium instance to open up GUI with commands
+
+
+    def startNormalMode(self, command, targetid="", moduleid="", sourceid="", subsourceid=""):
+        #Initiates Store's GUI in Normal Mode - arguments are used to know to enter a page immediately after loading
+        #Load settings and GUI's settings
+        self.initSettings()
+
+        #Initialise GUI and show a splash screen while Storium loads
+        self.initGUI()
+
+        #Initialise modules and tasks manager
+        self.initTasksModules()
+
+        #Load GUI-specific modules and inform GUI that the backend finished loading
+        self.finishInitGUI()
+        self.spawnGUI(command, targetid, moduleid, sourceid, subsourceid)
+
+
+    def startSystemMode(self):
+        print("System mode Will be added in 2023.07 Beta 1!")
+        return
+        #Initiates Store in System Mode - no arguments as it takes signals instead
+        pass #TODO
+
+
+
+    def startCLI(self, command, targetid="", moduleid="", sourceid="", subsourceid=""):
+        print("Terminal-specific commands Will be added in 2023.07 Beta 1!")
+        return
+        #Runs the command line interface, to perform a specific task, before exiting.
+
+        #Check that Storium is running, first - if not, we bail out.
+        #print(_("Failed to communicate with %s, exiting.") % self.frontendname)
+
+
+
     def initSettings(self):
         #Fill self.configs using settings and GUI's settings class
         pass #TODO
@@ -518,15 +570,18 @@ class StoriumBrain():
                 except Exception as e:
                     print(_("Failed to load item management module %s: %s") % (candidateid, e))
 
-        print("TEMPORARY")
-        print(self.modules)
-        print(self.moduleinfo)
-        print(self.modulefilewatch)
 
 
 
 
+    def dbusSessionSignals(self):
+        #Receive DBus signals to perform certain actions, and respond to certain methods, in the session bus
+        pass #TODO
 
+    def dbusSystemSignals(self):
+        #Receive DBus signals to perform certain actions in the system bus
+        pass #TODO
+        #FIXME: this should probably be moved into a separate class or something for the system mode
 
 
     def finishInitGUI(self):
