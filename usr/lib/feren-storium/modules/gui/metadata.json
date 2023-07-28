@@ -1,0 +1,20 @@
+{
+    "fullName": {
+        "C": "Storium API Demo GUI"
+    },
+    "summary": {
+        "C": "Template GUI module to showcase the functionality of the Storium API."
+    },
+    "authors": [
+        {
+            "email": "ferenosdev@outlook.com",
+            "name": {
+                "C": "Dominic Hayes",
+                "ja": "ヘイズドミニク"
+            }
+        }
+    ],
+    "conditionFilesExist": {},
+    "watchFiles": [],
+    "APIVersion": 1
+}

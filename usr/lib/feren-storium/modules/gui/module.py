@@ -18,6 +18,20 @@ from gi.repository import Gtk, Gio, Gdk, GLib, Pango, GObject, GdkPixbuf
 from threading import Thread, Event
 from queue import Queue, Empty
 
+#Settings storage for the GUI
+class settings():
+    def __init__(self):
+        print("おはよう！")
+        pass #This GUI uses gsettings, TODO: check for changes and reload on the fly?
+
+    def getPreferSystemWideInstalls(self):
+        #Returns True if system-wide installs are preferred over user-wide installs
+        #TODO
+        return True
+
+
+
+
 ####Changes confirming dialog
 class ChangesBonusesDialog(Gtk.Window):
     def __init__(self):

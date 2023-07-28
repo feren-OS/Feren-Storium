@@ -12,7 +12,7 @@ from functools import partial #Used to pre-supply callbacks with some/all argume
 import gettext #Translation support
 import locale
 import importlib #Used for module loading
-import collections.abc #Required for dict_recurupdate
+import collections.abc #Required for dictMerge
 import copy #Used to create clones of variables
 
 import requests #Grabbing files from internet
@@ -298,14 +298,6 @@ class TaskManager():
 
 
 ############################################
-# Settings Storage
-############################################
-class Settings():
-    def __init__(self):
-        pass #TODO
-
-
-############################################
 # The Brain
 ############################################
 class StoriumBrain():
@@ -321,25 +313,35 @@ class StoriumBrain():
         ############################################
         # CONFIGURABLE VARIABLES
         ############################################
+        #Enable translations
+        gettext.install("feren-storium", "/usr/share/locale", names="ngettext")
+
         self.configdir = "/etc/feren-storium"
         self.usrdir = "/usr/share/feren-storium"
         self.libdir = "/usr/lib/feren-storium"
         self.userconfigdir = os.path.expanduser("~")+"/.config/feren-storium"
         self.usercachedir = os.path.expanduser("~")+"/.cache/feren-storium"
         self.debug = True #Enables additional debug output TODO: Move to Settings portion
-        self.frontendname = "Storium"
+        self.frontendname = _("Storium")
         self.frontendversion = "2023.07"
 
-        #Enable translations
-        gettext.install("feren-storium", "/usr/share/locale", names="ngettext")
-
+        ############################################
+        # NON-CONFIGURABLE STUFF
+        ############################################
         #Create important variables
         self.modules = {}
         self.moduleinfo = {} #Module information is cached mainly for GUI purposes
         self.modulefilewatch = {} #NOTE: Include .py modification time inside these too
         self.configs = {}
+        self.guiconfigs = None
         #Storium API version (DO NOT CHANGE - USED FOR MODULE COMPATIBILITY CHECKING)
         self.apiversion = 1
+
+        #Information requirements for module types
+        self.moduleinforequirements = {"itemmgmt": ["canManageAutoUpdates", "canUpdatesRunOnShutdown"], \
+            "search": [], \
+            "gui": [], \
+            "gui:configs": []}
 
         #Map the Storium API
         self.initialiseAPIs()
@@ -445,7 +447,7 @@ class StoriumBrain():
         self.genericapi.getIcon = self.APIgetIcon
         self.genericapi.getImages = self.APIgetImages
         self.genericapi.isModuleAvailable = self.APIisModuleAvailable
-        #self.genericapi.dict_recurupdate = self.dict_recurupdate #FIXME: Is this needed?
+        self.genericapi.dictMerge = self.dictMerge
         ############################################
         # Tasks API
         ############################################
@@ -470,6 +472,7 @@ class StoriumBrain():
         self.guiapi.getAvailableBonuses = self.APIgetAvailableBonuses
         self.guiapi.changeItemBonuses = self.APIchangeItemBonuses
         self.guiapi.checkForUpdates = self.APIcheckForUpdates
+        #TODO: changeSetting
 
     def initialiseItemMgmtAPI(self, apicontainer, moduleid):
         ############################################
@@ -497,13 +500,15 @@ class StoriumBrain():
     def startNormalMode(self, command, targetid="", moduleid="", sourceid="", subsourceid=""):
         #Initiates Store's GUI in Normal Mode - arguments are used to know to enter a page immediately after loading
         #Load settings and GUI's settings
-        self.initSettings()
+        self.initConfigs()
+        self.initGUIConfigs()
 
         #Initialise GUI and show a splash screen while Storium loads
         self.initGUI()
 
-        #Initialise modules and tasks manager
+        #Initialise modules and tasks manager, and queue initial tasks
         self.initTasksModules()
+        self.initQueueStagedTasks()
 
         #Initialise search modules
         self.initSearchModules()
@@ -529,9 +534,21 @@ class StoriumBrain():
         #print(_("Failed to communicate with %s, exiting.") % self.frontendname)
 
 
-    def initSettings(self):
-        #Fill self.configs using settings and GUI's settings class
-        pass #TODO
+    def initConfigs(self):
+        #Use reloadConfigs to fill the values of self.configs
+        self.reloadConfigs()
+
+    def initGUIConfigs(self): #Split because of system mode not using it
+        #Throw an exception if configs aren't yet initialised
+        if self.configs == {}:
+            raise StoriumBrainException(_("Configs are not yet initialised."))
+
+        #Using the settings value for the GUI, load the GUI module's settings
+        guipath = self.libdir + "/modules/" + self.configs["guipath"]
+        try:
+            self.guiconfigs = self.newModule(guipath, "gui", "gui:configs", self.guiapi)
+        except Exception as e:
+            raise StoriumBrainException(_("Failed to load GUI module %s's configs: %s") % (guipath, e))
 
 
     def initGUI(self):
@@ -555,7 +572,7 @@ class StoriumBrain():
 
                 try:
                     #Initialise module
-                    module, moduleinfo, filewatch = self.newModule(path, moduleid, itemmgmtapi)
+                    module, moduleinfo, filewatch = self.newModule(path, moduleid, "itemmgmt", itemmgmtapi)
                     #Add module to modules
                     self.modules[moduleid] = module
                     #Add module's metadata to cache
@@ -571,8 +588,42 @@ class StoriumBrain():
                 except Exception as e:
                     print(_("Failed to load item management module %s: %s") % (candidateid, e))
 
+    def initQueueStagedTasks(self, systemmode=False):
+        #Adds initial tasks to queue if there are staged tasks
+        if systemmode == False:
+            if os.path.isfile(self.userconfigdir + "/stagedtasks.json"):
+                with open(self.userconfigdir + "/stagedtasks.json", 'r') as fp:
+                    stagedtasks = json.loads(fp.read())
+        else:
+            stagedtasks = self.configs["stagedTasks"]
+
+        #TODO: Add to Tasks
+
+
     def initSearchModules(self):
-        pass #TODO
+        #TODO: Skip modules disabled in settings
+        if os.path.exists(self.libdir+"/modules"):
+            for candidateid in sorted(os.listdir(self.libdir+"/modules/search")):
+                module = None #Modules love to get reused if we don't do this.
+                path = self.libdir+"/modules/search/"+candidateid
+                moduleid = "search-"+candidateid
+                try:
+                    #Initialise module
+                    module, moduleinfo, filewatch = self.newModule(path, moduleid, "search", None)
+                    #Add module to modules
+                    self.modules[moduleid] = module
+                    #Add module's metadata to cache
+                    self.moduleinfo[moduleid] = moduleinfo
+                    #Initiate filewatches for this module
+                    result = {}
+                    for i in filewatch:
+                        try:
+                            result[i] = os.path.getmtime(i)
+                        except Exception as e:
+                            print(_("Failed to add %s to filewatch: %s") % (i, e))
+                    self.modulefilewatch[moduleid] = result
+                except Exception as e:
+                    print(_("Failed to load search module %s: %s") % (candidateid, e))
 
 
     def finishInitGUI(self):
@@ -628,7 +679,7 @@ class StoriumBrain():
     #     self.genericapi.getItemIDs = self.APIgetItemIDs
     #
     #     self.genericapi.getFallbackIconLocation = self.APIgetFallbackIconLocation
-    #     #self.genericapi.dict_recurupdate = self.dict_recurupdate
+    #     #self.genericapi.dictMerge = self.dictMerge
     #
     #     # Tasks
     #     self.tasksapi = StoreTasksAPI()
@@ -667,36 +718,62 @@ class StoriumBrain():
     #     self.modules["gui"].showGUIHold()
 
 
-    def post_init(self):
-        thread = Thread(target=self._post_init,
-                        args=())
-        thread.daemon = True
-        thread.start()
+    # def post_init(self):
+    #     thread = Thread(target=self._post_init,
+    #                     args=())
+    #     thread.daemon = True
+    #     thread.start()
+    #
+    # def _post_init(self):
+    #     #Load in the modules
+    #     # TODO: Have the loaded modules be determined by gsettings
+    #     self.load_modules()
+    #
+    #
+    #     #Headers information for requests
+    #     self.reqHeaders = {'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.114 Safari/537.36'}
+    #
+    #
+    #
+    #
+    #     #TODO: Use idle_add to exit the splash screen and load the pages
+    #     #GLib.idle_add(self.__post_init)
+    #
+    #
+    #
+    #     self.modules["gui"].GUILoadingFinished()
 
-    def _post_init(self):
-        #Load in the modules
-        # TODO: Have the loaded modules be determined by gsettings
-        self.load_modules()
 
+    ############################################
+    # Settings
+    ############################################
+    def reloadConfigs(self):
+        #Refreshes settings from file
+        result = {}
+        # Get defaults
+        with open(self.usrdir + "/defaults.json", 'r') as fp:
+            result = json.loads(fp.read())
+        # Then append custom settings
+        if os.path.isfile(self.configdir + "/configs.json"):
+            with open(self.configdir + "/configs.json", 'r') as fp:
+                result = self.dictMerge(result, json.loads(fp.read()))
 
-        #Headers information for requests
-        self.reqHeaders = {'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.114 Safari/537.36'}
+        #Pass settings to Storium
+        self.configs = result
 
+        #NOTE: Should be followed up by sending a signal to all userland instances to reload their settings if this is in system mode
+        #NOTE: Should be followed up by a signal to GUI to reload those settings
 
-
-
-        #TODO: Use idle_add to exit the splash screen and load the pages
-        #GLib.idle_add(self.__post_init)
-
-
-
-        self.modules["gui"].GUILoadingFinished()
+    def setConfig(self, settingid, value):
+        #Sets a setting via Superuser, then updates the setting's value here and sends signal to superuser to reloadSettings
+        #TODO: Write custom values to /etc/feren-storium/config.json
+        pass #TODO
 
 
     ############################################
     # Module Initialisation
     ############################################
-    def newModule(self, modulepath, moduleid, extraapi=None, guisettings=False):
+    def newModule(self, modulepath, moduleid, moduletype, extraapi=None):
         #Initialise module and its information
         ############################################
         # Metadata Checks/Initialisation
@@ -720,10 +797,10 @@ class StoriumBrain():
                     else:
                         raise StoriumBrainException(_("%s is not installed, but is required by this module") % missingitem)
         #Check that required values, in the current API, are present
-        for i in ["canManageAutoUpdates", "canUpdatesRunOnShutdown"]:
+        for i in self.moduleinforequirements[moduletype]:
             if i not in moduleinfo:
                 raise StoriumBrainException(_("%s is missing from module information") % i)
-        if guisettings == False: #Might as well skip all this when initialising Settings
+        if moduletype != "gui:configs": #Might as well skip all this when initialising Settings
             if "watchFiles" in moduleinfo:
                 filewatch = moduleinfo["watchFiles"]
             else:
@@ -753,9 +830,9 @@ class StoriumBrain():
         with open(modulepath + "/module.py", 'r') as modulecheck:
             check = False
             for i in modulecheck:
-                if i.startswith("class module(") and guisettings == False:
+                if i.startswith("class module(") and moduletype != "gui:configs":
                     check = True
-                elif i.startswith("class settings(") and guisettings == True:
+                elif i.startswith("class settings(") and moduletype == "gui:configs":
                     check = True
             if check == False:
                 raise StoriumBrainException(_("Module does not contain required class"))
@@ -769,7 +846,7 @@ class StoriumBrain():
             import module
             importlib.reload(module) #Otherwise only one module will be loaded across all variables
 
-            if guisettings == False:
+            if moduletype != "gui:configs":
                 if extraapi == None:
                     result = module.module(self.genericapi)
                 else:
@@ -791,7 +868,7 @@ class StoriumBrain():
         if exceptionstr != "":
             raise StoriumBrainException(exceptionstr)
         else:
-            if guisettings == False:
+            if moduletype != "gui:configs":
                 return result, moduleinfo, filewatch
             else:
                 return result
@@ -804,47 +881,6 @@ class StoriumBrain():
                 else:
                     return i
         return None
-
-
-        
-    #Load the initial modules
-    def load_modules(self):
-        MODULES_DIR = "/usr/lib/feren-storium/modules"
-        
-        #TODO: Make these lists be managed by gsettings or similar
-        if os.path.exists(MODULES_DIR):
-            for dir_name in sorted(os.listdir(MODULES_DIR+"/packagemgmt")):
-                path = os.path.join(MODULES_DIR+"/packagemgmt", dir_name)
-                module = None
-                try:
-                    module = self.new_module(path)
-                    self.modules[module.moduleid] = module
-                    #TODO: self.modules["packagemgmt-"+dir_name].storemanagementapi = self.managementapi
-                    self.taskManager.add_module_to_data(module.moduleid)
-                except Exception as e:
-                    print("Failed to load package management module %s: \n%s\n" % (dir_name, e))
-
-            for dir_name in sorted(os.listdir(MODULES_DIR+"/search")):
-                path = os.path.join(MODULES_DIR+"/search", dir_name)
-                module = None
-                try:
-                    module = self.new_module(path)
-                    self.modules[module.moduleid] = module
-                    #No extra APIs for search.
-                except Exception as e:
-                    print("Failed to load search module %s: \n%s\n" % (dir_name, e))
-
-            #TODO: Move source information module to package management modules
-
-            for dir_name in sorted(os.listdir(MODULES_DIR+"/settings")):
-                path = os.path.join(MODULES_DIR+"/settings", dir_name)
-                module = None
-                try:
-                    module = self.new_module(path)
-                    self.modules[module.moduleid] = module
-                    #TODO: self.modules["settings-"+dir_name].storemanagementapi = self.managementapi
-                except Exception as e:
-                    print("Failed to load settings module %s: \n%s\n" % (dir_name, e))
                     
                     
     ############################################
@@ -890,6 +926,16 @@ class StoriumBrain():
     def APIisModuleAvailable(self, moduleid):
         #If the module moduleid is currently enabled and running, return True, else return False.
         pass #TODO
+
+    def dictMerge(self, target, writeover):
+        for i in writeover.keys():
+            if i in target: #Check if value exists and is a dictionary too
+                if type(writeover[i]) is dict and type(target[i]) is dict:
+                    #If so, recursively update the value
+                    target[i] = self.dictMerge(target[i], writeover[i])
+                    continue #Proceed to next key without running below code
+            target[i] = writeover[i]
+        return target
 
     ############################################
     # Brain-only Callbacks - Generic
