@@ -2,7 +2,6 @@
 
 import gi
 
-gi.require_version('WebKit2', '4.0')
 gi.require_version('Gtk', '3.0')
 
 import sys
@@ -15,17 +14,22 @@ import os
 import time
 
 from gi.repository import Gtk, Gio, Gdk, GLib, Pango, GObject, GdkPixbuf
+import dbus
 from threading import Thread, Event
 from queue import Queue, Empty
 
 #Settings storage for the GUI
 class settings():
     def __init__(self):
-        print("おはよう！")
         pass #This GUI uses gsettings, TODO: check for changes and reload on the fly?
 
     def getPreferSystemWideInstalls(self):
         #Returns True if system-wide installs are preferred over user-wide installs
+        #TODO
+        return True
+
+    def getDebugOutput(self):
+        #Returns True if debug output is desired
         #TODO
         return True
 
@@ -35,56 +39,56 @@ class settings():
 ####Changes confirming dialog
 class ChangesBonusesDialog(Gtk.Window):
     def __init__(self):
-        #TODO: Check if storeapi is even needed - likely will for icons if nothing else
+        #TODO: Check if api is even needed - likely will for icons if nothing else
         Gtk.Window.__init__(self)
         self.set_position(Gtk.WindowPosition.CENTER)
         self.set_title("Preliminary confirmation/bonus-select dialog")
 
-    def prepare(self, storeapi, taskbody, idsadded, idsupdated, idsremoved, bonusavailability):
-        self.windowcontents = Gtk.VBox()
+    def prepare(self, api, taskbody, idsadded, idsupdated, idsremoved, bonusavailability):
+        self.wndcontents = Gtk.VBox()
 
         self.bonuses = []
         self.response = False
 
         headerlabel = Gtk.Label(label=_("Personalise your %s experience") % taskbody.itemid)
-        self.windowcontents.pack_start(headerlabel, False, False, 0)
+        self.wndcontents.pack_start(headerlabel, False, False, 0)
         subheaderlabel = Gtk.Label(label=_("Select the extra items that you would like to add to %s:") % taskbody.itemid)
-        self.windowcontents.pack_start(subheaderlabel, False, False, 0)
+        self.wndcontents.pack_start(subheaderlabel, False, False, 0)
 
         installsheader = Gtk.Label(label=_("The following will also be installed:"))
-        self.windowcontents.pack_start(installsheader, False, False, 0)
+        self.wndcontents.pack_start(installsheader, False, False, 0)
         for i in idsadded:
             addition = Gtk.Label(label=i)
-            self.windowcontents.pack_start(addition, False, False, 0)
+            self.wndcontents.pack_start(addition, False, False, 0)
 
         updatesheader = Gtk.Label(label=_("The following will also be updated:"))
-        self.windowcontents.pack_start(updatesheader, False, False, 0)
+        self.wndcontents.pack_start(updatesheader, False, False, 0)
         for i in idsupdated:
             update = Gtk.Label(label=i)
-            self.windowcontents.pack_start(update, False, False, 0)
+            self.wndcontents.pack_start(update, False, False, 0)
 
         removalsheader = Gtk.Label(label=_("The following will also be removed:"))
-        self.windowcontents.pack_start(removalsheader, False, False, 0)
+        self.wndcontents.pack_start(removalsheader, False, False, 0)
         for i in idsremoved:
             removal = Gtk.Label(label=i)
-            self.windowcontents.pack_start(removal, False, False, 0)
+            self.wndcontents.pack_start(removal, False, False, 0)
 
         bonusesheader = Gtk.Label(label=_("Choose extra items to add to this application:"))
-        self.windowcontents.pack_start(bonusesheader, False, False, 0)
+        self.wndcontents.pack_start(bonusesheader, False, False, 0)
 
         for i in bonusavailability:
             bonusoption = Gtk.CheckButton(label=i)
             bonusoption.connect('toggled', partial(self.set_bonus_selected, i))
-            self.windowcontents.pack_start(bonusoption, False, False, 0)
+            self.wndcontents.pack_start(bonusoption, False, False, 0)
 
         okbutton = Gtk.Button(label="Proceed")
         okbutton.connect('clicked', self.ok_clicked)
         cancelbutton = Gtk.Button(label="Cancel")
         cancelbutton.connect('clicked', self.cancel_clicked)
-        self.windowcontents.pack_start(okbutton, False, False, 0)
-        self.windowcontents.pack_start(cancelbutton, False, False, 0)
+        self.wndcontents.pack_start(okbutton, False, False, 0)
+        self.wndcontents.pack_start(cancelbutton, False, False, 0)
 
-        self.add(self.windowcontents)
+        self.add(self.wndcontents)
         self.connect('delete-event', self.cancel_clicked)
 
         self.show_all()
@@ -114,7 +118,7 @@ class ChangesBonusesDialog(Gtk.Window):
 
     def exit_dialog(self):
         GLib.idle_add(self.hide,)
-        GLib.idle_add(self.windowcontents.destroy,)
+        GLib.idle_add(self.wndcontents.destroy,)
 
     def cancel_clicked(self, button, data=None):
         self.responded.set() #Ends hold
@@ -133,12 +137,12 @@ class ChangesBonusesDialog(Gtk.Window):
 ####Application icon (used for application details page, and tasks buttons)
 class AppItemIcon(Gtk.Stack):
 
-    def __init__(self, storeapi):
+    def __init__(self, api):
         Gtk.Stack.__init__(self)
         GObject.threads_init()
 
 
-        self.storeapi = storeapi
+        self.api = api
 
         self.app_iconimg = Gtk.Image()
         self.app_iconimg_loading = Gtk.Spinner()
@@ -169,7 +173,7 @@ class AppItemIcon(Gtk.Stack):
             raise
         except: #Get it from fallback location
             try: #TODO: Try to get from icon set
-                iconlocat = self.storeapi.getFallbackIconLocation(iconlocal, iconuri, itemid)
+                iconlocat = self.api.getFallbackIconLocation(iconlocal, iconuri, itemid)
             except:
                 pass
 
@@ -205,7 +209,7 @@ class AppDetailsHeader(Gtk.VBox):
 
 
 
-        self.app_icon = AppItemIcon(guimain.storeapi)
+        self.app_icon = AppItemIcon(guimain.api)
 
         self.app_title = Gtk.Label()
         self.app_title.set_label("APPLICATION TITLE")
@@ -386,7 +390,7 @@ class AppDetailsHeader(Gtk.VBox):
         GLib.idle_add(self.cancelapp_btn.set_sensitive, False)
         GLib.idle_add(self.app_subsource_dropdown.set_visible, False)
 
-        result, subsource = self.guimain.storeapi.getAppStatus(self.guimain.current_itemid, self.guimain.current_sourceid)
+        result, subsource = self.guimain.api.getAppStatus(self.guimain.current_itemid, self.guimain.current_sourceid)
 
         if subsource != None: #If a subsource was provided, switch to it
             n = 0
@@ -435,13 +439,13 @@ class AppDetailsHeader(Gtk.VBox):
 
 
     def installapp_pressed(self, btn):
-        self.guimain.storeapi.installApp(self.guimain.current_itemid, self.guimain.current_sourceid, self.guimain.current_subsourceid)
+        self.guimain.api.installApp(self.guimain.current_itemid, self.guimain.current_sourceid, self.guimain.current_subsourceid)
 
     def updateapp_pressed(self, btn):
-        self.guimain.storeapi.updateApp(self.guimain.current_itemid, self.guimain.current_sourceid, self.guimain.current_subsourceid)
+        self.guimain.api.updateApp(self.guimain.current_itemid, self.guimain.current_sourceid, self.guimain.current_subsourceid)
 
     def removeapp_pressed(self, btn):
-        self.guimain.storeapi.removeApp(self.guimain.current_itemid, self.guimain.current_sourceid, self.guimain.current_subsourceid)
+        self.guimain.api.removeApp(self.guimain.current_itemid, self.guimain.current_sourceid, self.guimain.current_subsourceid)
 
 
 
@@ -676,7 +680,7 @@ class PageArea(Gtk.Stack):
 
     def _populate_mainpage(self):
         #TODO: Split into sections
-        data = self.guimain.storeapi.getItemIDs(["all"])
+        data = self.guimain.api.getItemIDs(["all"])
         for category in data:
             for pkgname in data[category]:
                 btn = Gtk.Button(label=(pkgname))
@@ -707,7 +711,7 @@ class PageArea(Gtk.Stack):
         self.guimain.current_itemid = itemid
 
         #Get available sources
-        availablesources = self.guimain.storeapi.getAvailableSources(itemid)
+        availablesources = self.guimain.api.getAvailableSources(itemid)
 
         #Feed the information to the header to get it loading
         self.guimain.detailsheader.load_sources(availablesources, itemid, sourceid)
@@ -724,7 +728,7 @@ class PageArea(Gtk.Stack):
         GLib.idle_add(self.itempagestack.set_visible_child, self.itempageloading)
 
         #Get information from default source
-        pkginfo = self.guimain.storeapi.getItemInformation(itemid, sourceid["id"].split(":")[0], sourceid["id"].split(":")[1], "") #TODO: subsourceid, and make this trigger when subsource is changed instead, with this call here only serving to change source and subsource and then call subsource changed
+        pkginfo = self.guimain.api.getItemInformation(itemid, sourceid["id"].split(":")[0], sourceid["id"].split(":")[1], "") #TODO: subsourceid, and make this trigger when subsource is changed instead, with this call here only serving to change source and subsource and then call subsource changed
 
         #Pass information to header to load into the information there
         self.guimain.detailsheader._load_data(itemid, pkginfo)
@@ -825,17 +829,79 @@ class PageArea(Gtk.Stack):
         #Finally, show them all
         self.itempagecontents.show_all()
 
+############################################
+# Notifications
+############################################
+class notifications():
+    def __init__(self):
+        from dbus.mainloop.glib import DBusGMainLoop
+        mainloop = DBusGMainLoop()
+
+        obj = dbus.SessionBus(mainloop=mainloop).get_object("org.freedesktop.Notifications", "/org/freedesktop/Notifications")
+        obj = dbus.Interface(obj, "org.freedesktop.Notifications")
+        obj.connect_to_signal('ActionInvoked', self.callback)
+        nid = obj.Notify("", \
+                        0, \
+                        "kwalletmanager", \
+                        "CAN YOU BELIEVE IT?", \
+                        """NOTIFICATIONS!""", \
+                        ["default", "Activate", "test", "TEST BUTTON"], \
+                        {"urgency": 1, \
+                            "desktop-entry": "feren-storium"}, \
+                        -1)
+                    #Substitute application name ("" uses the name from the proce/info)
+                    #Replace notification of this nid with this notification
+                    #Icon name (can be file path)
+                    #Header
+                    #Text
+                    #Actions (default maps to clicking the notification)
+                    #   The cool part
+                    #   .desktop mapping
+                    #The timeout in milliseconds (-1 means use default)
+        print(nid)
+
+    def callback(self, nid, action):
+        nid, action = int(nid), str(action)
+        print("おはようー！ %s, %s" % (nid, action))
 
 
-####Store Window
-class module(object):
-    def __init__(self, storeapi):
-        self.storeapi = storeapi
 
-        #To determine whether or not to run refresh tasks and so on
+############################################
+# Main window
+############################################
+class window(Gtk.Window):
+    def __init__(self, genericapi, guiapi):
+        Gtk.Window.__init__(self)
+
+        #TODO: Move everything window-related into here
+
+
+
+############################################
+# Module initialisation and Brain responder
+############################################
+class module():
+    def __init__(self, genericapi, guiapi):
+        self.api = genericapi
+        self.guiapi = guiapi
+
+        self.preGUIMemory()
+
+        # Program identification
+        GLib.set_prgname('/usr/bin/feren-storium')
+        self.desktoasts = notifications()
+
+    def preGUIMemory(self):
+        #Clean up memory values when closing Storium's windows
+        self.splashtext = None
+        # To determine whether or not to run refresh tasks and so on
         self.current_itemid = ""
         self.current_sourceid = ""
         self.current_subsourceid = ""
+
+    def close(self, p1 = None, p2 = None):
+        self.preGUIMemory()
+        Gtk.main_quit(p1, p2)
 
 
     def _gohome_pressed(self, gtk_widget):
@@ -879,32 +945,40 @@ class module(object):
             GLib.idle_add(self.detailsheader.set_visible, False)
 
 
-    def close(self, p1 = None, p2 = None):
-        try:
-            os.file.remove(pidfile)
-        except:
-            pass
-        Gtk.main_quit(p1, p2)
 
-
-    def prepareGUI(self):
+    def initGUI(self, donotshowgui=False):
+        #Initialise notifications and such for tasks support, and if not in background mode (donotshowgui = False) the GUI showing a splash screen
+        # Required by GTK for some reason
         GObject.threads_init()
-
-        #Program identification for the Desktop Environment
-        GLib.set_prgname('/usr/bin/feren-storium')
 
         #Changes and bonuses dialog, stored now because GTK.
         self.changesbonusesdialog = ChangesBonusesDialog()
 
-
         # Main window
-        self.storewnd = Gtk.Window()
-        self.storewnd.set_position(Gtk.WindowPosition.CENTER)
-        self.storewnd.set_title("Storium Demo - GUI Module")
-        self.storewnd.set_default_size(850, 640)
-        self.storewnd.set_size_request(850, 540)
-        self.windowcontents = Gtk.VBox()
-        self.windowcontents.set_spacing(0)
+        self.wnd = Gtk.Window()
+        self.wnd.set_position(Gtk.WindowPosition.CENTER)
+        self.wnd.set_title(_("Feren Storium API Demo - GUI Module"))
+        self.wnd.set_default_size(850, 640)
+        self.wnd.set_size_request(850, 540)
+        self.wndcontents = Gtk.VBox()
+        self.wndcontents.set_spacing(0)
+
+        #For the splash screen
+        self.wndstack = Gtk.Stack() #Needs accessing later
+        self.wndstack.set_transition_type(Gtk.StackTransitionType.CROSSFADE)
+
+        #Splash screen
+        splashscr = Gtk.VBox()
+        splashscr.pack_start(Gtk.Box(), True, False, 0)
+        splashimg = Gtk.Image()
+        splashimg.set_from_icon_name("softwarecenter", Gtk.IconSize.DND)
+        splashscr.pack_start(splashimg, False, False, 0)
+        self.splashtext = Gtk.Label(label=_("Initialising Storium API Demo..."))
+        splashscr.pack_start(self.splashtext, False, False, 0)
+        splashscr.pack_start(Gtk.Box(), True, False, 0)
+        self.wndstack.add_named(splashscr, "splash")
+
+        #TODO: Move remainder to post-splash loading code...?
 
         #Top toolbar buttons
         status_img = Gtk.Image()
@@ -949,9 +1023,24 @@ class module(object):
         self.maintoolbar.pack_end(self.gohome_btn, False, True, 0)
 
         #Assemble window so far
-        self.storewnd.add(self.windowcontents)
-        self.storewnd.connect('delete-event', self.close)
-        self.storewnd.show_all()
+        self.wndstack.add_named(self.wndcontents, "body") #Above TODO
+        self.wnd.add(self.wndstack)
+        self.wnd.connect('delete-event', self.close)
+        self.wnd.show_all()
+
+        #Open GUI in a thread
+        thread = Thread(target=self._initGUIHold,
+                        args=())
+        thread.daemon = True
+        thread.start()
+
+    def _initGUIHold(self):
+        Gtk.main()
+
+    def updateInitStatus(self, value):
+        if self.splashtext is None:
+            return
+        GLib.idle_add(self.splashtext.set_label, value)
 
 
     def GUILoadingFinished(self):
@@ -973,16 +1062,14 @@ class module(object):
         self.pagearea.connect("notify::visible-child", self.pagearea_pagechanged)
 
         #Assemble everything in the window
-        self.windowcontents.pack_start(self.maintoolbar, False, True, 0)
-        self.windowcontents.pack_start(self.detailsheader, False, True, 0)
-        self.windowcontents.pack_end(self.pagearea, True, True, 0)
-        GLib.idle_add(self.storewnd.show_all)
+        self.wndcontents.pack_start(self.maintoolbar, False, True, 0)
+        self.wndcontents.pack_start(self.detailsheader, False, True, 0)
+        self.wndcontents.pack_end(self.pagearea, True, True, 0)
+        GLib.idle_add(self.wnd.show_all)
 
         self.pagearea.populate_mainpage()
 
 
-    def showGUIHold(self):
-        Gtk.main()
 
     def refresh_memory(self):
         pass
@@ -1002,6 +1089,6 @@ class module(object):
         if len(idsadded) == 0 and len(idsupdated) == 0 and len(idsremoved) == 0 and len(bonusavailability) == 0:
             return True, [] #Skip the confirmation if there is nothing extra to confirm
 
-        GLib.idle_add(self.changesbonusesdialog.prepare, self.storeapi, taskbody, idsadded, idsupdated, idsremoved, bonusavailability)
+        GLib.idle_add(self.changesbonusesdialog.prepare, self.api, taskbody, idsadded, idsupdated, idsremoved, bonusavailability)
         return self.changesbonusesdialog.run()
 

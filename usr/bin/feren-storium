@@ -7,7 +7,7 @@ import sys
 import os
 import time #FIXME: Is this still necessary for icon downloading?
 import json
-from threading import Thread
+from threading import Thread, Event
 from functools import partial #Used to pre-supply callbacks with some/all arguments
 import gettext #Translation support
 import locale
@@ -342,6 +342,10 @@ class StoriumBrain():
             "search": [], \
             "gui": [], \
             "gui:configs": []}
+        self.moduleinfoextras = {"itemmgmt": ["appsourcesFullName"], \
+            "search": [], \
+            "gui": [], \
+            "gui:configs": []}
 
         #Map the Storium API
         self.initialiseAPIs()
@@ -504,18 +508,33 @@ class StoriumBrain():
         self.initGUIConfigs()
 
         #Initialise GUI and show a splash screen while Storium loads
-        self.initGUI()
+        guiinit = Thread(target=self.initGUI,
+                        args=(command=="background",))
+        guiinit.daemon = True
+        guiinit.start()
 
         #Initialise modules and tasks manager, and queue initial tasks
-        self.initTasksModules()
+        self.initTasksModules() #TODO: Add a callback argument that updates GUI's status representation on its splash screen
         self.initQueueStagedTasks()
 
         #Initialise search modules
         self.initSearchModules()
 
+        #Wait until the GUI has finished initialising before continuing
+        if guiinit.is_alive(): #TODO: Move all debug printing to debug call kinda like mintinstall does
+            print(_("Waiting for the GUI to finish initial initialisation..."))
+            guiinit.join()
+
+        #TODO: Initialise DBus in a thread, finish GUI loading, spawn window, and then join DBus thread for rest of runtime
+
         #Load GUI-specific modules and inform GUI that the backend finished loading
         self.finishInitGUI()
-        self.spawnGUI(command, targetid, moduleid, sourceid, subsourceid)
+        if command != "background": #In background mode, the GUI doesn't open until the user 'launches' the application themselves, so we don't spawn the GUI yet
+            self.spawnGUI(command, targetid, moduleid, sourceid, subsourceid)
+
+        #TEMPORARY - will be replaced with DBus signal checking, and GUI closing response of clearing cache!
+        while True:
+            pass
 
 
     def startSystemMode(self):
@@ -536,7 +555,10 @@ class StoriumBrain():
 
     def initConfigs(self):
         #Use reloadConfigs to fill the values of self.configs
-        self.reloadConfigs()
+        try:
+            self.reloadConfigs()
+        except Exception as e:
+            raise StoriumBrainException(_("Failed to load config files: %s") % e)
 
     def initGUIConfigs(self): #Split because of system mode not using it
         #Throw an exception if configs aren't yet initialised
@@ -551,9 +573,30 @@ class StoriumBrain():
             raise StoriumBrainException(_("Failed to load GUI module %s's configs: %s") % (guipath, e))
 
 
-    def initGUI(self):
+    def initGUI(self, donotshowgui=False):
         #Start the GUI in a splash screen state
-        pass #TODO
+        guipath = self.libdir + "/modules/" + self.configs["guipath"]
+        try:
+            #Initialise GUI module fully
+            module, moduleinfo, filewatch = self.newModule(guipath, "gui", "gui", self.guiapi)
+            #Add module to modules
+            self.modules["gui"] = module
+            #Pass through GUI's configs instance to GUI
+            module.configs = self.guiconfigs
+            #Add module's metadata to cache
+            self.moduleinfo["gui"] = moduleinfo #FIXME: Do we need the GUI's metadata?
+            #Initiate filewatches for this module
+            result = {}
+            for i in filewatch:
+                try:
+                    result[i] = os.path.getmtime(i)
+                except Exception as e:
+                    print(_("Failed to add %s to filewatch: %s") % (i, e))
+            self.modulefilewatch["gui"] = result #FIXME: How would a GUI reinit even work? Should the GUI just... trigger a Storium relaunch?
+        except Exception as e:
+            raise StoriumBrainException(_("Failed to load GUI module %s: %s") % (guipath, e))
+
+        self.modules["gui"].initGUI(donotshowgui)
 
 
     def initTasksModules(self):
@@ -597,7 +640,7 @@ class StoriumBrain():
         else:
             stagedtasks = self.configs["stagedTasks"]
 
-        #TODO: Add to Tasks
+        #TODO: Add to Tasks, and then trigger beginQueueCountdown
 
 
     def initSearchModules(self):
@@ -758,6 +801,9 @@ class StoriumBrain():
             with open(self.configdir + "/configs.json", 'r') as fp:
                 result = self.dictMerge(result, json.loads(fp.read()))
 
+        if result == {}:
+            raise StoriumBrainException(_("Config files are empty"))
+
         #Pass settings to Storium
         self.configs = result
 
@@ -809,19 +855,17 @@ class StoriumBrain():
             moduleinfo.pop("conditionFilesExist", None)
             moduleinfo.pop("watchFiles", None)
             moduleinfo.pop("APIVersion")
-            for i in ["fullName", "summary", "appsourcesFullName"]:
+            for i in ["fullName", "summary"] + self.moduleinfoextras[moduletype]:
                 keeplang = self.getTranslation(moduleinfo[i], True)
                 #Clear out unused translations from our current cache
                 ii = moduleinfo[i][keeplang]
-                moduleinfo[i].clear() #...by nuking the cache entirely,
-                moduleinfo[i][keeplang] = ii #...and re-adding the used translation.
+                moduleinfo[i] = ii #By replacing the value with the used translation.
             count = 0
             while count < len(moduleinfo["authors"]):
                 keeplang = self.getTranslation(moduleinfo["authors"][count]["name"], True)
                 #Clear out unused translations from our current cache here too
                 i = moduleinfo["authors"][count]["name"][keeplang]
-                moduleinfo["authors"][count]["name"].clear()
-                moduleinfo["authors"][count]["name"][keeplang] = i
+                moduleinfo["authors"][count]["name"] = i
                 count += 1
 
         #Check the module has code, and that said code is valid
@@ -836,6 +880,8 @@ class StoriumBrain():
                     check = True
             if check == False:
                 raise StoriumBrainException(_("Module does not contain required class"))
+
+        self.GUIupdateInitStatus(_("Initialising %s...") % moduleinfo["fullName"])
 
         ############################################
         # Module Initialisation
@@ -1081,6 +1127,13 @@ class StoriumBrain():
         #Runs holdUntilTasksCompleted in the Tasks API, saves staged tasks, deletes its lockfile, spawns a new Store process and then exits.
         #In systemd mode, restarts the service before exiting.
         pass #TODO
+
+    def GUIupdateInitStatus(self, value):
+        #Updates initialisation status on the GUI's splash screen, if there is one, else prints to command line
+        if "gui" in self.modules:
+            self.modules["gui"].updateInitStatus(value)
+        if self.guiconfigs != None and self.guiconfigs.getDebugOutput() == True:
+            print(_("Initialisation process: %s") % value)
 
     ############################################
     # API Callbacks - ItemMgmt API
