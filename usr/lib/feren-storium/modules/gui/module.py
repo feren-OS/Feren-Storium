@@ -15,6 +15,7 @@ import time
 
 from gi.repository import Gtk, Gio, Gdk, GLib, Pango, GObject, GdkPixbuf
 import dbus
+from dbus.mainloop.glib import DBusGMainLoop
 from threading import Thread, Event
 from queue import Queue, Empty
 
@@ -132,6 +133,35 @@ class ChangesBonusesDialog(Gtk.Window):
         self.responded.wait()
         self.exit_dialog()
         return self.response, self.bonuses
+
+
+############################################
+# Errors window
+############################################
+class errorWindow(Gtk.Window):
+    def __init__(self, genericapi, guiapi, parent):
+        Gtk.Window.__init__(self)
+
+        #TODO: Move everything window-related into here
+
+
+############################################
+# Settings window
+############################################
+class configWindow(Gtk.Window):
+    def __init__(self, genericapi, guiapi, parent):
+        Gtk.Window.__init__(self)
+
+        #TODO: Move everything window-related into here
+
+
+
+
+
+
+
+
+
 
 
 ####Application icon (used for application details page, and tasks buttons)
@@ -833,22 +863,32 @@ class PageArea(Gtk.Stack):
 # Notifications
 ############################################
 class notifications():
-    def __init__(self):
-        from dbus.mainloop.glib import DBusGMainLoop
+    def __init__(self, parent):
+        self.parent = parent
+        self.toaststorage = {}
         mainloop = DBusGMainLoop()
+        self.interface = dbus.SessionBus(mainloop=mainloop).get_object("org.freedesktop.Notifications", "/org/freedesktop/Notifications")
+        self.interface = dbus.Interface(self.interface, "org.freedesktop.Notifications")
+        self.interface.connect_to_signal('ActionInvoked', self.toastAction)
+        self.interface.connect_to_signal('NotificationClosed', self.toastExpired)
 
-        obj = dbus.SessionBus(mainloop=mainloop).get_object("org.freedesktop.Notifications", "/org/freedesktop/Notifications")
-        obj = dbus.Interface(obj, "org.freedesktop.Notifications")
-        obj.connect_to_signal('ActionInvoked', self.callback)
-        nid = obj.Notify("", \
-                        0, \
-                        "kwalletmanager", \
-                        "CAN YOU BELIEVE IT?", \
-                        """NOTIFICATIONS!""", \
-                        ["default", "Activate", "test", "TEST BUTTON"], \
+        #Test notifications
+        self.updatesComplete()
+
+
+    def newToast(self, icon, title, text, actions={}, subtitle="", replacenid=0, context="", permanent=False):
+        nid = None
+        dbusactions = []
+        for i in actions:
+            dbusactions.append(i)
+            dbusactions.append(actions[i][0])
+        dbustimeout = -1 if permanent == False else 0
+        #Create and send the toast
+        try:
+            nid = self.interface.Notify("", replacenid, icon, title, text, dbusactions, \
                         {"urgency": 1, \
-                            "desktop-entry": "feren-storium"}, \
-                        -1)
+                            "desktop-entry": "feren-storium", \
+                            "x-kde-origin-name": subtitle}, dbustimeout)
                     #Substitute application name ("" uses the name from the proce/info)
                     #Replace notification of this nid with this notification
                     #Icon name (can be file path)
@@ -858,11 +898,68 @@ class notifications():
                     #   The cool part
                     #   .desktop mapping
                     #The timeout in milliseconds (-1 means use default)
-        print(nid)
+        except Exception as e:
+            if nid == None: #Notifications get created fine for some reason half the time despite 'too many notifications'
+                if self.parent.configs != None and self.parent.configs.getDebugOutput() == True:
+                    print(_("GUI DEBUG: Could not create toast '%s': %s") % (title, e))
+                    #TODO: Global debug call instead
+                return
+        #Then add the toast to notification storage
+        for i in actions:
+            actions[i] = actions[i][1]
+        self.toaststorage[str(nid)] = {"type": context, "actions": actions}
 
-    def callback(self, nid, action):
-        nid, action = int(nid), str(action)
-        print("おはようー！ %s, %s" % (nid, action))
+
+    def toastExpired(self, nid, reason):
+        if nid not in self.toaststorage:
+            return #Not our notification, so we shouldn't deal with it
+        #Removes expired toast from notification storage
+        try:
+            self.toaststorage.pop(str(nid))
+        except Exception as e:
+            if self.parent.configs != None and self.parent.configs.getDebugOutput() == True:
+                print(_("GUI DEBUG: Could not close toast %s: %s") % (str(nid), e))
+                #TODO: Global debug call instead
+
+    def toastAction(self, nid, action):
+        nid, action = str(nid), str(action)
+        if nid not in self.toaststorage:
+            return #Not our notification, so we shouldn't deal with it
+        #Executes the action specified in the notification storage
+        if nid not in self.toaststorage:
+            return
+        if action not in self.toaststorage[nid]["actions"]:
+            return
+        #Execute the stored callback
+        self.toaststorage[nid]["actions"][action]()
+
+    def getToastTypeNID(self, ttype):
+        for i in self.toaststorage:
+            if self.toaststorage[i]["type"] == ttype:
+                return i
+        return 0
+
+
+    def callbackTest(self):
+        print("おはよー！")
+
+
+    def updatesAvailable(self):
+        #Shows an Updates Available notification
+        self.newToast("mintupdate-updates-available", \
+            _("Updates are available"), \
+            _("""Open Store to view or install pending updates."""), \
+            {"default": [_("View updates"), self.callbackTest]}, \
+            "", self.getToastTypeNID("update"), "update")
+
+
+    def updatesComplete(self):
+        #Shows an Updates Complete notification
+        self.newToast("mintupdate-up-to-date", \
+            _("Your system is up to date"), \
+            _("""Your system has successfully installed all of its available updates."""), \
+            {}, \
+            "", self.getToastTypeNID("update"), "update")
 
 
 
@@ -870,11 +967,44 @@ class notifications():
 # Main window
 ############################################
 class window(Gtk.Window):
-    def __init__(self, genericapi, guiapi):
+    def __init__(self, parent):
         Gtk.Window.__init__(self)
+        self.parent = parent
+        self.connect('delete-event', partial(parent.windowClosed, "wnd"))
+
+        #Clean up memory values when closing Storium's windows
+        self.splashtext = None
+        # To determine whether or not to run refresh tasks and so on
+        self.current_itemid = ""
+        self.current_sourceid = ""
+        self.current_subsourceid = ""
 
         #TODO: Move everything window-related into here
+        self.set_position(Gtk.WindowPosition.CENTER)
+        self.set_title(_("Feren Storium API Demo - GUI Module"))
+        self.set_default_size(850, 640)
+        self.set_size_request(850, 540)
+        self.wndcontents = Gtk.VBox()
+        self.wndcontents.set_spacing(0)
 
+        #For the splash screen
+        self.wndstack = Gtk.Stack() #Needs accessing later
+        self.wndstack.set_transition_type(Gtk.StackTransitionType.CROSSFADE)
+        self.add(self.wndstack)
+
+        #Splash screen
+        splashscr = Gtk.VBox()
+        splashscr.pack_start(Gtk.Box(), True, False, 0)
+        splashimg = Gtk.Image()
+        splashimg.set_from_icon_name("softwarecenter", Gtk.IconSize.DND)
+        splashscr.pack_start(splashimg, False, False, 0)
+        self.splashtext = Gtk.Label(label=_("Initialising Storium API Demo..."))
+        splashscr.pack_start(self.splashtext, False, False, 0)
+        splashscr.pack_start(Gtk.Box(), True, False, 0)
+        self.wndstack.add_named(splashscr, "splash")
+
+
+        self.show_all()
 
 
 ############################################
@@ -884,24 +1014,63 @@ class module():
     def __init__(self, genericapi, guiapi):
         self.api = genericapi
         self.guiapi = guiapi
+        self.configs = None #Filled by Brain
+        self.desktoasts = None #Initialised by initGUI
 
-        self.preGUIMemory()
+        #WINDOW VARIABLES
+        self.wnd = None
+        self.changeswnd = None
+        self.errorwnd = None
+        self.gtkrunning = False
+        self.openwnd = Event()
+        self.openchanges = Event()
+        self.openerror = Event()
 
         # Program identification
         GLib.set_prgname('/usr/bin/feren-storium')
-        self.desktoasts = notifications()
 
-    def preGUIMemory(self):
-        #Clean up memory values when closing Storium's windows
-        self.splashtext = None
-        # To determine whether or not to run refresh tasks and so on
-        self.current_itemid = ""
-        self.current_sourceid = ""
-        self.current_subsourceid = ""
+        # Required by GTK for some reason
+        GObject.threads_init()
 
-    def close(self, p1 = None, p2 = None):
-        self.preGUIMemory()
-        Gtk.main_quit(p1, p2)
+
+    def windowClosed(self, target, p1 = None, p2 = None):
+        if target == "wnd" and self.wnd != None:
+            self.wnd.destroy()
+            self.wnd = None
+        elif target == "changes" and self.changeswnd != None:
+            self.changeswnd.destroy()
+            self.changeswnd = None
+        elif target == "error" and self.errorwnd != None:
+            self.errorwnd.destroy()
+            self.errorwnd = None
+        else:
+            return
+
+        #TODO: Launch all windows in the background once main window is launched
+        # Then, when window close call is made don't close main window, instead hide it and destroy its controls (except for the splash screen)
+        # Only close all 3 windows once tasks are not queued in userland
+        # If main window is hidden, and is asked to spawn again, just re-show splash and then re-show window and then initialise the window again
+
+        # ...unless we should make the splash screen something that has its own code call to generate the controls of, and when loaded destroy the splash screen controls, so that we can remake the splash screen when re-showing the window?
+        # In that case, we'd need to move it and then make it spawn via GLib.idle_add for the spawn call
+
+        #if self.wnd == None and self.changeswnd == None and self.errorwnd == None:
+            #Gtk.main_quit(p1, p2)
+            #self.gtkrunning = False
+        self.openwnd.set()
+
+    def initGTK(self):
+        thread = Thread(target=self._initGTK,
+                        args=())
+        thread.daemon = True
+        thread.start()
+
+    def _initGTK(self):
+        if self.gtkrunning == True:
+            return #Don't run GTK more than once
+        self.gtkrunning = True
+        Gtk.main()
+        print("GTKQUIT")
 
 
     def _gohome_pressed(self, gtk_widget):
@@ -945,102 +1114,80 @@ class module():
             GLib.idle_add(self.detailsheader.set_visible, False)
 
 
+    def initWndTest(self):
+        self.wnd = window(self)
+        self.initGTK()
+        self.openwnd.clear()
+        self.openwnd.wait()
+        self.wnd = window(self)
+
 
     def initGUI(self, donotshowgui=False):
         #Initialise notifications and such for tasks support, and if not in background mode (donotshowgui = False) the GUI showing a splash screen
-        # Required by GTK for some reason
-        GObject.threads_init()
+        self.desktoasts = notifications(self)
 
         #Changes and bonuses dialog, stored now because GTK.
         self.changesbonusesdialog = ChangesBonusesDialog()
 
         # Main window
-        self.wnd = Gtk.Window()
-        self.wnd.set_position(Gtk.WindowPosition.CENTER)
-        self.wnd.set_title(_("Feren Storium API Demo - GUI Module"))
-        self.wnd.set_default_size(850, 640)
-        self.wnd.set_size_request(850, 540)
-        self.wndcontents = Gtk.VBox()
-        self.wndcontents.set_spacing(0)
+        if donotshowgui == False:
+            #Do not load the window unless prompted to
+            self.initWndTest()
+            #TODO: Figure out how to deal with anytime window spawns - do we just have all 3 windows present at once in memory?
 
-        #For the splash screen
-        self.wndstack = Gtk.Stack() #Needs accessing later
-        self.wndstack.set_transition_type(Gtk.StackTransitionType.CROSSFADE)
-
-        #Splash screen
-        splashscr = Gtk.VBox()
-        splashscr.pack_start(Gtk.Box(), True, False, 0)
-        splashimg = Gtk.Image()
-        splashimg.set_from_icon_name("softwarecenter", Gtk.IconSize.DND)
-        splashscr.pack_start(splashimg, False, False, 0)
-        self.splashtext = Gtk.Label(label=_("Initialising Storium API Demo..."))
-        splashscr.pack_start(self.splashtext, False, False, 0)
-        splashscr.pack_start(Gtk.Box(), True, False, 0)
-        self.wndstack.add_named(splashscr, "splash")
 
         #TODO: Move remainder to post-splash loading code...?
-
-        #Top toolbar buttons
-        status_img = Gtk.Image()
-        status_img.set_from_icon_name("folder-download-symbolic", Gtk.IconSize.BUTTON);
-        self.status_btn = Gtk.ToggleButton(image=status_img)
-        self.status_btn.set_name("status-btn")
-        self.status_btn.set_always_show_image(True)
-        self.status_handle_id = self.status_btn.connect("clicked", self._status_pressed)
-        self.status_btn.set_tooltip_text("See tasks and updates...")
-
-        search_img = Gtk.Image()
-        search_img.set_from_icon_name("edit-find-symbolic", Gtk.IconSize.BUTTON);
-        self.search_btn = Gtk.ToggleButton(image=search_img)
-        self.search_btn.set_name("search-btn")
-        self.search_handle_id = self.search_btn.connect("clicked", self._search_pressed)
-        self.search_btn.set_tooltip_text("Search for applications...")
-
-        mainmenu = Gio.Menu()
-        mainmenu.append("Settings... (TBD)")
-        mainmenu.append("Export Application Playlist... (TBD)")
-        mainmenu.append("Import Application Playlist... (TBD)")
-        mainmenu.append("About Feren Storium (TBD)")
-        menu_btn_img = Gtk.Image()
-        menu_btn_img.set_from_icon_name("open-menu-symbolic", Gtk.IconSize.BUTTON);
-        menu_btn = Gtk.MenuButton(image=menu_btn_img)
-        menu_btn.set_use_popover(False)
-        menu_btn.set_menu_model(mainmenu)
-        menu_btn.set_tooltip_text("More options...")
-
-        self.gohome_btn = Gtk.ToggleButton(label=("Items Page"))
-        self.gohome_btn.set_name("gohome-btn")
-        self.gohome_handle_id = self.gohome_btn.connect("clicked", self._gohome_pressed)
-
-        #Top toolbar
-        self.maintoolbar = Gtk.Box()
-        self.maintoolbar.get_style_context().add_class(Gtk.STYLE_CLASS_PRIMARY_TOOLBAR)
-        toolbarspacer=Gtk.Alignment()
-        self.maintoolbar.pack_start(toolbarspacer, True, True, 0)
-        self.maintoolbar.pack_end(menu_btn, False, True, 0)
-        self.maintoolbar.pack_end(self.search_btn, False, True, 0)
-        self.maintoolbar.pack_end(self.status_btn, False, True, 0)
-        self.maintoolbar.pack_end(self.gohome_btn, False, True, 0)
-
-        #Assemble window so far
-        self.wndstack.add_named(self.wndcontents, "body") #Above TODO
-        self.wnd.add(self.wndstack)
-        self.wnd.connect('delete-event', self.close)
-        self.wnd.show_all()
-
-        #Open GUI in a thread
-        thread = Thread(target=self._initGUIHold,
-                        args=())
-        thread.daemon = True
-        thread.start()
-
-    def _initGUIHold(self):
-        Gtk.main()
+        # #Top toolbar buttons
+        # status_img = Gtk.Image()
+        # status_img.set_from_icon_name("folder-download-symbolic", Gtk.IconSize.BUTTON);
+        # self.status_btn = Gtk.ToggleButton(image=status_img)
+        # self.status_btn.set_name("status-btn")
+        # self.status_btn.set_always_show_image(True)
+        # self.status_handle_id = self.status_btn.connect("clicked", self._status_pressed)
+        # self.status_btn.set_tooltip_text("See tasks and updates...")
+        #
+        # search_img = Gtk.Image()
+        # search_img.set_from_icon_name("edit-find-symbolic", Gtk.IconSize.BUTTON);
+        # self.search_btn = Gtk.ToggleButton(image=search_img)
+        # self.search_btn.set_name("search-btn")
+        # self.search_handle_id = self.search_btn.connect("clicked", self._search_pressed)
+        # self.search_btn.set_tooltip_text("Search for applications...")
+        #
+        # mainmenu = Gio.Menu()
+        # mainmenu.append("Settings... (TBD)")
+        # mainmenu.append("Export Application Playlist... (TBD)")
+        # mainmenu.append("Import Application Playlist... (TBD)")
+        # mainmenu.append("About Feren Storium (TBD)")
+        # menu_btn_img = Gtk.Image()
+        # menu_btn_img.set_from_icon_name("open-menu-symbolic", Gtk.IconSize.BUTTON);
+        # menu_btn = Gtk.MenuButton(image=menu_btn_img)
+        # menu_btn.set_use_popover(False)
+        # menu_btn.set_menu_model(mainmenu)
+        # menu_btn.set_tooltip_text("More options...")
+        #
+        # self.gohome_btn = Gtk.ToggleButton(label=("Items Page"))
+        # self.gohome_btn.set_name("gohome-btn")
+        # self.gohome_handle_id = self.gohome_btn.connect("clicked", self._gohome_pressed)
+        #
+        # #Top toolbar
+        # self.maintoolbar = Gtk.Box()
+        # self.maintoolbar.get_style_context().add_class(Gtk.STYLE_CLASS_PRIMARY_TOOLBAR)
+        # toolbarspacer=Gtk.Alignment()
+        # self.maintoolbar.pack_start(toolbarspacer, True, True, 0)
+        # self.maintoolbar.pack_end(menu_btn, False, True, 0)
+        # self.maintoolbar.pack_end(self.search_btn, False, True, 0)
+        # self.maintoolbar.pack_end(self.status_btn, False, True, 0)
+        # self.maintoolbar.pack_end(self.gohome_btn, False, True, 0)
+        #
+        # #Assemble window so far
+        # self.wndstack.add_named(self.wndcontents, "body") #Above TODO
 
     def updateInitStatus(self, value):
-        if self.splashtext is None:
+        if self.wnd is None:
             return
-        GLib.idle_add(self.splashtext.set_label, value)
+        if self.wnd.splashtext is None:
+            return
+        GLib.idle_add(self.wnd.splashtext.set_label, value)
 
 
     def GUILoadingFinished(self):
@@ -1065,7 +1212,7 @@ class module():
         self.wndcontents.pack_start(self.maintoolbar, False, True, 0)
         self.wndcontents.pack_start(self.detailsheader, False, True, 0)
         self.wndcontents.pack_end(self.pagearea, True, True, 0)
-        GLib.idle_add(self.wnd.show_all)
+        GLib.idle_add(self.show_all)
 
         self.pagearea.populate_mainpage()
 
