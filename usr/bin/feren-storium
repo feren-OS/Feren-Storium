@@ -351,10 +351,11 @@ class StoriumBrain():
         self.initialiseAPIs()
 
         #Pass over to the arguments response code
+        self.initialised = False #Fully loaded?
         self.respondToArguments()
 
     def respondToArguments(self):
-        guiargs = ["tasks", "category"]
+        guiargs = ["--service", "tasks", "category"]
         cliargs = ["install", "reinstall", "update", "remove", "info", "warnings"]
         rootargs = ["system", "system-updates"]
 
@@ -403,7 +404,7 @@ class StoriumBrain():
             return
 
         #Launch commands in existing instance, if there is one
-        if self.communicateWithStore(command, targetid, moduleid, sourceid, subsourceid) == True:
+        if self.communicateWithStorium(command, targetid, moduleid, sourceid, subsourceid) == True:
             return #Exit here if we successfully communicated with an existing Storium
 
         #If not, let's initiate the appropriate frontend
@@ -452,6 +453,7 @@ class StoriumBrain():
         self.genericapi.getImages = self.APIgetImages
         self.genericapi.isModuleAvailable = self.APIisModuleAvailable
         self.genericapi.dictMerge = self.dictMerge
+        self.genericapi.isInitialised = self.isInitialised
         ############################################
         # Tasks API
         ############################################
@@ -487,9 +489,9 @@ class StoriumBrain():
         apicontainer.getPreferSysInst = partial(self.APIgetPreferSysInst, moduleid)
 
 
-    def communicateWithStore(self, command, targetid="", moduleid="", sourceid="", subsourceid=""):
+    def communicateWithStorium(self, command, targetid="", moduleid="", sourceid="", subsourceid=""):
         #Send signal to existing Store instance to power the command in certain scenarios, else return False or return False if communication fails
-        print("communicateWithStore", command, targetid, moduleid, sourceid, subsourceid)
+        print("communicateWithStorium", command, targetid, moduleid, sourceid, subsourceid)
         #Skip if Terminal-specific commands are used
         if command == "install" or command == "reinstall" or command == "update" or command == "remove" or command == "info" or command == "warnings":
             return False
@@ -509,7 +511,7 @@ class StoriumBrain():
 
         #Initialise GUI and show a splash screen while Storium loads
         guiinit = Thread(target=self.initGUI,
-                        args=(command=="background",))
+                        args=(command!="--service",))
         guiinit.daemon = True
         guiinit.start()
 
@@ -527,9 +529,9 @@ class StoriumBrain():
 
         #TODO: Initialise DBus in a thread, finish GUI loading, spawn window, and then join DBus thread for rest of runtime
 
-        #Load GUI-specific modules and inform GUI that the backend finished loading
+        #Inform GUI that the backend finished loading
         self.finishInitGUI()
-        if command != "background": #In background mode, the GUI doesn't open until the user 'launches' the application themselves, so we don't spawn the GUI yet
+        if command != "--service": #TODO: Move this to DBus signals instead
             self.spawnGUI(command, targetid, moduleid, sourceid, subsourceid)
 
         #TEMPORARY - will be replaced with DBus signal checking, and GUI closing response of clearing cache!
@@ -573,8 +575,8 @@ class StoriumBrain():
             raise StoriumBrainException(_("Failed to load GUI module %s's configs: %s") % (guipath, e))
 
 
-    def initGUI(self, donotshowgui=False):
-        #Start the GUI in a splash screen state
+    def initGUI(self, showwindow=False):
+        #Start the GUI's background operations
         guipath = self.libdir + "/modules/" + self.configs["guipath"]
         try:
             #Initialise GUI module fully
@@ -595,8 +597,9 @@ class StoriumBrain():
             self.modulefilewatch["gui"] = result #FIXME: How would a GUI reinit even work? Should the GUI just... trigger a Storium relaunch?
         except Exception as e:
             raise StoriumBrainException(_("Failed to load GUI module %s: %s") % (guipath, e))
-
-        self.modules["gui"].initGUI(donotshowgui)
+        #Show a splash screen while we wait if ran normally
+        if showwindow == True:
+            module.spawnGUI()
 
 
     def initTasksModules(self):
@@ -671,8 +674,9 @@ class StoriumBrain():
 
     def finishInitGUI(self):
         #Signal the GUI to finish its loading process and go past its splash screen
-        #TODO: Pass GUI settings instance into GUI module
-        pass #TODO
+        self.initialised = True
+        # Tell the GUI to finish loading
+        self.modules["gui"].finishInitGUI()
 
     def spawnGUI(self, command="", targetid="", moduleid="", sourceid="", subsourceid=""):
         #Reopen GUI if closed, and go to a page in the GUI if one is given
@@ -982,6 +986,10 @@ class StoriumBrain():
                     continue #Proceed to next key without running below code
             target[i] = writeover[i]
         return target
+
+    def isInitialised(self):
+        #Has Storium finished initialising?
+        return self.initialised
 
     ############################################
     # Brain-only Callbacks - Generic

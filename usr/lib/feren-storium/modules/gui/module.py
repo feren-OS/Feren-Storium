@@ -38,8 +38,8 @@ class settings():
 
 
 ####Changes confirming dialog
-class ChangesBonusesDialog(Gtk.Window):
-    def __init__(self):
+class changesBonusesDialog(Gtk.Window):
+    def __init__(self, parent):
         #TODO: Check if api is even needed - likely will for icons if nothing else
         Gtk.Window.__init__(self)
         self.set_position(Gtk.WindowPosition.CENTER)
@@ -139,7 +139,7 @@ class ChangesBonusesDialog(Gtk.Window):
 # Errors window
 ############################################
 class errorWindow(Gtk.Window):
-    def __init__(self, genericapi, guiapi, parent):
+    def __init__(self, parent):
         Gtk.Window.__init__(self)
 
         #TODO: Move everything window-related into here
@@ -149,7 +149,7 @@ class errorWindow(Gtk.Window):
 # Settings window
 ############################################
 class configWindow(Gtk.Window):
-    def __init__(self, genericapi, guiapi, parent):
+    def __init__(self, parent):
         Gtk.Window.__init__(self)
 
         #TODO: Move everything window-related into here
@@ -873,7 +873,7 @@ class notifications():
         self.interface.connect_to_signal('NotificationClosed', self.toastExpired)
 
         #Test notifications
-        self.updatesComplete()
+        self.updatesAvailable()
 
 
     def newToast(self, icon, title, text, actions={}, subtitle="", replacenid=0, context="", permanent=False):
@@ -972,9 +972,7 @@ class window(Gtk.Window):
         self.parent = parent
         self.connect('delete-event', partial(parent.windowClosed, "wnd"))
 
-        #Clean up memory values when closing Storium's windows
-        self.splashtext = None
-        # To determine whether or not to run refresh tasks and so on
+        #These three are used to skip page updating code whenever otherwise inappropriate to continue execution of, such as dropdown changes and so on.
         self.current_itemid = ""
         self.current_sourceid = ""
         self.current_subsourceid = ""
@@ -984,28 +982,91 @@ class window(Gtk.Window):
         self.set_title(_("Feren Storium API Demo - GUI Module"))
         self.set_default_size(850, 640)
         self.set_size_request(850, 540)
-        self.wndcontents = Gtk.VBox()
-        self.wndcontents.set_spacing(0)
 
+    def spawn(self):
+        #When using spawn, it means the window hasn't been opened yet, so we need to initialise it first, thus a splash screen is used
+        self.initSplash()
+        self.show_all()
+        #TODO: Check that the backend is fully initialised - if so, do a GLib to fully load this GUI
+        if self.parent.api.isInitialised() == True:
+            pass #TODO
+
+
+    def initSplash(self):
         #For the splash screen
         self.wndstack = Gtk.Stack() #Needs accessing later
         self.wndstack.set_transition_type(Gtk.StackTransitionType.CROSSFADE)
         self.add(self.wndstack)
 
         #Splash screen
-        splashscr = Gtk.VBox()
-        splashscr.pack_start(Gtk.Box(), True, False, 0)
+        self.splashscr = Gtk.VBox()
+        self.splashscr.pack_start(Gtk.Box(), True, False, 0)
         splashimg = Gtk.Image()
         splashimg.set_from_icon_name("softwarecenter", Gtk.IconSize.DND)
-        splashscr.pack_start(splashimg, False, False, 0)
+        self.splashscr.pack_start(splashimg, False, False, 0)
         self.splashtext = Gtk.Label(label=_("Initialising Storium API Demo..."))
-        splashscr.pack_start(self.splashtext, False, False, 0)
-        splashscr.pack_start(Gtk.Box(), True, False, 0)
-        self.wndstack.add_named(splashscr, "splash")
+        self.splashscr.pack_start(self.splashtext, False, False, 0)
+        self.splashscr.pack_start(Gtk.Box(), True, False, 0)
+        self.wndstack.add_named(self.splashscr, "splash")
 
 
-        self.show_all()
+    def initComplete(self):
+        if self.get_realized == False:
+            return #Do not run this if the window has not even been opened yet
 
+        self.wndcontents = Gtk.VBox()
+        self.wndcontents.set_spacing(0)
+
+        #Top toolbar buttons
+        status_img = Gtk.Image()
+        status_img.set_from_icon_name("folder-download-symbolic", Gtk.IconSize.BUTTON);
+        self.status_btn = Gtk.ToggleButton(image=status_img)
+        self.status_btn.set_name("status-btn")
+        self.status_btn.set_always_show_image(True)
+        # self.status_handle_id = self.status_btn.connect("clicked", self._status_pressed)
+        self.status_btn.set_tooltip_text("See tasks and updates...")
+
+        search_img = Gtk.Image()
+        search_img.set_from_icon_name("edit-find-symbolic", Gtk.IconSize.BUTTON);
+        self.search_btn = Gtk.ToggleButton(image=search_img)
+        self.search_btn.set_name("search-btn")
+        # self.search_handle_id = self.search_btn.connect("clicked", self._search_pressed)
+        self.search_btn.set_tooltip_text("Search for applications...")
+
+        mainmenu = Gio.Menu()
+        mainmenu.append("Settings... (TBD)")
+        mainmenu.append("Export Application Playlist... (TBD)")
+        mainmenu.append("Import Application Playlist... (TBD)")
+        mainmenu.append("About Feren Storium (TBD)")
+        menu_btn_img = Gtk.Image()
+        menu_btn_img.set_from_icon_name("open-menu-symbolic", Gtk.IconSize.BUTTON);
+        menu_btn = Gtk.MenuButton(image=menu_btn_img)
+        menu_btn.set_use_popover(False)
+        menu_btn.set_menu_model(mainmenu)
+        menu_btn.set_tooltip_text("More options...")
+
+        self.gohome_btn = Gtk.ToggleButton(label=("Items Page"))
+        self.gohome_btn.set_name("gohome-btn")
+        # self.gohome_handle_id = self.gohome_btn.connect("clicked", self._gohome_pressed)
+
+        #Top toolbar
+        self.maintoolbar = Gtk.Box()
+        self.maintoolbar.get_style_context().add_class(Gtk.STYLE_CLASS_PRIMARY_TOOLBAR)
+        toolbarspacer=Gtk.Alignment()
+        self.maintoolbar.pack_start(toolbarspacer, True, True, 0)
+        self.maintoolbar.pack_end(menu_btn, False, True, 0)
+        self.maintoolbar.pack_end(self.search_btn, False, True, 0)
+        self.maintoolbar.pack_end(self.status_btn, False, True, 0)
+        self.maintoolbar.pack_end(self.gohome_btn, False, True, 0)
+
+        self.wndcontents.pack_start(self.maintoolbar, False, False, 0)
+
+        #Assemble window so far
+        self.wndstack.add_named(self.wndcontents, "body")
+
+        self.wndcontents.show_all()
+        self.splashscr.destroy() #We don't need it any longer
+        self.wndstack.set_visible_child(self.wndcontents)
 
 ############################################
 # Module initialisation and Brain responder
@@ -1017,26 +1078,32 @@ class module():
         self.configs = None #Filled by Brain
         self.desktoasts = None #Initialised by initGUI
 
-        #WINDOW VARIABLES
-        self.wnd = None
-        self.changeswnd = None
-        self.errorwnd = None
-        self.gtkrunning = False
-        self.openwnd = Event()
-        self.openchanges = Event()
-        self.openerror = Event()
-
         # Program identification
         GLib.set_prgname('/usr/bin/feren-storium')
 
         # Required by GTK for some reason
         GObject.threads_init()
 
+        #Open, but never show, all windows in the background
+        self.changeswnd = changesBonusesDialog(self)
+        self.errorwnd = errorWindow(self)
+        self.configwnd = configWindow(self)
+        self.wnd = window(self)
+        thread = Thread(target=self.initGTK,
+                        args=())
+        thread.daemon = True
+        thread.start()
+        time.sleep(0.1) #Give GTK time to launch as rushed launches lead to an X Window Error when spawning the windows
+
+        #Initialise notifications and such for tasks support
+        self.desktoasts = notifications(self)
+
 
     def windowClosed(self, target, p1 = None, p2 = None):
+        #Reopen the windows in the background, after closing, for their next use
         if target == "wnd" and self.wnd != None:
             self.wnd.destroy()
-            self.wnd = None
+            self.wnd = window(self)
         elif target == "changes" and self.changeswnd != None:
             self.changeswnd.destroy()
             self.changeswnd = None
@@ -1045,32 +1112,38 @@ class module():
             self.errorwnd = None
         else:
             return
-
-        #TODO: Launch all windows in the background once main window is launched
-        # Then, when window close call is made don't close main window, instead hide it and destroy its controls (except for the splash screen)
-        # Only close all 3 windows once tasks are not queued in userland
-        # If main window is hidden, and is asked to spawn again, just re-show splash and then re-show window and then initialise the window again
-
-        # ...unless we should make the splash screen something that has its own code call to generate the controls of, and when loaded destroy the splash screen controls, so that we can remake the splash screen when re-showing the window?
-        # In that case, we'd need to move it and then make it spawn via GLib.idle_add for the spawn call
-
-        #if self.wnd == None and self.changeswnd == None and self.errorwnd == None:
+        #TODO: Move this to onExit call of some sort for when quitting Storium:
+        #*destroy all 3 windows*
             #Gtk.main_quit(p1, p2)
             #self.gtkrunning = False
-        self.openwnd.set()
 
     def initGTK(self):
-        thread = Thread(target=self._initGTK,
-                        args=())
-        thread.daemon = True
-        thread.start()
-
-    def _initGTK(self):
-        if self.gtkrunning == True:
-            return #Don't run GTK more than once
-        self.gtkrunning = True
         Gtk.main()
-        print("GTKQUIT")
+
+
+    def spawnGUI(self, command="", targetid="", moduleid="", sourceid="", subsourceid=""):
+        #Open main window and direct it with arguments
+        # If the window is already loaded, focus it first
+        if self.wnd.get_realized() == True: #realized is False until the window's shown
+            GLib.idle_add(self.wnd.present)
+        else: #If not loaded, it has to spawn first
+            GLib.idle_add(self.wnd.spawn)
+
+        #TODO: Once loaded, respond to arguments
+        pass
+
+    def updateInitStatus(self, value):
+        if self.wnd is None:
+            return
+        if self.wnd.splashtext is None:
+            return
+        GLib.idle_add(self.wnd.splashtext.set_label, value)
+
+
+    def finishInitGUI(self):
+        #Proceed to the main page from the splash screen, before loading all content
+        GLib.idle_add(self.wnd.initComplete)
+        #TODO: Load pages' contents
 
 
     def _gohome_pressed(self, gtk_widget):
@@ -1112,82 +1185,6 @@ class module():
         #Hide details header outside of Item Page
         if self.pagearea.get_visible_child() != self.pagearea.itempage:
             GLib.idle_add(self.detailsheader.set_visible, False)
-
-
-    def initWndTest(self):
-        self.wnd = window(self)
-        self.initGTK()
-        self.openwnd.clear()
-        self.openwnd.wait()
-        self.wnd = window(self)
-
-
-    def initGUI(self, donotshowgui=False):
-        #Initialise notifications and such for tasks support, and if not in background mode (donotshowgui = False) the GUI showing a splash screen
-        self.desktoasts = notifications(self)
-
-        #Changes and bonuses dialog, stored now because GTK.
-        self.changesbonusesdialog = ChangesBonusesDialog()
-
-        # Main window
-        if donotshowgui == False:
-            #Do not load the window unless prompted to
-            self.initWndTest()
-            #TODO: Figure out how to deal with anytime window spawns - do we just have all 3 windows present at once in memory?
-
-
-        #TODO: Move remainder to post-splash loading code...?
-        # #Top toolbar buttons
-        # status_img = Gtk.Image()
-        # status_img.set_from_icon_name("folder-download-symbolic", Gtk.IconSize.BUTTON);
-        # self.status_btn = Gtk.ToggleButton(image=status_img)
-        # self.status_btn.set_name("status-btn")
-        # self.status_btn.set_always_show_image(True)
-        # self.status_handle_id = self.status_btn.connect("clicked", self._status_pressed)
-        # self.status_btn.set_tooltip_text("See tasks and updates...")
-        #
-        # search_img = Gtk.Image()
-        # search_img.set_from_icon_name("edit-find-symbolic", Gtk.IconSize.BUTTON);
-        # self.search_btn = Gtk.ToggleButton(image=search_img)
-        # self.search_btn.set_name("search-btn")
-        # self.search_handle_id = self.search_btn.connect("clicked", self._search_pressed)
-        # self.search_btn.set_tooltip_text("Search for applications...")
-        #
-        # mainmenu = Gio.Menu()
-        # mainmenu.append("Settings... (TBD)")
-        # mainmenu.append("Export Application Playlist... (TBD)")
-        # mainmenu.append("Import Application Playlist... (TBD)")
-        # mainmenu.append("About Feren Storium (TBD)")
-        # menu_btn_img = Gtk.Image()
-        # menu_btn_img.set_from_icon_name("open-menu-symbolic", Gtk.IconSize.BUTTON);
-        # menu_btn = Gtk.MenuButton(image=menu_btn_img)
-        # menu_btn.set_use_popover(False)
-        # menu_btn.set_menu_model(mainmenu)
-        # menu_btn.set_tooltip_text("More options...")
-        #
-        # self.gohome_btn = Gtk.ToggleButton(label=("Items Page"))
-        # self.gohome_btn.set_name("gohome-btn")
-        # self.gohome_handle_id = self.gohome_btn.connect("clicked", self._gohome_pressed)
-        #
-        # #Top toolbar
-        # self.maintoolbar = Gtk.Box()
-        # self.maintoolbar.get_style_context().add_class(Gtk.STYLE_CLASS_PRIMARY_TOOLBAR)
-        # toolbarspacer=Gtk.Alignment()
-        # self.maintoolbar.pack_start(toolbarspacer, True, True, 0)
-        # self.maintoolbar.pack_end(menu_btn, False, True, 0)
-        # self.maintoolbar.pack_end(self.search_btn, False, True, 0)
-        # self.maintoolbar.pack_end(self.status_btn, False, True, 0)
-        # self.maintoolbar.pack_end(self.gohome_btn, False, True, 0)
-        #
-        # #Assemble window so far
-        # self.wndstack.add_named(self.wndcontents, "body") #Above TODO
-
-    def updateInitStatus(self, value):
-        if self.wnd is None:
-            return
-        if self.wnd.splashtext is None:
-            return
-        GLib.idle_add(self.wnd.splashtext.set_label, value)
 
 
     def GUILoadingFinished(self):
@@ -1236,6 +1233,6 @@ class module():
         if len(idsadded) == 0 and len(idsupdated) == 0 and len(idsremoved) == 0 and len(bonusavailability) == 0:
             return True, [] #Skip the confirmation if there is nothing extra to confirm
 
-        GLib.idle_add(self.changesbonusesdialog.prepare, self.api, taskbody, idsadded, idsupdated, idsremoved, bonusavailability)
-        return self.changesbonusesdialog.run()
+        GLib.idle_add(self.changeswnd.prepare, self.api, taskbody, idsadded, idsupdated, idsremoved, bonusavailability)
+        return self.changeswnd.run()
 
