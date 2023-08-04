@@ -983,13 +983,14 @@ class window(Gtk.Window):
         self.set_default_size(850, 640)
         self.set_size_request(850, 540)
 
+
     def spawn(self):
         #When using spawn, it means the window hasn't been opened yet, so we need to initialise it first, thus a splash screen is used
-        self.initSplash()
-        self.show_all()
-        #TODO: Check that the backend is fully initialised - if so, do a GLib to fully load this GUI
+        GLib.idle_add(self.initSplash)
+        GLib.idle_add(self.show_all)
+        #Fully load the GUI if the Backend has already finished initialising.
         if self.parent.api.isInitialised() == True:
-            pass #TODO
+            GLib.idle_add(self.initComplete)
 
 
     def initSplash(self):
@@ -1012,26 +1013,68 @@ class window(Gtk.Window):
 
     def initComplete(self):
         if self.get_realized == False:
-            return #Do not run this if the window has not even been opened yet
+            return #Do not run this if the window is not currently opened.
 
         self.wndcontents = Gtk.VBox()
-        self.wndcontents.set_spacing(0)
 
-        #Top toolbar buttons
-        status_img = Gtk.Image()
-        status_img.set_from_icon_name("folder-download-symbolic", Gtk.IconSize.BUTTON);
-        self.status_btn = Gtk.ToggleButton(image=status_img)
-        self.status_btn.set_name("status-btn")
-        self.status_btn.set_always_show_image(True)
-        # self.status_handle_id = self.status_btn.connect("clicked", self._status_pressed)
-        self.status_btn.set_tooltip_text("See tasks and updates...")
+        self.body, self.pages = self.createBody()
+        self.maintoolbar = self.createToolbar()
 
-        search_img = Gtk.Image()
-        search_img.set_from_icon_name("edit-find-symbolic", Gtk.IconSize.BUTTON);
-        self.search_btn = Gtk.ToggleButton(image=search_img)
-        self.search_btn.set_name("search-btn")
-        # self.search_handle_id = self.search_btn.connect("clicked", self._search_pressed)
-        self.search_btn.set_tooltip_text("Search for applications...")
+        self.wndcontents.pack_start(self.maintoolbar, False, False, 0)
+        self.wndcontents.pack_start(self.body, True, True, 0)
+
+        #Assemble window so far
+        self.wndstack.add_named(self.wndcontents, "body")
+
+        self.wndcontents.show_all()
+        self.splashscr.destroy() #We don't need it any longer
+        self.wndstack.set_visible_child(self.wndcontents)
+
+        #TODO: Start thread to load all pages initially loaded
+
+
+
+    ############################################
+    # Toolbar
+    ############################################
+
+    def createToolbar(self):
+        #Left stuff
+        backbuttonImg = Gtk.Image()
+        backbuttonImg.set_from_icon_name("go-previous-symbolic", Gtk.IconSize.BUTTON)
+        self.backbutton = Gtk.Button(image=backbuttonImg)
+        self.backbutton.set_sensitive(False)
+        self.backbutton.connect("clicked", self.returnToMainView)
+
+        header = Gtk.Box()
+        header.set_spacing(6)
+        logoimageandbox = Gtk.Box(spacing=8)
+        logotypebox = Gtk.VBox(spacing=0)
+        logoimg = Gtk.Image()
+        logoimg.set_from_icon_name("softwarecenter", Gtk.IconSize.DND);
+
+        logotype1 = Gtk.Label(label=("Storium API"))
+        logotype2 = Gtk.Label(label=("Demonstration"))
+
+        logotype1_box = Gtk.Box()
+        logotype2_box = Gtk.Box()
+        logotype1_box.pack_start(logotype1, False, False, 0)
+        logotype2_box.pack_start(logotype2, False, False, 0)
+
+        logotypebox.pack_start(logotype1_box, False, False, 0)
+        logotypebox.pack_end(logotype2_box, False, False, 0)
+        logoimageandbox.pack_start(logoimg, False, False, 0)
+        logoimageandbox.pack_end(logotypebox, False, False, 0)
+
+        header.pack_start(self.backbutton, False, False, 0)
+        header.pack_start(logoimageandbox, False, True, 0)
+
+        #Separation of both sides
+        toolbarspacer=Gtk.Alignment()
+
+        #Right stuff
+        self.pageswitcher = Gtk.StackSwitcher()
+        self.pageswitcher.set_stack(self.pages)
 
         mainmenu = Gio.Menu()
         mainmenu.append("Settings... (TBD)")
@@ -1045,28 +1088,103 @@ class window(Gtk.Window):
         menu_btn.set_menu_model(mainmenu)
         menu_btn.set_tooltip_text("More options...")
 
-        self.gohome_btn = Gtk.ToggleButton(label=("Items Page"))
-        self.gohome_btn.set_name("gohome-btn")
-        # self.gohome_handle_id = self.gohome_btn.connect("clicked", self._gohome_pressed)
-
         #Top toolbar
-        self.maintoolbar = Gtk.Box()
-        self.maintoolbar.get_style_context().add_class(Gtk.STYLE_CLASS_PRIMARY_TOOLBAR)
-        toolbarspacer=Gtk.Alignment()
-        self.maintoolbar.pack_start(toolbarspacer, True, True, 0)
-        self.maintoolbar.pack_end(menu_btn, False, True, 0)
-        self.maintoolbar.pack_end(self.search_btn, False, True, 0)
-        self.maintoolbar.pack_end(self.status_btn, False, True, 0)
-        self.maintoolbar.pack_end(self.gohome_btn, False, True, 0)
+        result = Gtk.Box()
+        result.get_style_context().add_class(Gtk.STYLE_CLASS_PRIMARY_TOOLBAR)
+        result.pack_start(header, False, False, 0)
+        result.pack_start(toolbarspacer, True, True, 0)
+        result.pack_end(menu_btn, False, True, 0)
 
-        self.wndcontents.pack_start(self.maintoolbar, False, False, 0)
+        funnibutton = Gtk.Button()
+        funnibutton.connect("clicked", self.test)
+        result.pack_end(funnibutton, False, True, 0)
 
-        #Assemble window so far
-        self.wndstack.add_named(self.wndcontents, "body")
+        result.pack_end(self.pageswitcher, False, True, 0)
 
-        self.wndcontents.show_all()
-        self.splashscr.destroy() #We don't need it any longer
-        self.wndstack.set_visible_child(self.wndcontents)
+        return result
+
+    def test(self, button):
+        self.body.set_visible_child(self.itempage)
+
+    def GUIViewChanged(self, stckswch, idk):
+        self.pageswitcher.set_visible(self.body.get_visible_child() == self.pages)
+        self.backbutton.set_sensitive(self.body.get_visible_child() != self.pages)
+
+
+    ############################################
+    # The window body (the pages)
+    ############################################
+
+    def createBody(self):
+        result = Gtk.Stack()
+        result.set_transition_type(Gtk.StackTransitionType.SLIDE_LEFT_RIGHT)
+        result.connect("notify::visible-child", self.GUIViewChanged)
+        self.homepage = Gtk.FlowBox()
+        self.appspage, appscategories = self.categoricalPage()
+        self.themespage = Gtk.FlowBox()
+        self.websitespage = Gtk.FlowBox()
+        self.taskspage = Gtk.VBox()
+        self.searchpage = Gtk.VBox()
+        self.itempage = Gtk.VBox()
+        #TODO: Get all categories from all modules, and, atop our own categories, and collect them here, followed by sorting them into each page's body
+        # TODO: Add 'categories' dictionary argument to self.categoricalPage()
+        # TODO: Add an 'Extras' page, if there are OOB categories, to house those categories in
+        # TODO: Callback to GUI, during module reinitialisation, to do tasks including refreshing the categories shown in the pages of the GUI
+        self.extraspage = None
+
+        subresult = Gtk.Stack()
+        subresult.set_transition_type(Gtk.StackTransitionType.SLIDE_LEFT_RIGHT)
+        subresult.get_style_context().add_class(Gtk.STYLE_CLASS_VIEW)
+
+        for i in [self.homepage, self.taskspage, self.searchpage, self.itempage]:
+            i.set_margin_top(4)
+            i.set_margin_bottom(4)
+
+        subresult.add_titled(self.homepage, "home", _("Home"))
+        subresult.add_titled(self.appspage, "apps", _("Applications"))
+        subresult.add_titled(self.themespage, "themes", _("Themes"))
+        subresult.add_titled(self.websitespage, "websites", _("Websites"))
+        subresult.add_named(self.taskspage, "tasks")
+        subresult.child_set_property(self.taskspage, "icon-name", "folder-download-symbolic")
+        subresult.add_named(self.searchpage, "search")
+        subresult.child_set_property(self.searchpage, "icon-name", "edit-find-symbolic")
+
+        result.add_named(subresult, "store")
+        result.add_named(self.itempage, "itempage")
+
+        return result, subresult
+
+    def returnToMainView(self, button):
+        self.body.set_visible_child(self.pages)
+
+    def categoricalPage(self):
+        result = Gtk.Box()
+        categoriesPane = Gtk.ListBox()
+        categoriesPane.set_size_request(270, -1)
+        for i in self.parent.defaultcategories: #TODO: Make the categories lists be generated via a callback instead
+            if i.startswith("applications-"):
+                ii = Gtk.ListBoxRow()
+                ii.add(Gtk.Label(label=self.parent.defaultcategories[i][1], xalign=0, margin=7))
+                ii.category = i
+                #TODO: for 1.1 or whatever, figure out adding the icon to these
+                categoriesPane.add(ii)
+        result.pack_start(categoriesPane, False, True, 0) #FIXME: Might need a scrollview...
+        result.pack_start(Gtk.Separator(), False, True, 0)
+        listingsPane = Gtk.FlowBox()
+        listingsPane.set_margin_top(4)
+        listingsPane.set_margin_bottom(4)
+        result.pack_end(listingsPane, True, True, 0)
+
+        categoriesPane.connect('row-activated', self.onCategoryChanged, listingsPane)
+
+        return result, categoriesPane
+
+        #TODO: For All, do a search on nothing (kinda like with the application sources dialog) with no filter, and give it no limit - afterwards, rid of duplicate IDs, put all the IDs in a list, and get up to (depends on results quantity) 200 random indexes - then, sort these index numbers, and return the list values corresponding to that index, before showing them as results
+
+    def onCategoryChanged(self, listbox, row, listingsPane):
+        print(row.category, listingsPane)
+
+
 
 ############################################
 # Module initialisation and Brain responder
@@ -1077,6 +1195,8 @@ class module():
         self.guiapi = guiapi
         self.configs = None #Filled by Brain
         self.desktoasts = None #Initialised by initGUI
+
+        self.test = "guitesT"
 
         # Program identification
         GLib.set_prgname('/usr/bin/feren-storium')
@@ -1098,6 +1218,53 @@ class module():
         #Initialise notifications and such for tasks support
         self.desktoasts = notifications(self)
 
+        #CATEGORIES
+        self.defaultcategories = {"applications-webbrowsers": ["applications-internet", _("Web Browsers")],
+            "applications-development": ["applications-development", _("Development")],
+            "applications-education": ["applications-engineering", _("Education")],
+            "applications-electronics": ["applications-electronics", _("Electronics Education")],
+            "applications-math": ["applications-mathematics", _("Maths")],
+            "applications-science": ["applications-science", _("Science")],
+            "applications-3dgraphics": ["applications-3D", _("3D Graphics")],
+            "applications-drawing": ["applications-drawing", _("Drawing")],
+            "applications-photography": ["applications-photography", _("Photography")],
+            "applications-publishing": ["applications-publishing", _("Scanning and Publishing")],
+            "applications-viewers": ["applications-viewers", _("Document Viewers")],
+            "applications-internet": ["applications-internet", _("Internet")],
+            "applications-mail": ["applications-mail", _("Email")],
+            "applications-chat": ["applications-chat", _("Chat")],
+            "applications-filesharing": ["applications-filesharing", _("File sharing")],
+            "applications-office": ["applications-office", _("Office")],
+            "applications-development": ["applications-development", _("Programming")],
+            "applications-multimedia": ["applications-multimedia", _("Sound and Video")],
+            "applications-system": ["applications-system", _("System Tools")],
+            "applications-utilities": ["applications-utilities", _("Utilities")],
+            "games-stores": ["applications-games", _("Game Stores")],
+            "games-launchers": ["applications-games", _("Game Launchers")],
+            "games-board": ["applications-boardgames", _("Board Games")],
+            "games-1stperson": ["applications-games", _("First-person")],
+            "games-realtime": ["applications-games", _("Real-time")],
+            "games-turnbased": ["applications-games", _("Turn-based")],
+            "games-simracing": ["applications-simulation", _("Simulators and Racing")],
+            "games-emulators": ["applications-arcade", _("Hardware Emulation")],
+            "themes-styles": ["preferences-desktop-theme", _("Styles")],
+            "themes-appstyles": ["preferences-desktop-theme-applications", _("Application Styles")],
+            "themes-icons": ["preferences-desktop-icons", _("Icon Sets")],
+            "themes-cursors": ["preferences-desktop-cursors", _("Cursors")],
+            "themes-wallpapers": ["preferences-desktop-background", _("Wallpapers")],
+            "themes-fonts": ["preferences-desktop-fonts", _("Fonts")],
+            "themes-bootscreens": ["preferences-system-startup", _("Boot Screens")],
+            "websites-development": ["applications-development", _("Development")],
+            "websites-education": ["applications-engineering", _("Education")],
+            "websites-games": ["applications-games", _("Games")],
+            "websites-graphics": ["applications-graphics", _("Graphics")],
+            "websites-social": ["applications-internet", _("Social Media")],
+            "websites-news": ["applications-internet-news", _("News")],
+            "websites-multimedia": ["applications-multimedia", _("Multimedia")],
+            "websites-office": ["applications-office", _("Office")],
+            "websites-utilities": ["applications-utilities", _("Utilities")],
+            "websites-more": ["applications-other", _("More")]}
+
 
     def windowClosed(self, target, p1 = None, p2 = None):
         #Reopen the windows in the background, after closing, for their next use
@@ -1106,10 +1273,13 @@ class module():
             self.wnd = window(self)
         elif target == "changes" and self.changeswnd != None:
             self.changeswnd.destroy()
-            self.changeswnd = None
+            self.changeswnd = changesBonusesDialog(self)
         elif target == "error" and self.errorwnd != None:
             self.errorwnd.destroy()
-            self.errorwnd = None
+            self.errorwnd = errorWindow(self)
+        elif target == "config" and self.configwnd != None:
+            self.configwnd.destroy()
+            self.configwnd = configWindow(self)
         else:
             return
         #TODO: Move this to onExit call of some sort for when quitting Storium:
@@ -1127,7 +1297,7 @@ class module():
         if self.wnd.get_realized() == True: #realized is False until the window's shown
             GLib.idle_add(self.wnd.present)
         else: #If not loaded, it has to spawn first
-            GLib.idle_add(self.wnd.spawn)
+            self.wnd.spawn()
 
         #TODO: Once loaded, respond to arguments
         pass
@@ -1143,7 +1313,6 @@ class module():
     def finishInitGUI(self):
         #Proceed to the main page from the splash screen, before loading all content
         GLib.idle_add(self.wnd.initComplete)
-        #TODO: Load pages' contents
 
 
     def _gohome_pressed(self, gtk_widget):

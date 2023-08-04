@@ -28,6 +28,14 @@ class StoriumBrainException(Exception):
 ############################################
 # API and Module Containers
 ############################################
+#Module Container
+class ModuleContainer():
+    def __init__(self, path):
+        sys.path.insert(0, path)
+        import module
+        importlib.reload(module)
+        self.module = module
+        sys.path.remove(path)
 
 #Generic - single-instance API for all modules
 class GenericAPI():
@@ -516,8 +524,8 @@ class StoriumBrain():
         guiinit.start()
 
         #Initialise modules and tasks manager, and queue initial tasks
-        self.initTasksModules() #TODO: Add a callback argument that updates GUI's status representation on its splash screen
-        self.initQueueStagedTasks()
+        self.initTasksModules()
+        self.initQueueStagedTasks() #TODO
 
         #Initialise search modules
         self.initSearchModules()
@@ -676,6 +684,7 @@ class StoriumBrain():
         #Signal the GUI to finish its loading process and go past its splash screen
         self.initialised = True
         # Tell the GUI to finish loading
+        print(self.modules["gui"].test)
         self.modules["gui"].finishInitGUI()
 
     def spawnGUI(self, command="", targetid="", moduleid="", sourceid="", subsourceid=""):
@@ -890,20 +899,18 @@ class StoriumBrain():
         ############################################
         # Module Initialisation
         ############################################
-        sys.path.insert(1, modulepath)
         exceptionstr = ""
         try:
-            import module
-            importlib.reload(module) #Otherwise only one module will be loaded across all variables
+            #Create a module container and initialise the module inside the container
+            i = ModuleContainer(modulepath)
 
             if moduletype != "gui:configs":
                 if extraapi == None:
-                    result = module.module(self.genericapi)
+                    result = i.module.module(self.genericapi)
                 else:
-                    result = module.module(self.genericapi, extraapi)
-                result.refresh_memory()
+                    result = i.module.module(self.genericapi, extraapi)
             else:
-                result = module.settings()
+                result = i.module.settings()
 
             #Now give the module an ID so Storium can store it later
             # result.moduleid = modulepath.split("/")[-2] + "-" + modulepath.split("/")[-1]
@@ -911,9 +918,6 @@ class StoriumBrain():
             #FIXME: Do we need the module to know its ID now?
         except Exception as e:
             exceptionstr = e
-
-        #Now remove it from path, irregardless
-        sys.path.remove(modulepath)
 
         if exceptionstr != "":
             raise StoriumBrainException(exceptionstr)
