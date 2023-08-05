@@ -1120,9 +1120,10 @@ class window(Gtk.Window):
         result.set_transition_type(Gtk.StackTransitionType.SLIDE_LEFT_RIGHT)
         result.connect("notify::visible-child", self.GUIViewChanged)
         self.homepage = Gtk.FlowBox()
-        self.appspage, appscategories = self.categoricalPage()
-        self.themespage = Gtk.FlowBox()
-        self.websitespage = Gtk.FlowBox()
+        self.appspage = self.categoricalPage()
+        self.gamespage = self.categoricalPage()
+        self.themespage = self.categoricalPage()
+        self.websitespage = self.categoricalPage()
         self.taskspage = Gtk.VBox()
         self.searchpage = Gtk.VBox()
         self.itempage = Gtk.VBox()
@@ -1142,6 +1143,7 @@ class window(Gtk.Window):
 
         subresult.add_titled(self.homepage, "home", _("Home"))
         subresult.add_titled(self.appspage, "apps", _("Applications"))
+        subresult.add_titled(self.gamespage, "games", _("Games"))
         subresult.add_titled(self.themespage, "themes", _("Themes"))
         subresult.add_titled(self.websitespage, "websites", _("Websites"))
         subresult.add_named(self.taskspage, "tasks")
@@ -1152,6 +1154,12 @@ class window(Gtk.Window):
         result.add_named(subresult, "store")
         result.add_named(self.itempage, "itempage")
 
+        #Spawn categories in the background
+        thread = Thread(target=self.parent.refreshCategories,
+                        args=())
+        thread.daemon = True
+        thread.start()
+
         return result, subresult
 
     def returnToMainView(self, button):
@@ -1159,27 +1167,39 @@ class window(Gtk.Window):
 
     def categoricalPage(self):
         result = Gtk.Box()
+        categoriesScroll = Gtk.ScrolledWindow()
+        categoriesScroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
         categoriesPane = Gtk.ListBox()
+        categoriesScroll.add(categoriesPane)
         categoriesPane.set_size_request(270, -1)
-        for i in self.parent.defaultcategories: #TODO: Make the categories lists be generated via a callback instead
-            if i.startswith("applications-"):
-                ii = Gtk.ListBoxRow()
-                ii.add(Gtk.Label(label=self.parent.defaultcategories[i][1], xalign=0, margin=7))
-                ii.category = i
-                #TODO: for 1.1 or whatever, figure out adding the icon to these
-                categoriesPane.add(ii)
-        result.pack_start(categoriesPane, False, True, 0) #FIXME: Might need a scrollview...
+        result.pack_start(categoriesScroll, False, True, 0)
         result.pack_start(Gtk.Separator(), False, True, 0)
         listingsPane = Gtk.FlowBox()
         listingsPane.set_margin_top(4)
         listingsPane.set_margin_bottom(4)
         result.pack_end(listingsPane, True, True, 0)
 
-        categoriesPane.connect('row-activated', self.onCategoryChanged, listingsPane)
+        result.categoriesPane = categoriesPane
+        result.listingsPane = listingsPane
 
-        return result, categoriesPane
+        categoriesPane.connect('row-activated', self.onCategoryChanged, result)
+
+        return result
 
         #TODO: For All, do a search on nothing (kinda like with the application sources dialog) with no filter, and give it no limit - afterwards, rid of duplicate IDs, put all the IDs in a list, and get up to (depends on results quantity) 200 random indexes - then, sort these index numbers, and return the list values corresponding to that index, before showing them as results
+
+
+
+    def generateCategoryItem(self, categoryid, categoryinfo):
+        result = Gtk.ListBoxRow()
+        box = Gtk.Box(spacing=7, margin=7)
+        icon = Gtk.Image()
+        icon.set_from_icon_name(categoryinfo[0]+"-symbolic", Gtk.IconSize.MENU)
+        box.pack_start(icon, False, False, 0)
+        box.pack_start(Gtk.Label(label=categoryinfo[1], xalign=0), False, False, 0)
+        result.add(box)
+        result.category = categoryid
+        return result
 
     def onCategoryChanged(self, listbox, row, listingsPane):
         print(row.category, listingsPane)
@@ -1313,6 +1333,77 @@ class module():
     def finishInitGUI(self):
         #Proceed to the main page from the splash screen, before loading all content
         GLib.idle_add(self.wnd.initComplete)
+
+    def refreshCategories(self):
+        #TODO: Query modules for extra categories
+        modulecategories = {}
+        categories = {}
+        for i in self.defaultcategories:
+            categories[i] = self.defaultcategories[i]
+        for module in modulecategories:
+            for i in modulecategories[module]:
+                #Skip category IDs that already exist
+                if i in categories:
+                    continue
+                else:
+                    #TODO: Syntax checks
+                    categories[i] = modulecategories[module][i]
+
+        #Split categories into pages
+        toadd = {"apps": {}, "games": {}, "themes": {}, "websites": {}, "extras": {}}
+        for i in categories:
+            if i.startswith("applications-"):
+                toadd["apps"][i] = categories[i]
+            elif i.startswith("games-"):
+                toadd["games"][i] = categories[i]
+            elif i.startswith("themes-"):
+                toadd["themes"][i] = categories[i]
+            elif i.startswith("websites-"):
+                toadd["websites"][i] = categories[i]
+            else:
+                toadd["extras"][i] = categories[i]
+        del categories
+
+        #Destroy all current categories on all pages
+        targets = [self.wnd.appspage, self.wnd.gamespage, self.wnd.themespage, self.wnd.websitespage]
+        if self.wnd.extraspage != None: #Account for extras page if used already
+            targets.append(self.wnd.extraspage)
+        for i in targets:
+            for child in i.categoriesPane.get_children():
+                GLib.idle_add(child.destroy)
+
+        #Add categories to all pages
+        for i in toadd["apps"]:
+            GLib.idle_add(self.wnd.appspage.categoriesPane.add, self.wnd.generateCategoryItem(i, toadd["apps"][i]))
+        GLib.idle_add(self.wnd.appspage.show_all)
+        for i in toadd["games"]:
+            GLib.idle_add(self.wnd.gamespage.categoriesPane.add, self.wnd.generateCategoryItem(i, toadd["games"][i]))
+        GLib.idle_add(self.wnd.gamespage.show_all)
+        for i in toadd["themes"]:
+            GLib.idle_add(self.wnd.themespage.categoriesPane.add, self.wnd.generateCategoryItem(i, toadd["themes"][i]))
+        GLib.idle_add(self.wnd.themespage.show_all)
+        for i in toadd["websites"]:
+            GLib.idle_add(self.wnd.websitespage.categoriesPane.add, self.wnd.generateCategoryItem(i, toadd["websites"][i]))
+        GLib.idle_add(self.wnd.websitespage.show_all)
+        #Destroy extras if unused
+        if toadd["extras"] == {}:
+            if self.wnd.extraspage != None:
+                GLib.idle_add(self.wnd.pages.remove, self.wnd.extraspage)
+                GLib.idle_add(self.wnd.extraspage.destroy)
+                self.wnd.extraspage = None
+        else:
+            if self.wnd.extraspage == None: #Create extras if currently non-existant
+                self.wnd.extraspage = self.wnd.categoricalPage()
+                GLib.idle_add(self.wnd.pages.add_titled, self.wnd.extraspage, "extras", _("Extras"))
+            for i in toadd["extras"]: #Irregardless, add categories to Extras page
+                GLib.idle_add(self.wnd.extraspage.categoriesPane.add, self.wnd.generateCategoryItem(i, toadd["extras"][i]))
+            GLib.idle_add(self.wnd.extraspage.show_all)
+
+        #Fixes for button placement
+        if self.wnd.extraspage != None:
+            GLib.idle_add(self.wnd.pages.child_set_property, self.wnd.taskspage, "position", 9)
+            GLib.idle_add(self.wnd.pages.child_set_property, self.wnd.searchpage, "position", 10)
+
 
 
     def _gohome_pressed(self, gtk_widget):
