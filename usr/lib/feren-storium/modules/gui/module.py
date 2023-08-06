@@ -550,14 +550,14 @@ class PageArea(Gtk.Stack):
 
 
         #Assemble the main page
-        mainpagesub.pack_start(appslabel_box, False, True, 0)
-        mainpagesub.pack_start(self.appsitems, False, True, 0)
-        mainpagesub.pack_start(gameslabel_box, False, True, 0)
-        mainpagesub.pack_start(self.gamesitems, False, True, 0)
-        mainpagesub.pack_start(themeslabel_box, False, True, 0)
-        mainpagesub.pack_start(self.themesitems, False, True, 0)
-        mainpagesub.pack_start(websiteslabel_box, False, True, 0)
-        mainpagesub.pack_start(self.websitesitems, False, True, 0)
+        mainpagesub.pack_start(appslabel_box, False, False, 0)
+        mainpagesub.pack_start(self.appsitems, False, False, 0)
+        mainpagesub.pack_start(gameslabel_box, False, False, 0)
+        mainpagesub.pack_start(self.gamesitems, False, False, 0)
+        mainpagesub.pack_start(themeslabel_box, False, False, 0)
+        mainpagesub.pack_start(self.themesitems, False, False, 0)
+        mainpagesub.pack_start(websiteslabel_box, False, False, 0)
+        mainpagesub.pack_start(self.websitesitems, False, False, 0)
 
         mainpagesub.set_margin_bottom(8)
         mainpagesub.set_margin_top(8)
@@ -618,12 +618,12 @@ class PageArea(Gtk.Stack):
 
 
         #Assemble the tasks page
-        taskspagesub.pack_start(taskslabel_box, False, True, 0)
-        taskspagesub.pack_start(self.tasksitemscontainer, False, True, 0)
-        taskspagesub.pack_start(updateslabel_box, False, True, 0)
-        taskspagesub.pack_start(self.updatesitems, False, True, 0)
-        taskspagesub.pack_start(installedlabel_box, False, True, 0)
-        taskspagesub.pack_start(self.installeditems, False, True, 0)
+        taskspagesub.pack_start(taskslabel_box, False, False, 0)
+        taskspagesub.pack_start(self.tasksitemscontainer, False, False, 0)
+        taskspagesub.pack_start(updateslabel_box, False, False, 0)
+        taskspagesub.pack_start(self.updatesitems, False, False, 0)
+        taskspagesub.pack_start(installedlabel_box, False, False, 0)
+        taskspagesub.pack_start(self.installeditems, False, False, 0)
 
         taskspagesub.set_margin_bottom(8)
         taskspagesub.set_margin_top(8)
@@ -655,8 +655,8 @@ class PageArea(Gtk.Stack):
 
 
         #Assemble the search page
-        searchpagesub.pack_start(self.searchbar, False, True, 4)
-        searchpagesub.pack_start(self.searchresultscontainer, False, True, 4)
+        searchpagesub.pack_start(self.searchbar, False, False, 4)
+        searchpagesub.pack_start(self.searchresultscontainer, False, False, 4)
 
         searchpagesub.set_margin_bottom(8)
         searchpagesub.set_margin_top(8)
@@ -971,13 +971,13 @@ class window(Gtk.Window):
         Gtk.Window.__init__(self)
         self.parent = parent
         self.connect('delete-event', partial(parent.windowClosed, "wnd"))
+        self.splashtext = None
 
         #These three are used to skip page updating code whenever otherwise inappropriate to continue execution of, such as dropdown changes and so on.
         self.current_itemid = ""
         self.current_sourceid = ""
         self.current_subsourceid = ""
 
-        #TODO: Move everything window-related into here
         self.set_position(Gtk.WindowPosition.CENTER)
         self.set_title(_("Feren Storium API Demo - GUI Module"))
         self.set_default_size(850, 640)
@@ -1067,7 +1067,7 @@ class window(Gtk.Window):
         logoimageandbox.pack_end(logotypebox, False, False, 0)
 
         header.pack_start(self.backbutton, False, False, 0)
-        header.pack_start(logoimageandbox, False, True, 0)
+        header.pack_start(logoimageandbox, False, False, 0)
 
         #Separation of both sides
         toolbarspacer=Gtk.Alignment()
@@ -1093,13 +1093,13 @@ class window(Gtk.Window):
         result.get_style_context().add_class(Gtk.STYLE_CLASS_PRIMARY_TOOLBAR)
         result.pack_start(header, False, False, 0)
         result.pack_start(toolbarspacer, True, True, 0)
-        result.pack_end(menu_btn, False, True, 0)
+        result.pack_end(menu_btn, False, False, 0)
 
         funnibutton = Gtk.Button()
         funnibutton.connect("clicked", self.test)
-        result.pack_end(funnibutton, False, True, 0)
+        result.pack_end(funnibutton, False, False, 0)
 
-        result.pack_end(self.pageswitcher, False, True, 0)
+        result.pack_end(self.pageswitcher, False, False, 0)
 
         return result
 
@@ -1172,12 +1172,18 @@ class window(Gtk.Window):
         categoriesPane = Gtk.ListBox()
         categoriesScroll.add(categoriesPane)
         categoriesPane.set_size_request(270, -1)
-        result.pack_start(categoriesScroll, False, True, 0)
-        result.pack_start(Gtk.Separator(), False, True, 0)
+        result.pack_start(categoriesScroll, False, False, 0)
+        result.pack_start(Gtk.Separator(), False, False, 0)
+        listingsScroll = Gtk.ScrolledWindow()
+        listingsScroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        listingsBox = Gtk.VBox() #Prevent stretching items in non-window-filling results
         listingsPane = Gtk.FlowBox()
+        listingsBox.pack_start(listingsPane, False, False, 0)
+        listingsBox.pack_end(Gtk.Box(), True, True, 0) #used as filler space.
+        listingsScroll.add(listingsBox)
         listingsPane.set_margin_top(4)
         listingsPane.set_margin_bottom(4)
-        result.pack_end(listingsPane, True, True, 0)
+        result.pack_end(listingsScroll, True, True, 0)
 
         result.categoriesPane = categoriesPane
         result.listingsPane = listingsPane
@@ -1201,8 +1207,15 @@ class window(Gtk.Window):
         result.category = categoryid
         return result
 
-    def onCategoryChanged(self, listbox, row, listingsPane):
-        print(row.category, listingsPane)
+    def onCategoryChanged(self, listbox, row, page):
+        print(row.category, page.listingsPane)
+        items = self.parent.guiapi.allItemsFilterCategory(row.category, 200, True, False)
+        for i in page.listingsPane.get_children():
+            GLib.idle_add(i.destroy)
+        #TODO: Placeholder screen for no items
+        for i in items:
+            GLib.idle_add(page.listingsPane.insert, Gtk.Button(label=i), -1)
+            GLib.idle_add(page.listingsPane.show_all)
 
 
 
@@ -1214,10 +1227,16 @@ class module():
         self.api = genericapi
         self.guiapi = guiapi
         self.configs = None #Filled by Brain
-        self.desktoasts = None #Initialised by initGUI
+        #Initialised by initGUI
+        self.desktoasts = None
+        self.changeswnd = None
+        self.errorwnd = None
+        self.configwnd = None
+        self.wnd = None
 
         self.test = "guitesT"
 
+    def initGUI(self):
         # Program identification
         GLib.set_prgname('/usr/bin/feren-storium')
 
@@ -1233,7 +1252,7 @@ class module():
                         args=())
         thread.daemon = True
         thread.start()
-        time.sleep(0.1) #Give GTK time to launch as rushed launches lead to an X Window Error when spawning the windows
+        time.sleep(0.4) #Give GTK time to launch as rushed launches lead to an X Window Error when spawning the windows
 
         #Initialise notifications and such for tasks support
         self.desktoasts = notifications(self)
@@ -1335,8 +1354,7 @@ class module():
         GLib.idle_add(self.wnd.initComplete)
 
     def refreshCategories(self):
-        #TODO: Query modules for extra categories
-        modulecategories = {}
+        modulecategories = self.guiapi.getCustomCategories()
         categories = {}
         for i in self.defaultcategories:
             categories[i] = self.defaultcategories[i]
@@ -1466,8 +1484,8 @@ class module():
         self.pagearea.connect("notify::visible-child", self.pagearea_pagechanged)
 
         #Assemble everything in the window
-        self.wndcontents.pack_start(self.maintoolbar, False, True, 0)
-        self.wndcontents.pack_start(self.detailsheader, False, True, 0)
+        self.wndcontents.pack_start(self.maintoolbar, False, False, 0)
+        self.wndcontents.pack_start(self.detailsheader, False, False, 0)
         self.wndcontents.pack_end(self.pagearea, True, True, 0)
         GLib.idle_add(self.show_all)
 

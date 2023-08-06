@@ -32,9 +32,13 @@ class StoriumBrainException(Exception):
 class ModuleContainer():
     def __init__(self, path):
         sys.path.insert(0, path)
-        import module
-        importlib.reload(module)
-        self.module = module
+        try:
+            import module
+            importlib.reload(module)
+            self.module = module
+        except Exception as e:
+            sys.path.remove(path)
+            raise StoriumBrainException(e)
         sys.path.remove(path)
 
 #Generic - single-instance API for all modules
@@ -477,6 +481,8 @@ class StoriumBrain():
         # GUI API
         ############################################
         self.guiapi = GUIAPI()
+        self.guiapi.getCustomCategories = self.APIgetCustomCategories
+        self.guiapi.allItemsFilterCategory = self.APIallItemsFilterCategory
         self.guiapi.getAvailableSources = self.APIgetAvailableSources
         self.guiapi.installItemSource = self.APIinstallItemSource
         self.guiapi.installItem = self.APIinstallItem
@@ -518,6 +524,7 @@ class StoriumBrain():
         self.initGUIConfigs()
 
         #Initialise GUI and show a splash screen while Storium loads
+        self.initGUIModule()
         guiinit = Thread(target=self.initGUI,
                         args=(command!="--service",))
         guiinit.daemon = True
@@ -583,8 +590,7 @@ class StoriumBrain():
             raise StoriumBrainException(_("Failed to load GUI module %s's configs: %s") % (guipath, e))
 
 
-    def initGUI(self, showwindow=False):
-        #Start the GUI's background operations
+    def initGUIModule(self): #Split because modules should never be initialised at the same time via multiple threads
         guipath = self.libdir + "/modules/" + self.configs["guipath"]
         try:
             #Initialise GUI module fully
@@ -605,9 +611,13 @@ class StoriumBrain():
             self.modulefilewatch["gui"] = result #FIXME: How would a GUI reinit even work? Should the GUI just... trigger a Storium relaunch?
         except Exception as e:
             raise StoriumBrainException(_("Failed to load GUI module %s: %s") % (guipath, e))
+
+    def initGUI(self, showwindow=False):
+        #Start the GUI's background operations
+        self.modules["gui"].initGUI()
         #Show a splash screen while we wait if ran normally
         if showwindow == True:
-            module.spawnGUI()
+            self.modules["gui"].spawnGUI()
 
 
     def initTasksModules(self):
@@ -684,7 +694,6 @@ class StoriumBrain():
         #Signal the GUI to finish its loading process and go past its splash screen
         self.initialised = True
         # Tell the GUI to finish loading
-        print(self.modules["gui"].test)
         self.modules["gui"].finishInitGUI()
 
     def spawnGUI(self, command="", targetid="", moduleid="", sourceid="", subsourceid=""):
@@ -917,15 +926,12 @@ class StoriumBrain():
             result.moduleid = moduleid
             #FIXME: Do we need the module to know its ID now?
         except Exception as e:
-            exceptionstr = e
+            raise StoriumBrainException(e)
 
-        if exceptionstr != "":
-            raise StoriumBrainException(exceptionstr)
+        if moduletype != "gui:configs":
+            return result, moduleinfo, filewatch
         else:
-            if moduletype != "gui:configs":
-                return result, moduleinfo, filewatch
-            else:
-                return result
+            return result
 
     def getTranslation(self, value, getid=False):
         for i in [locale.getlocale()[0], locale.getlocale()[0].split("_")[0], "C"]:
@@ -1075,6 +1081,33 @@ class StoriumBrain():
     ############################################
     # API Callbacks - GUI API
     ############################################
+    def APIgetCustomCategories(self):
+        #Returns the categories each item management module wants to place items into
+        result = {}
+        for i in self.modules:
+            if i.startswith("itemmgmt-"):
+                result[i] = self.modules[i].getCustomCategories()
+        return result
+
+    def APIallItemsFilterCategory(self, category, maximum=200, randomise=False, allCategoriesStartingWith=False):
+        #Lists all items in a category, until the maximum number of items are listed.
+        #  randomise: Whether to get X randomly picked items from the items listed, where X is the value of maximum
+        #    NOTE: If the number of items listed is less than maximum, randomisation is disabled
+        #  allCategoriesStartingWith: Queries in all categories whose IDs start with the value of category (e.g.: 'applications-' will list applications-* categories)
+
+        #TODO: support for other arguments, and alphabetical sorting by names
+        result = []
+        for i in self.modules:
+            if i.startswith("itemmgmt-"):
+                ii = self.modules[i].getItemsFromCategory(category)
+                for item in ii:
+                    if item not in result:
+                        result.append(item)
+        #TODO: Convert result list's structure to the one used in search, through info of their default sources, and use search sorter
+
+        return result
+
+
     def APIgetAvailableSources(self, itemid):
         #Returns all available sources, from all modules, for this itemid
         pass #TODO
