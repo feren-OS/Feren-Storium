@@ -964,6 +964,157 @@ class notifications():
 
 
 ############################################
+# Categories view
+############################################
+
+class categoricalPage(Gtk.Box):
+    def __init__(self, parent, module):
+        Gtk.Box.__init__(self)
+        self.parent = parent
+        self.module = module
+
+        categoriesScroll = Gtk.ScrolledWindow()
+        categoriesScroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        self.categoriesPane = Gtk.ListBox()
+        categoriesScroll.add(self.categoriesPane)
+        self.categoriesPane.set_size_request(270, -1)
+        self.pack_start(categoriesScroll, False, False, 0)
+        self.pack_start(Gtk.Separator(), False, False, 0)
+        listingsScroll = Gtk.ScrolledWindow()
+        listingsScroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        listingsBox = Gtk.VBox() #Prevent stretching items in non-window-filling results
+        self.listingsPane = Gtk.FlowBox()
+        listingsBox.pack_start(self.listingsPane, False, False, 0)
+        listingsBox.pack_end(Gtk.Box(), True, True, 0) #used as filler space.
+        listingsScroll.add(listingsBox)
+        self.listingsPane.set_margin_top(4)
+        self.listingsPane.set_margin_bottom(4)
+        self.listingsPane.set_margin_left(4)
+        self.listingsPane.set_margin_right(4)
+        self.pack_end(listingsScroll, True, True, 0)
+
+        self.categoriesPane.connect('row-activated', self.onCategoryChanged)
+        self.show_all()
+
+        #TODO: For All, do a search on nothing (kinda like with the application sources dialog) with no filter, and give it no limit - afterwards, rid of duplicate IDs, put all the IDs in a list, and get up to (depends on results quantity) 200 random indexes - then, sort these index numbers, and return the list values corresponding to that index, before showing them as results
+
+    def setCategories(self, catedict):
+        #Destroy prior categories
+        for i in self.categoriesPane.get_children():
+            GLib.idle_add(i.destroy())
+        #Create category items for the target categories
+        for i in catedict:
+            GLib.idle_add(self.categoriesPane.add, self.generateCategoryItem(i, catedict[i]))
+        GLib.idle_add(self.categoriesPane.show_all)
+
+    def generateCategoryItem(self, categoryid, categoryinfo):
+        result = Gtk.ListBoxRow()
+        box = Gtk.Box(spacing=7, margin=7)
+        icon = Gtk.Image()
+        icon.set_from_icon_name(categoryinfo[0]+"-symbolic", Gtk.IconSize.MENU)
+        box.pack_start(icon, False, False, 0)
+        box.pack_start(Gtk.Label(label=categoryinfo[1], xalign=0), False, False, 0)
+        result.add(box)
+        result.category = categoryid
+        return result
+
+
+    def onCategoryChanged(self, listbox, row):
+        print(row.category, self.listingsPane)
+        items = self.module.guiapi.allItemsFilterCategory(row.category, 200, True, False)
+        for i in self.listingsPane.get_children():
+            GLib.idle_add(i.destroy)
+        #TODO: Placeholder screen for no items
+        for i in items:
+            testBtn = Gtk.Button(label=i)
+            testBtn.itemid = i
+            testBtn.connect('clicked', self.itemPressed)
+            GLib.idle_add(self.listingsPane.insert, testBtn, -1)
+            GLib.idle_add(self.listingsPane.show_all)
+
+
+    def itemPressed(self, button):
+        self.parent.gotoID(button.itemid)
+
+
+
+############################################
+# Item Details header
+############################################
+
+class itemDetailsHeader(Gtk.Box):
+    def __init__(self, parent, module):
+        Gtk.Box.__init__(self)
+        self.parent = parent
+        self.module = module
+        self.get_style_context().add_class(Gtk.STYLE_CLASS_PRIMARY_TOOLBAR)
+        self.icontheme = Gtk.IconTheme() #Used in isIconInIcons
+
+        # Item icon
+        self.appicon = Gtk.Image()
+        self.appiconloading = Gtk.Spinner()
+        self.appiconstack = Gtk.Stack()
+        self.appiconstack.add_named(self.appiconloading, "Loading")
+        self.appiconstack.add_named(self.appicon, "AppIcon")
+        self.appiconstack.set_visible_child(self.appicon)
+
+        # Item fullname and summary
+        self.fullname = Gtk.Label(label="Dummy")
+        self.summary = Gtk.Label(label="Dummy description")
+
+        fullnameBox = Gtk.Box()
+        summaryBox = Gtk.Box()
+        fullnameBox.pack_start(self.fullname, False, False, 0)
+        summaryBox.pack_start(self.summary, False, False, 0)
+        fullnameSummaryBox = Gtk.VBox()
+        fullnameSummaryBox.pack_start(Gtk.Box(), True, True, 0) #Spacing
+        fullnameSummaryBox.pack_end(Gtk.Box(), True, True, 0)
+        fullnameSummaryBox.pack_start(fullnameBox, False, False, 0)
+        fullnameSummaryBox.pack_end(summaryBox, False, False, 0)
+
+        # Source dropdown and buttons
+        actionsarea = Gtk.VBox()
+        actionsarea.pack_start(Gtk.Box(), True, True, 0)
+        actionsarea.pack_end(Gtk.Box(), True, True, 0)
+        actions = Gtk.Box()
+        actions.pack_start(Gtk.Button(label="test"), False, False, 4) #TEMP
+        actions.pack_start(Gtk.Button(label="test2"), False, False, 4) #TEMP
+        actionsarea.pack_start(actions, False, False, 0)
+
+        # Adding it all into the header area
+        self.pack_start(self.appiconstack, False, False, 8)
+        self.pack_start(fullnameSummaryBox, True, True, 4)
+        self.pack_end(actionsarea, False, False, 4)
+        self.show_all()
+
+        #TEST
+        print("TEST")
+        print(self.isIconInIcons("kate"))
+        print(self.isIconInIcons("steam_icon_322170"))
+
+
+    def isIconInIcons(self, iconid):
+        return self.icontheme.has_icon(iconid)
+
+
+############################################
+# Item Information page
+############################################
+
+class itemInfoBody(Gtk.FlowBox):
+    def __init__(self, parent, module):
+        Gtk.FlowBox.__init__(self)
+        self.parent = parent
+        self.module = module
+        self.set_max_children_per_line(1)
+        self.get_style_context().add_class(Gtk.STYLE_CLASS_VIEW)
+
+        #TODO: Remaining contents
+        self.show_all()
+
+
+
+############################################
 # Main window
 ############################################
 class window(Gtk.Window):
@@ -1123,16 +1274,13 @@ class window(Gtk.Window):
         result.set_transition_type(Gtk.StackTransitionType.SLIDE_LEFT_RIGHT)
         result.connect("notify::visible-child", self.GUIViewChanged)
         self.homepage = Gtk.FlowBox()
-        self.appspage = self.categoricalPage()
-        self.gamespage = self.categoricalPage()
-        self.themespage = self.categoricalPage()
-        self.websitespage = self.categoricalPage()
+        self.appspage = categoricalPage(self, self.parent)
+        self.gamespage = categoricalPage(self, self.parent)
+        self.themespage = categoricalPage(self, self.parent)
+        self.websitespage = categoricalPage(self, self.parent)
         self.taskspage = Gtk.VBox()
         self.searchpage = Gtk.VBox()
         self.itempage = self.itemPage()
-        #TODO: Get all categories from all modules, and, atop our own categories, and collect them here, followed by sorting them into each page's body
-        # TODO: Add 'categories' dictionary argument to self.categoricalPage()
-        # TODO: Add an 'Extras' page, if there are OOB categories, to house those categories in
         # TODO: Callback to GUI, during module reinitialisation, to do tasks including refreshing the categories shown in the pages of the GUI
         self.extraspage = None
 
@@ -1168,65 +1316,6 @@ class window(Gtk.Window):
     def returnToMainView(self, button):
         self.body.set_visible_child(self.pages)
 
-    def categoricalPage(self):
-        result = Gtk.Box()
-        categoriesScroll = Gtk.ScrolledWindow()
-        categoriesScroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
-        categoriesPane = Gtk.ListBox()
-        categoriesScroll.add(categoriesPane)
-        categoriesPane.set_size_request(270, -1)
-        result.pack_start(categoriesScroll, False, False, 0)
-        result.pack_start(Gtk.Separator(), False, False, 0)
-        listingsScroll = Gtk.ScrolledWindow()
-        listingsScroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
-        listingsBox = Gtk.VBox() #Prevent stretching items in non-window-filling results
-        listingsPane = Gtk.FlowBox()
-        listingsBox.pack_start(listingsPane, False, False, 0)
-        listingsBox.pack_end(Gtk.Box(), True, True, 0) #used as filler space.
-        listingsScroll.add(listingsBox)
-        listingsPane.set_margin_top(4)
-        listingsPane.set_margin_bottom(4)
-        result.pack_end(listingsScroll, True, True, 0)
-
-        result.categoriesPane = categoriesPane
-        result.listingsPane = listingsPane
-
-        categoriesPane.connect('row-activated', self.onCategoryChanged, result)
-
-        return result
-
-        #TODO: For All, do a search on nothing (kinda like with the application sources dialog) with no filter, and give it no limit - afterwards, rid of duplicate IDs, put all the IDs in a list, and get up to (depends on results quantity) 200 random indexes - then, sort these index numbers, and return the list values corresponding to that index, before showing them as results
-
-
-
-    def generateCategoryItem(self, categoryid, categoryinfo):
-        result = Gtk.ListBoxRow()
-        box = Gtk.Box(spacing=7, margin=7)
-        icon = Gtk.Image()
-        icon.set_from_icon_name(categoryinfo[0]+"-symbolic", Gtk.IconSize.MENU)
-        box.pack_start(icon, False, False, 0)
-        box.pack_start(Gtk.Label(label=categoryinfo[1], xalign=0), False, False, 0)
-        result.add(box)
-        result.category = categoryid
-        return result
-
-    def onCategoryChanged(self, listbox, row, page):
-        print(row.category, page.listingsPane)
-        items = self.parent.guiapi.allItemsFilterCategory(row.category, 200, True, False)
-        for i in page.listingsPane.get_children():
-            GLib.idle_add(i.destroy)
-        #TODO: Placeholder screen for no items
-        for i in items:
-            testBtn = Gtk.Button(label=i)
-            testBtn.itemid = i
-            testBtn.connect('clicked', self.itemPressed)
-            GLib.idle_add(page.listingsPane.insert, testBtn, -1)
-            GLib.idle_add(page.listingsPane.show_all)
-
-
-    def itemPressed(self, button):
-        self.gotoID(button.itemid)
-
     def gotoID(self, itemid, moduleid="", sourceid="", subsourceid=""):
         print(self.parent.api.getItemInformation(itemid, "itemmgmt-example", "example1"))
 
@@ -1238,50 +1327,10 @@ class window(Gtk.Window):
     def itemPage(self):
         result = Gtk.VBox()
         #Item information header
-        appdetailsheader = Gtk.Box()
-        appdetailsheader.get_style_context().add_class(Gtk.STYLE_CLASS_PRIMARY_TOOLBAR)
-
-        # Item icon
-        appicon = Gtk.Image()
-        appiconloading = Gtk.Spinner()
-        appiconstack = Gtk.Stack()
-        appiconstack.add_named(appiconloading, "Loading")
-        appiconstack.add_named(appicon, "AppIcon")
-        appiconstack.set_visible_child(appicon)
-
-        # Item fullname and summary
-        fullname = Gtk.Label(label="Dummy")
-        summary = Gtk.Label(label="Dummy description")
-
-        fullnameBox = Gtk.Box()
-        summaryBox = Gtk.Box()
-        fullnameBox.pack_start(fullname, False, False, 0)
-        summaryBox.pack_start(summary, False, False, 0)
-        fullnameSummaryBox = Gtk.VBox()
-        fullnameSummaryBox.pack_start(Gtk.Box(), True, True, 0) #Spacing
-        fullnameSummaryBox.pack_end(Gtk.Box(), True, True, 0)
-        fullnameSummaryBox.pack_start(fullnameBox, False, False, 0)
-        fullnameSummaryBox.pack_end(summaryBox, False, False, 0)
-
-        # Source dropdown and buttons
-        actionsarea = Gtk.VBox()
-        actionsarea.pack_start(Gtk.Box(), True, True, 0)
-        actionsarea.pack_end(Gtk.Box(), True, True, 0)
-        actions = Gtk.Box()
-        actions.pack_start(Gtk.Button(label="test"), False, False, 4) #TEMP
-        actions.pack_start(Gtk.Button(label="test2"), False, False, 4) #TEMP
-        actionsarea.pack_start(actions, False, False, 0)
-
-        # Adding it all into the header area
-        appdetailsheader.pack_start(appiconstack, False, False, 8)
-        appdetailsheader.pack_start(fullnameSummaryBox, True, True, 4)
-        appdetailsheader.pack_end(actionsarea, False, False, 4)
+        appdetailsheader = itemDetailsHeader(self, self.parent)
 
         #Item information area
-        iteminfo = Gtk.FlowBox()
-        iteminfo.get_style_context().add_class(Gtk.STYLE_CLASS_VIEW)
-        iteminfo.set_max_children_per_line(1)
-        #TODO: Turn iteminfo, appdetailsheader, and maybe categoricalPage, into classes with the parent variable being self.wnd and having a module variable for direct calls
+        iteminfo = itemInfoBody(self, self.parent)
 
         #Putting it all together
         result.pack_start(appdetailsheader, False, False, 0)
@@ -1467,18 +1516,10 @@ class module():
                 GLib.idle_add(child.destroy)
 
         #Add categories to all pages
-        for i in toadd["apps"]:
-            GLib.idle_add(self.wnd.appspage.categoriesPane.add, self.wnd.generateCategoryItem(i, toadd["apps"][i]))
-        GLib.idle_add(self.wnd.appspage.show_all)
-        for i in toadd["games"]:
-            GLib.idle_add(self.wnd.gamespage.categoriesPane.add, self.wnd.generateCategoryItem(i, toadd["games"][i]))
-        GLib.idle_add(self.wnd.gamespage.show_all)
-        for i in toadd["themes"]:
-            GLib.idle_add(self.wnd.themespage.categoriesPane.add, self.wnd.generateCategoryItem(i, toadd["themes"][i]))
-        GLib.idle_add(self.wnd.themespage.show_all)
-        for i in toadd["websites"]:
-            GLib.idle_add(self.wnd.websitespage.categoriesPane.add, self.wnd.generateCategoryItem(i, toadd["websites"][i]))
-        GLib.idle_add(self.wnd.websitespage.show_all)
+        self.wnd.appspage.setCategories(toadd["apps"])
+        self.wnd.gamespage.setCategories(toadd["games"])
+        self.wnd.themespage.setCategories(toadd["themes"])
+        self.wnd.websitespage.setCategories(toadd["websites"])
         #Destroy extras if unused
         if toadd["extras"] == {}:
             if self.wnd.extraspage != None:
@@ -1487,11 +1528,11 @@ class module():
                 self.wnd.extraspage = None
         else:
             if self.wnd.extraspage == None: #Create extras if currently non-existant
-                self.wnd.extraspage = self.wnd.categoricalPage()
+                self.wnd.extraspage = categoricalPage(self.wnd, self)
                 GLib.idle_add(self.wnd.pages.add_titled, self.wnd.extraspage, "extras", _("Extras"))
-            for i in toadd["extras"]: #Irregardless, add categories to Extras page
-                GLib.idle_add(self.wnd.extraspage.categoriesPane.add, self.wnd.generateCategoryItem(i, toadd["extras"][i]))
-            GLib.idle_add(self.wnd.extraspage.show_all)
+                GLib.idle_add(self.wnd.extraspage.show_all)
+            #Irregardless, add categories to Extras page
+            self.wnd.extraspage.setCategories(toadd["extras"])
 
         #Fixes for button placement
         if self.wnd.extraspage != None:
