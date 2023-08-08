@@ -972,6 +972,7 @@ class window(Gtk.Window):
         self.parent = parent
         self.connect('delete-event', partial(parent.windowClosed, "wnd"))
         self.splashtext = None
+        self.wndstack = None
 
         #These three are used to skip page updating code whenever otherwise inappropriate to continue execution of, such as dropdown changes and so on.
         self.current_itemid = ""
@@ -984,16 +985,15 @@ class window(Gtk.Window):
         self.set_size_request(850, 540)
 
 
-    def spawn(self):
+    def spawn(self, eventtrigger=None):
         #When using spawn, it means the window hasn't been opened yet, so we need to initialise it first, thus a splash screen is used
-        GLib.idle_add(self.initSplash)
-        GLib.idle_add(self.show_all)
+        GLib.idle_add(self.initSplash, eventtrigger)
         #Fully load the GUI if the Backend has already finished initialising.
         if self.parent.api.isInitialised() == True:
             GLib.idle_add(self.initComplete)
 
 
-    def initSplash(self):
+    def initSplash(self, eventtrigger):
         #For the splash screen
         self.wndstack = Gtk.Stack() #Needs accessing later
         self.wndstack.set_transition_type(Gtk.StackTransitionType.CROSSFADE)
@@ -1009,10 +1009,13 @@ class window(Gtk.Window):
         self.splashscr.pack_start(self.splashtext, False, False, 0)
         self.splashscr.pack_start(Gtk.Box(), True, False, 0)
         self.wndstack.add_named(self.splashscr, "splash")
+        self.show_all()
+        if eventtrigger != None: #Initial spawnGUI() blocks until now so that spawn() does not run twice during init
+            eventtrigger.set()
 
 
     def initComplete(self):
-        if self.get_realized == False:
+        if self.get_realized() == False:
             return #Do not run this if the window is not currently opened.
 
         self.wndcontents = Gtk.VBox()
@@ -1126,7 +1129,7 @@ class window(Gtk.Window):
         self.websitespage = self.categoricalPage()
         self.taskspage = Gtk.VBox()
         self.searchpage = Gtk.VBox()
-        self.itempage = Gtk.VBox()
+        self.itempage = self.itemPage()
         #TODO: Get all categories from all modules, and, atop our own categories, and collect them here, followed by sorting them into each page's body
         # TODO: Add 'categories' dictionary argument to self.categoricalPage()
         # TODO: Add an 'Extras' page, if there are OOB categories, to house those categories in
@@ -1214,8 +1217,76 @@ class window(Gtk.Window):
             GLib.idle_add(i.destroy)
         #TODO: Placeholder screen for no items
         for i in items:
-            GLib.idle_add(page.listingsPane.insert, Gtk.Button(label=i), -1)
+            testBtn = Gtk.Button(label=i)
+            testBtn.itemid = i
+            testBtn.connect('clicked', self.itemPressed)
+            GLib.idle_add(page.listingsPane.insert, testBtn, -1)
             GLib.idle_add(page.listingsPane.show_all)
+
+
+    def itemPressed(self, button):
+        self.gotoID(button.itemid)
+
+    def gotoID(self, itemid, moduleid="", sourceid="", subsourceid=""):
+        print(self.parent.api.getItemInformation(itemid, "itemmgmt-example", "example1"))
+
+
+    ############################################
+    # Item page
+    ############################################
+
+    def itemPage(self):
+        result = Gtk.VBox()
+        #Item information header
+        appdetailsheader = Gtk.Box()
+        appdetailsheader.get_style_context().add_class(Gtk.STYLE_CLASS_PRIMARY_TOOLBAR)
+
+        # Item icon
+        appicon = Gtk.Image()
+        appiconloading = Gtk.Spinner()
+        appiconstack = Gtk.Stack()
+        appiconstack.add_named(appiconloading, "Loading")
+        appiconstack.add_named(appicon, "AppIcon")
+        appiconstack.set_visible_child(appicon)
+
+        # Item fullname and summary
+        fullname = Gtk.Label(label="Dummy")
+        summary = Gtk.Label(label="Dummy description")
+
+        fullnameBox = Gtk.Box()
+        summaryBox = Gtk.Box()
+        fullnameBox.pack_start(fullname, False, False, 0)
+        summaryBox.pack_start(summary, False, False, 0)
+        fullnameSummaryBox = Gtk.VBox()
+        fullnameSummaryBox.pack_start(Gtk.Box(), True, True, 0) #Spacing
+        fullnameSummaryBox.pack_end(Gtk.Box(), True, True, 0)
+        fullnameSummaryBox.pack_start(fullnameBox, False, False, 0)
+        fullnameSummaryBox.pack_end(summaryBox, False, False, 0)
+
+        # Source dropdown and buttons
+        actionsarea = Gtk.VBox()
+        actionsarea.pack_start(Gtk.Box(), True, True, 0)
+        actionsarea.pack_end(Gtk.Box(), True, True, 0)
+        actions = Gtk.Box()
+        actions.pack_start(Gtk.Button(label="test"), False, False, 4) #TEMP
+        actions.pack_start(Gtk.Button(label="test2"), False, False, 4) #TEMP
+        actionsarea.pack_start(actions, False, False, 0)
+
+        # Adding it all into the header area
+        appdetailsheader.pack_start(appiconstack, False, False, 8)
+        appdetailsheader.pack_start(fullnameSummaryBox, True, True, 4)
+        appdetailsheader.pack_end(actionsarea, False, False, 4)
+
+        #Item information area
+        iteminfo = Gtk.FlowBox()
+        iteminfo.get_style_context().add_class(Gtk.STYLE_CLASS_VIEW)
+        iteminfo.set_max_children_per_line(1)
+        #TODO: Turn iteminfo, appdetailsheader, and maybe categoricalPage, into classes with the parent variable being self.wnd and having a module variable for direct calls
+
+        #Putting it all together
+        result.pack_start(appdetailsheader, False, False, 0)
+        result.pack_end(iteminfo, True, True, 0)
+        return result
 
 
 
@@ -1330,13 +1401,18 @@ class module():
         Gtk.main()
 
 
-    def spawnGUI(self, command="", targetid="", moduleid="", sourceid="", subsourceid=""):
+    def spawnGUI(self, command="", targetid="", moduleid="", sourceid="", subsourceid="", wait=False):
         #Open main window and direct it with arguments
         # If the window is already loaded, focus it first
         if self.wnd.get_realized() == True: #realized is False until the window's shown
             GLib.idle_add(self.wnd.present)
         else: #If not loaded, it has to spawn first
-            self.wnd.spawn()
+            if wait == True:
+                event = Event()
+                self.wnd.spawn(event)
+                event.wait()
+            else:
+                self.wnd.spawn()
 
         #TODO: Once loaded, respond to arguments
         pass

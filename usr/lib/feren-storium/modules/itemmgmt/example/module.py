@@ -49,7 +49,17 @@ class module():
     def getItemsFromCategory(self, category):
         result = []
         for i in self.itemcache:
-            if self.itemcache[i]["category"] == category:
+            if self.itemcache[i]["all"]["category"] == category: #category is always determined by the module's default source, so just store it in 'all' to prevent inconsistencies
                 result.append(i)
 
+        return result
+
+    def getItemInformation(self, itemid, sourceid):
+        result = {}
+        if sourceid not in self.itemcache[itemid] and "all" not in self.itemcache[itemid]:
+            raise ExampleModuleException(_("%s does not exist in source %s") % (itemid, sourceid))
+        if "all" in self.itemcache[itemid]:
+            result = self.api.dictMerge(result, self.itemcache[itemid]["all"])
+        if sourceid in self.itemcache[itemid]: #Merge information from specific source over all
+            result = self.api.dictMerge(result, self.itemcache[itemid][sourceid])
         return result

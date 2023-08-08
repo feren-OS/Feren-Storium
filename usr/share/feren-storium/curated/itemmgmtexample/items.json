@@ -1,0 +1,388 @@
+{
+    "exampleinstall": {
+        "sources": ["example1"],
+        "all": {
+            "fullname": {
+                "C": "Example (install)"
+            },
+            "summary": {
+                "C": "Example item for installation"
+            },
+            "description": {
+                "C": "An example item to test the 'Install' option\nNOTE: Will always display Install, even after installation."
+            },
+            "iconid": "package-install",
+            "iconurl": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/SMPTE_Color_Bars.svg/1200px-SMPTE_Color_Bars.svg.png",
+            "images": {
+                "C": {
+                    "https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/SMPTE_Color_Bars.svg/1200px-SMPTE_Color_Bars.svg.png": "Test image 1",
+                    "https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/SMPTE_Color_Bars.svg/1200px-SMPTE_Color_Bars.svg.png": "Test image 2",
+                    "https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/SMPTE_Color_Bars.svg/1200px-SMPTE_Color_Bars.svg.png": "Test image 3"
+                }
+            },
+            "author": {
+                "C": "Test Author"
+            },
+            "version": "69.420",
+            "website": {
+                "C": "https://example.com/"
+            },
+            "changelog": {
+                "69.420": {
+                    "C": {
+                        "header": "Nice update",
+                        "changelog": "test changelog 1",
+                        "date": "DDMMYYYY"
+                    }
+                },
+                "1.4": {
+                    "C": {
+                        "header": "Older version",
+                        "changelog": "test changelog 2",
+                        "date": "DDMMYYYY"
+                    }
+                }
+            },
+            "bugreportsurl": {
+                "C": "https://example.com/bugreport"
+            },
+            "donateurl": {
+                "C": "https://example.com/donate"
+            },
+            "tosurl": {
+                "C": "https://example.com/terms-of-use"
+            },
+            "privpolurl": {
+                "C": "https://example.com/privacy-policy"
+            },
+            "category": "applications-example",
+            "downloadsize": {
+                "69": 2
+            },
+            "installedsize": {
+                "690": 1
+            },
+            "permissions": ["todo"],
+            "licensetype": 0,
+            "isofficial": true,
+            "warnings": [
+                "info", {
+                    "C": "This is an example custom warning, with the info typing."
+                }
+            ],
+            "supportsmouse": true,
+            "supportstouch": true,
+            "supportsphone": false,
+            "respectsnativetheme": "yes",
+            "respectsa11y": true,
+            "supportsdpi": true
+        },
+        "example1": {
+            "reviews": {
+                "startotal": 44,
+                "2ratingsonly": false,
+                "reviews": {
+                    "C": {
+                        "John Smith": [5, "69.420", "Feren OS 2023.08", "This is an example of how a review will appear in this GUI."],
+                        "Jennifer Andison": [3, "1.4", "Fedora 38", "This too."]
+                    }
+                }
+            }
+        }
+    },
+    "examplenosource": {
+        "sources": ["example1"],
+        "all": {
+            "fullname": {
+                "C": "Example (missing source)"
+            },
+            "summary": {
+                "C": "Example item for requiring source before installing"
+            },
+            "description": {
+                "C": "An example item to test the 'Install...' option\nNOTE: Will always display Install, even after installation."
+            },
+            "iconid": "package-installed-locked",
+            "iconurl": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/SMPTE_Color_Bars.svg/1200px-SMPTE_Color_Bars.svg.png",
+            "images": {
+                "C": {
+                    "https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/SMPTE_Color_Bars.svg/1200px-SMPTE_Color_Bars.svg.png": "Test image 1",
+                    "https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/SMPTE_Color_Bars.svg/1200px-SMPTE_Color_Bars.svg.png": "Test image 2",
+                    "https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/SMPTE_Color_Bars.svg/1200px-SMPTE_Color_Bars.svg.png": "Test image 3"
+                }
+            },
+            "author": {
+                "C": "Test Author"
+            },
+            "version": "2.2",
+            "website": {
+                "C": "https://example.com/"
+            },
+            "changelog": {
+                "2.2": {
+                    "C": {
+                        "header": "We finally released it",
+                        "changelog": "test changelog 1",
+                        "date": "DDMMYYYY"
+                    }
+                }
+            },
+            "bugreportsurl": {
+                "C": "https://example.com/bugreport"
+            },
+            "donateurl": {
+                "C": "https://example.com/donate"
+            },
+            "tosurl": {
+                "C": "https://example.com/terms-of-use"
+            },
+            "privpolurl": {
+                "C": "https://example.com/privacy-policy"
+            },
+            "category": "applications-example",
+            "downloadsize": {
+                "69": 2
+            },
+            "installedsize": {
+                "690": 1
+            },
+            "permissions": ["todo"],
+            "licensetype": 2,
+            "isofficial": true,
+            "warnings": [
+                "warn", {
+                    "C": "This is an example custom warning, with the warn typing."
+                }
+            ],
+            "reviews": {},
+            "supportsmouse": false,
+            "supportstouch": true,
+            "supportsphone": false,
+            "respectsnativetheme": "libadwaita",
+            "respectsa11y": true,
+            "supportsdpi": true
+        }
+    },
+    "exampleupdate": {
+        "sources": ["example1"],
+        "all": {
+            "fullname": {
+                "C": "Example (update)"
+            },
+            "summary": {
+                "C": "Example item for testing updating"
+            },
+            "description": {
+                "C": "An example item to test the 'Update' option\nNOTE: Will always display Update, even after updating."
+            },
+            "iconid": "package-installed-outdated",
+            "iconurl": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/SMPTE_Color_Bars.svg/1200px-SMPTE_Color_Bars.svg.png",
+            "images": {
+                "C": {
+                    "https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/SMPTE_Color_Bars.svg/1200px-SMPTE_Color_Bars.svg.png": "Test image 1",
+                    "https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/SMPTE_Color_Bars.svg/1200px-SMPTE_Color_Bars.svg.png": "Test image 2",
+                    "https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/SMPTE_Color_Bars.svg/1200px-SMPTE_Color_Bars.svg.png": "Test image 3"
+                }
+            },
+            "author": {
+                "C": "Test Author"
+            },
+            "version": "2.2",
+            "website": {
+                "C": "https://example.com/"
+            },
+            "changelog": {},
+            "bugreportsurl": {
+                "C": "https://example.com/bugreport"
+            },
+            "donateurl": {
+                "C": "https://example.com/donate"
+            },
+            "tosurl": {
+                "C": "https://example.com/terms-of-use"
+            },
+            "privpolurl": {
+                "C": "https://example.com/privacy-policy"
+            },
+            "category": "applications-example",
+            "downloadsize": {
+                "69": 2
+            },
+            "installedsize": {
+                "690": 1
+            },
+            "permissions": ["todo"],
+            "licensetype": 2,
+            "isofficial": true,
+            "warnings": [
+                "severe", {
+                    "C": "This is an example custom warning, with the severe typing."
+                }
+            ],
+            "reviews": {},
+            "supportsmouse": false,
+            "supportstouch": true,
+            "supportsphone": false,
+            "respectsnativetheme": "granite",
+            "respectsa11y": true,
+            "supportsdpi": true
+        }
+    },
+    "exampleinstalled": {
+        "sources": ["example1"],
+        "all": {
+            "fullname": {
+                "C": "Example (installed)"
+            },
+            "summary": {
+                "C": "Example item for reinstallation or removal"
+            },
+            "description": {
+                "C": "An example item to test the 'Reinstall' and 'Remove' options\nNOTE: Will always display Remove, even after removal."
+            },
+            "iconid": "package-installed-updated",
+            "iconurl": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/SMPTE_Color_Bars.svg/1200px-SMPTE_Color_Bars.svg.png",
+            "images": {
+                "C": {
+                    "https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/SMPTE_Color_Bars.svg/1200px-SMPTE_Color_Bars.svg.png": "Test image 1",
+                    "https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/SMPTE_Color_Bars.svg/1200px-SMPTE_Color_Bars.svg.png": "Test image 2",
+                    "https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/SMPTE_Color_Bars.svg/1200px-SMPTE_Color_Bars.svg.png": "Test image 3"
+                }
+            },
+            "author": {
+                "C": "Test Author"
+            },
+            "version": "11",
+            "website": {
+                "C": "https://example.com/"
+            },
+            "changelog": {
+                "2.2": {
+                    "C": {
+                        "header": "We finally fixed it",
+                        "changelog": "test changelog 1",
+                        "date": "DDMMYYYY"
+                    }
+                }
+            },
+            "bugreportsurl": {
+                "C": "https://example.com/bugreport"
+            },
+            "donateurl": {
+                "C": "https://example.com/donate"
+            },
+            "tosurl": {
+                "C": "https://example.com/terms-of-use"
+            },
+            "privpolurl": {
+                "C": "https://example.com/privacy-policy"
+            },
+            "category": "applications-example",
+            "downloadsize": {
+                "69": 2
+            },
+            "installedsize": {
+                "690": 1
+            },
+            "permissions": ["todo"],
+            "licensetype": 2,
+            "isofficial": true,
+            "warnings": [],
+            "reviews": {},
+            "supportsmouse": false,
+            "supportstouch": true,
+            "supportsphone": false,
+            "respectsnativetheme": "forcedoff",
+            "respectsa11y": true,
+            "supportsdpi": true
+        }
+    },
+    "examplemultiplesources": {
+        "sources": ["example1", "example2"],
+        "all": {
+            "summary": {
+                "C": "Example item for installation"
+            },
+            "description": {
+                "C": "An example item to test the 'Install' option\nNOTE: Will always display Install, even after installation."
+            },
+            "iconid": "package-install",
+            "iconurl": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/SMPTE_Color_Bars.svg/1200px-SMPTE_Color_Bars.svg.png",
+            "images": {
+                "C": {
+                    "https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/SMPTE_Color_Bars.svg/1200px-SMPTE_Color_Bars.svg.png": "Test image 1",
+                    "https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/SMPTE_Color_Bars.svg/1200px-SMPTE_Color_Bars.svg.png": "Test image 2",
+                    "https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/SMPTE_Color_Bars.svg/1200px-SMPTE_Color_Bars.svg.png": "Test image 3"
+                }
+            },
+            "author": {
+                "C": "Test Author"
+            },
+            "version": "69.420",
+            "website": {
+                "C": "https://example.com/"
+            },
+            "changelog": {
+                "69.420": {
+                    "C": {
+                        "header": "Nice update",
+                        "changelog": "test changelog 1",
+                        "date": "DDMMYYYY"
+                    }
+                },
+                "1.4": {
+                    "C": {
+                        "header": "Older version",
+                        "changelog": "test changelog 2",
+                        "date": "DDMMYYYY"
+                    }
+                }
+            },
+            "bugreportsurl": {
+                "C": "https://example.com/bugreport"
+            },
+            "donateurl": {
+                "C": "https://example.com/donate"
+            },
+            "tosurl": {
+                "C": "https://example.com/terms-of-use"
+            },
+            "privpolurl": {
+                "C": "https://example.com/privacy-policy"
+            },
+            "category": "websites-example",
+            "downloadsize": {
+                "69": 2
+            },
+            "installedsize": {
+                "690": 1
+            },
+            "permissions": ["todo"],
+            "licensetype": 0,
+            "warnings": [
+                "info", {
+                    "C": "This is an example custom warning, with the info typing."
+                }
+            ],
+            "reviews": {},
+            "supportsmouse": true,
+            "supportstouch": true,
+            "supportsphone": false,
+            "respectsnativetheme": "yes",
+            "respectsa11y": true,
+            "supportsdpi": true
+        },
+        "example1": {
+            "fullname": {
+                "C": "Example (multiple sources)"
+            },
+            "isofficial": true
+        },
+        "example2": {
+            "fullname": {
+                "C": "Example (second source)"
+            },
+            "isofficial": false
+        }
+    }
+}

@@ -336,6 +336,7 @@ class StoriumBrain():
         self.debug = True #Enables additional debug output TODO: Move to Settings portion
         self.frontendname = _("Storium")
         self.frontendversion = "2023.07"
+        #self.reqHeaders = {'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.114 Safari/537.36'}
 
         ############################################
         # NON-CONFIGURABLE STUFF
@@ -617,7 +618,7 @@ class StoriumBrain():
         self.modules["gui"].initGUI()
         #Show a splash screen while we wait if ran normally
         if showwindow == True:
-            self.modules["gui"].spawnGUI()
+            self.modules["gui"].spawnGUI("", "", "", "", "", True) #Wait is on to prevent spawnGUI running in self.spawnGUI before it has finished here
 
 
     def initTasksModules(self):
@@ -698,7 +699,7 @@ class StoriumBrain():
 
     def spawnGUI(self, command="", targetid="", moduleid="", sourceid="", subsourceid=""):
         #Reopen GUI if closed, and go to a page in the GUI if one is given
-        pass #TODO
+        self.modules["gui"].spawnGUI(command, targetid, moduleid, sourceid, subsourceid) #Don't wait this time as this time acts as a window open trigger
 
 
     def dbusSessionSignals(self):
@@ -709,104 +710,6 @@ class StoriumBrain():
         #Receive DBus signals to perform certain actions in the system bus
         pass #TODO
         #FIXME: this should probably be moved into a separate class or something for the system mode
-
-
-    # def todo(self):
-    #
-    #     self.taskManager = TaskManager()
-    #
-    #     self.modules = {}
-    #
-    #     #Prepare the APIs and map the calls:
-    #     # Generic
-    #     self.genericapi = StoreGenericAPI()
-    #     self.genericapi.getDefaultSource = self.APIgetDefaultSource
-    #     self.genericapi.getItemInformation = self.APIgetItemInformation
-    #     self.genericapi.getAvailableSources = self.APIgetAvailableSources
-    #     self.genericapi.getCuratedJSON = self.APIgetCuratedJSON
-    #     self.genericapi.cancelTask = self.APIcancelTask
-    #     self.genericapi.getAppStatus = self.APIgetAppStatus
-    #     self.genericapi.installApp = self.APIinstallApp
-    #     self.genericapi.updateApp = self.APIupdateApp
-    #     self.genericapi.removeApp = self.APIremoveApp
-    #     self.genericapi.addSource = self.APIaddSource
-    #     self.genericapi.removeSource = self.APIremoveSource
-    #     self.genericapi.showTaskConfirmation = self.APIshowTaskConfirmation
-    #     self.genericapi.gotoID = self.APIgotoID
-    #     self.genericapi.refreshMemory = self.APIrefreshMemory
-    #     self.genericapi.reloadStore = self.APIreloadStore
-    #     self.genericapi.reloadPages = self.APIreloadPages
-    #     self.genericapi.reloadPkgStates = self.APIreloadPkgStates
-    #     self.genericapi.fullUpdate = self.APIfullUpdate
-    #     self.genericapi.itemSearch = self.APIitemSearch
-    #     self.genericapi.getAutoUpdateOn = self.APIgetAutoUpdateOn
-    #     self.genericapi.getAutoUpdateBandwidthOn = self.APIgetAutoUpdateBandwidthOn
-    #     self.genericapi.getItemIDs = self.APIgetItemIDs
-    #
-    #     self.genericapi.getFallbackIconLocation = self.APIgetFallbackIconLocation
-    #     #self.genericapi.dictMerge = self.dictMerge
-    #
-    #     # Tasks
-    #     self.tasksapi = StoreTasksAPI()
-    #     self.tasksapi.getTaskChanges = self.APIgetTaskChanges
-    #     self.tasksapi.getBonuses = self.APIgetBonuses
-    #     self.tasksapi.addConfirmedTask = self.APIaddConfirmedTask
-    #     self.tasksapi.deleteTask = self.APIdeleteTask
-    #     self.tasksapi.runTask = self.APIrunTask
-    #     self.tasksapi.showFailure = self.APIshowFailure
-    #     self.tasksapi.cleanupModule = self.APIcleanupModule
-    #
-    #     self.taskManager.storeAPI = self.genericapi
-    #     self.taskManager.storeTasksAPI = self.tasksapi #Pass the APIs Tasks uses into Tasks
-    #
-    #     # Settings
-    #     self.settingsapi = StoreSettingsAPI()
-    #     self.settingsapi.changeAutoUpdateOn = self.APIchangeAutoUpdateOn
-    #     self.settingsapi.getAutoUpdateSupported = self.APIgetAutoUpdateSupported
-    #     self.settingsapi.changeAutoUpdateBandwidthOn = self.APIchangeAutoUpdateBandwidthOn
-    #     self.settingsapi.getAutoUpdateBandwidthSupported = self.APIgetAutoUpdateBandwidthSupported
-    #     self.settingsapi.getPackageMgmtModulesInfo = self.APIgetPackageMgmtModulesInfo
-    #
-    #     #Load the GUI while it loads
-    #     self.modules["gui"] = self.new_module("/usr/lib/feren-storium/modules/gui/gtk3-demo")
-    #     # TODO: Have GUI be determined by gsettings
-    #
-    #
-    #     #Make the folder if it doesn't exist
-    #     if not os.path.isdir(self.cachedir):
-    #         os.mkdir(self.cachedir)
-    #     if not os.path.isdir(self.cachedir + "/icons"):
-    #         os.mkdir(self.cachedir + "/icons")
-    #
-    #     self.modules["gui"].prepareGUI()
-    #     self.post_init()
-    #     self.modules["gui"].showGUIHold()
-
-
-    # def post_init(self):
-    #     thread = Thread(target=self._post_init,
-    #                     args=())
-    #     thread.daemon = True
-    #     thread.start()
-    #
-    # def _post_init(self):
-    #     #Load in the modules
-    #     # TODO: Have the loaded modules be determined by gsettings
-    #     self.load_modules()
-    #
-    #
-    #     #Headers information for requests
-    #     self.reqHeaders = {'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.114 Safari/537.36'}
-    #
-    #
-    #
-    #
-    #     #TODO: Use idle_add to exit the splash screen and load the pages
-    #     #GLib.idle_add(self.__post_init)
-    #
-    #
-    #
-    #     self.modules["gui"].GUILoadingFinished()
 
 
     ############################################
@@ -955,7 +858,30 @@ class StoriumBrain():
 
     def APIgetItemInformation(self, itemid, moduleid, sourceid):
         #Returns information of the supplied item
-        pass #TODO
+        if moduleid not in self.modules:
+            raise StoriumBrainException(_("%s is not a loaded module") % moduleid)
+        result = self.modules[moduleid].getItemInformation(itemid, sourceid)
+        #Use only strings appropriate to the current language=
+        for i in ["fullname", "summary", "description", "images", "author", "website", "bugreportsurl", "donateurl", "tosurl", "privpolurl"]:
+            keeplang = self.getTranslation(result[i], True)
+            ii = result[i][keeplang]
+            result[i] = ii
+        if result["changelog"] != {}:
+            for i in result["changelog"]: #Duplicated code as I don't know how to do these at once yet
+                keeplang = self.getTranslation(result["changelog"][i], True)
+                ii = result["changelog"][i][keeplang]
+                result["changelog"][i] = ii
+        if result["warnings"] != []:
+            count = 0
+            for i in result["warnings"]:
+                if (count % 2) == 0:
+                    count += 1
+                    continue #Skip 0, 2, etc. (the translatable text is 1, 3, etc.)
+                keeplang = self.getTranslation(result["warnings"][count], True)
+                ii = result["warnings"][count][keeplang]
+                result["warnings"][count] = ii
+                count += 1
+        return result
 
     def APIgetItemName(self, itemid, moduleid, sourceid):
         #Returns only the human-readable name of the supplied item
