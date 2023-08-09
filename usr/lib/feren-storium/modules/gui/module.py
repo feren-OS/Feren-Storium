@@ -19,6 +19,10 @@ from dbus.mainloop.glib import DBusGMainLoop
 from threading import Thread, Event
 from queue import Queue, Empty
 
+class DemoGUIException(Exception):
+    pass
+
+
 #Settings storage for the GUI
 class settings():
     def __init__(self):
@@ -1048,7 +1052,7 @@ class itemDetailsHeader(Gtk.Box):
         self.parent = parent
         self.module = module
         self.get_style_context().add_class(Gtk.STYLE_CLASS_PRIMARY_TOOLBAR)
-        self.icontheme = Gtk.IconTheme() #Used in isIconInIcons
+        self.icontheme = Gtk.IconTheme.get_default() #Used in isIconInIcons
 
         # Item icon
         self.appicon = Gtk.Image()
@@ -1087,14 +1091,48 @@ class itemDetailsHeader(Gtk.Box):
         self.pack_end(actionsarea, False, False, 4)
         self.show_all()
 
-        #TEST
-        print("TEST")
-        print(self.isIconInIcons("kate"))
-        print(self.isIconInIcons("steam_icon_322170"))
-
 
     def isIconInIcons(self, iconid):
         return self.icontheme.has_icon(iconid)
+
+    def getIconIDLocation(self, iconid):
+        if self.isIconInIcons(iconid) == False:
+            raise DemoGUIException(_("%s is not in this icon set") % iconid)
+        return self.icontheme.lookup_icon_for_scale(iconid, 48, Gtk.Image().get_scale_factor(), Gtk.IconLookupFlags.FORCE_SIZE).get_filename()
+
+    def iconPixbuf(self, filepath):
+        size = 48 * Gtk.Image().get_scale_factor()
+        result = GdkPixbuf.Pixbuf.new_from_file(filepath)
+        result = result.scale_simple(size, size, GdkPixbuf.InterpType.BILINEAR)
+        return result
+
+    def setIcon(self, iconid, iconurl):
+        GLib.idle_add(self.appiconstack.set_visible_child, self.appiconloading)
+        GLib.idle_add(self.appiconstack.set_visible, True)
+        #Try using icon from icon set first
+        if self.isIconInIcons(iconid):
+            try:
+                GLib.idle_add(self.appicon.set_from_pixbuf, self.iconPixbuf(self.getIconIDLocation(iconid)))
+                GLib.idle_add(self.appiconstack.set_visible_child, self.appicon)
+                return
+            except:
+                pass
+        #TODO: Grab icon from internet
+        #Fall back to missing icon if all else fails
+        try:
+            GLib.idle_add(self.appicon.set_from_pixbuf, self.iconPixbuf(self.getIconIDLocation("package-x-generic")))
+            GLib.idle_add(self.appiconstack.set_visible_child, self.appicon)
+            return
+        except:
+            try: #Fallback of all fallbacks
+                GLib.idle_add(self.appicon.set_from_pixbuf, self.iconPixbuf(self.getIconIDLocation("image-missing")))
+            except:
+                GLib.idle_add(self.appiconstack.set_visible, False)
+                GLib.idle_add(self.appiconstack.set_visible_child, self.appicon)
+                raise DemoGUIException(_("This icon set has no icons??"))
+
+
+
 
 
 ############################################
@@ -1107,7 +1145,8 @@ class itemInfoBody(Gtk.FlowBox):
         self.parent = parent
         self.module = module
         self.set_max_children_per_line(1)
-        self.get_style_context().add_class(Gtk.STYLE_CLASS_VIEW)
+        self.set_margin_top(4)
+        self.set_margin_bottom(4)
 
         #TODO: Remaining contents
         self.show_all()
@@ -1288,7 +1327,7 @@ class window(Gtk.Window):
         subresult.set_transition_type(Gtk.StackTransitionType.SLIDE_LEFT_RIGHT)
         subresult.get_style_context().add_class(Gtk.STYLE_CLASS_VIEW)
 
-        for i in [self.homepage, self.taskspage, self.searchpage, self.itempage]:
+        for i in [self.homepage, self.taskspage, self.searchpage]:
             i.set_margin_top(4)
             i.set_margin_bottom(4)
 
@@ -1317,7 +1356,9 @@ class window(Gtk.Window):
         self.body.set_visible_child(self.pages)
 
     def gotoID(self, itemid, moduleid="", sourceid="", subsourceid=""):
-        print(self.parent.api.getItemInformation(itemid, "itemmgmt-example", "example1"))
+        a = self.parent.api.getItemInformation(itemid, "itemmgmt-example", "example1")
+        print(a)
+        self.itempage.header.setIcon(a["iconid"], a["iconurl"])
 
 
     ############################################
@@ -1327,14 +1368,20 @@ class window(Gtk.Window):
     def itemPage(self):
         result = Gtk.VBox()
         #Item information header
-        appdetailsheader = itemDetailsHeader(self, self.parent)
+        itemdetailsheader = itemDetailsHeader(self, self.parent)
+        result.header = itemdetailsheader
 
         #Item information area
+        iteminfoScroll = Gtk.ScrolledWindow()
+        iteminfoScroll.get_style_context().add_class(Gtk.STYLE_CLASS_VIEW)
+        iteminfoScroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
         iteminfo = itemInfoBody(self, self.parent)
+        iteminfoScroll.add(iteminfo)
+        result.body = iteminfo
 
         #Putting it all together
-        result.pack_start(appdetailsheader, False, False, 0)
-        result.pack_end(iteminfo, True, True, 0)
+        result.pack_start(itemdetailsheader, False, False, 0)
+        result.pack_end(iteminfoScroll, True, True, 0)
         return result
 
 
@@ -1343,7 +1390,7 @@ class window(Gtk.Window):
 # Module initialisation and Brain responder
 ############################################
 class module():
-    def __init__(self, genericapi, guiapi):
+    def __init__(self, genericapi, guiapi, unused):
         self.api = genericapi
         self.guiapi = guiapi
         self.configs = None #Filled by Brain

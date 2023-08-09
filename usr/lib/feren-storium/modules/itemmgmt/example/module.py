@@ -10,7 +10,7 @@ class ExampleModuleException(Exception): # Name this according to the module to 
 
 class module():
 
-    def __init__(self, genericapi, itemapi):
+    def __init__(self, genericapi, itemapi, systemmode):
         #Gettext Translator
         gettext.install("feren-storium-exampleitemmgmt", "/usr/share/locale", names="ngettext")
         

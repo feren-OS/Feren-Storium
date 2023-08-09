@@ -11,7 +11,7 @@
             "description": {
                 "C": "An example item to test the 'Install' option\nNOTE: Will always display Install, even after installation."
             },
-            "iconid": "package-install",
+            "iconid": "chromium-browser",
             "iconurl": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/SMPTE_Color_Bars.svg/1200px-SMPTE_Color_Bars.svg.png",
             "images": {
                 "C": {
@@ -102,7 +102,7 @@
             "description": {
                 "C": "An example item to test the 'Install...' option\nNOTE: Will always display Install, even after installation."
             },
-            "iconid": "package-installed-locked",
+            "iconid": "org.mozilla.firefox",
             "iconurl": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/SMPTE_Color_Bars.svg/1200px-SMPTE_Color_Bars.svg.png",
             "images": {
                 "C": {
@@ -175,7 +175,7 @@
             "description": {
                 "C": "An example item to test the 'Update' option\nNOTE: Will always display Update, even after updating."
             },
-            "iconid": "package-installed-outdated",
+            "iconid": "vivaldi",
             "iconurl": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/SMPTE_Color_Bars.svg/1200px-SMPTE_Color_Bars.svg.png",
             "images": {
                 "C": {
@@ -240,7 +240,7 @@
             "description": {
                 "C": "An example item to test the 'Reinstall' and 'Remove' options\nNOTE: Will always display Remove, even after removal."
             },
-            "iconid": "package-installed-updated",
+            "iconid": "gnome-software",
             "iconurl": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/SMPTE_Color_Bars.svg/1200px-SMPTE_Color_Bars.svg.png",
             "images": {
                 "C": {
@@ -306,7 +306,7 @@
             "description": {
                 "C": "An example item to test the 'Install' option\nNOTE: Will always display Install, even after installation."
             },
-            "iconid": "package-install",
+            "iconid": "nonexistant",
             "iconurl": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/SMPTE_Color_Bars.svg/1200px-SMPTE_Color_Bars.svg.png",
             "images": {
                 "C": {

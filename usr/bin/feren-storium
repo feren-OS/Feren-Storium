@@ -532,7 +532,7 @@ class StoriumBrain():
         guiinit.start()
 
         #Initialise modules and tasks manager, and queue initial tasks
-        self.initTasksModules()
+        self.initTasksModules(False)
         self.initQueueStagedTasks() #TODO
 
         #Initialise search modules
@@ -595,7 +595,7 @@ class StoriumBrain():
         guipath = self.libdir + "/modules/" + self.configs["guipath"]
         try:
             #Initialise GUI module fully
-            module, moduleinfo, filewatch = self.newModule(guipath, "gui", "gui", self.guiapi)
+            module, moduleinfo, filewatch = self.newModule(guipath, "gui", "gui", False, self.guiapi) #NOTE: never used in system mode
             #Add module to modules
             self.modules["gui"] = module
             #Pass through GUI's configs instance to GUI
@@ -621,7 +621,7 @@ class StoriumBrain():
             self.modules["gui"].spawnGUI("", "", "", "", "", True) #Wait is on to prevent spawnGUI running in self.spawnGUI before it has finished here
 
 
-    def initTasksModules(self):
+    def initTasksModules(self, systemmode):
         self.taskManager = TaskManager()
 
         #TODO: Skip modules disabled in settings
@@ -637,7 +637,7 @@ class StoriumBrain():
 
                 try:
                     #Initialise module
-                    module, moduleinfo, filewatch = self.newModule(path, moduleid, "itemmgmt", itemmgmtapi)
+                    module, moduleinfo, filewatch = self.newModule(path, moduleid, "itemmgmt", systemmode, itemmgmtapi)
                     #Add module to modules
                     self.modules[moduleid] = module
                     #Add module's metadata to cache
@@ -674,7 +674,7 @@ class StoriumBrain():
                 moduleid = "search-"+candidateid
                 try:
                     #Initialise module
-                    module, moduleinfo, filewatch = self.newModule(path, moduleid, "search", None)
+                    module, moduleinfo, filewatch = self.newModule(path, moduleid, "search", False, None) #NOTE: never used in system mode
                     #Add module to modules
                     self.modules[moduleid] = module
                     #Add module's metadata to cache
@@ -744,7 +744,7 @@ class StoriumBrain():
     ############################################
     # Module Initialisation
     ############################################
-    def newModule(self, modulepath, moduleid, moduletype, extraapi=None):
+    def newModule(self, modulepath, moduleid, moduletype, systemmode, extraapi=None):
         #Initialise module and its information
         ############################################
         # Metadata Checks/Initialisation
@@ -818,9 +818,9 @@ class StoriumBrain():
 
             if moduletype != "gui:configs":
                 if extraapi == None:
-                    result = i.module.module(self.genericapi)
+                    result = i.module.module(self.genericapi, systemmode)
                 else:
-                    result = i.module.module(self.genericapi, extraapi)
+                    result = i.module.module(self.genericapi, extraapi, systemmode)
             else:
                 result = i.module.settings()
 
@@ -860,7 +860,7 @@ class StoriumBrain():
         #Returns information of the supplied item
         if moduleid not in self.modules:
             raise StoriumBrainException(_("%s is not a loaded module") % moduleid)
-        result = self.modules[moduleid].getItemInformation(itemid, sourceid)
+        result = copy.deepcopy(self.modules[moduleid].getItemInformation(itemid, sourceid))
         #Use only strings appropriate to the current language=
         for i in ["fullname", "summary", "description", "images", "author", "website", "bugreportsurl", "donateurl", "tosurl", "privpolurl"]:
             keeplang = self.getTranslation(result[i], True)
@@ -1012,7 +1012,7 @@ class StoriumBrain():
         result = {}
         for i in self.modules:
             if i.startswith("itemmgmt-"):
-                result[i] = self.modules[i].getCustomCategories()
+                result[i] = copy.deepcopy(self.modules[i].getCustomCategories())
         return result
 
     def APIallItemsFilterCategory(self, category, maximum=200, randomise=False, allCategoriesStartingWith=False):
