@@ -30,7 +30,7 @@ class module():
 
         #Manage theme lock on context-appropriate Flatpaks
         if systemmode == True:
-            self.addGTKOverrides() #TODO: Also make a thread
+            self.addGTKOverrides() #TODO: Also make a thread, and skip if config file states this has been done before.
         else:
             mainloop = DBusGMainLoop()
             self.interface = dbus.SessionBus(mainloop=mainloop).get_object("org.freedesktop.portal.Desktop", "/org/freedesktop/portal/desktop")
@@ -61,7 +61,7 @@ class module():
             overridecommand = ["/usr/bin/flatpak", "--system", "override", "--env=GTK_THEME=", ""]
             self.setGTKThemeLock(self, overridesfile, overridecommand, "Adwaita")
         else:
-            value = "0" #Assume no preference by default
+            value = 0 #Assume no preference by default
             try:
                 value = self.interface.Read("org.freedesktop.appearance", "color-scheme")
             except Exception as e:
@@ -76,18 +76,19 @@ class module():
             #TODO: Store themelocked Flatpaks in a system/user config file for the module, and also add a means to disable theme lock, so that Flatpaks no longer theme locked can be un-themelocked
             fpakid = self.itemcache[i]["all"]["flatpakID"]
             #Check that the Flatpak has the necessary theme set as its override
-            with open(overridesfile+fpakid, 'r') as fp:
-                environmentreached = False
-                gtkthemeline = ""
-                for i in fp.readlines(): #Obtain the GTK_THEME line, if there is one
-                    if i.startswith("[Environment]"):
-                        environmentreached = True
-                    elif i.startswith("[") and environmentreached == True:
-                        break #Exit the loop after environment settings're read
-                    elif i.startswith("GTK_THEME=") and environmentreached == True:
-                        gtkthemeline = i
-                        break #We have what we came for
-            gtkthemeline=gtkthemeline.strip() #Remove \n and such
+            environmentreached = False
+            gtkthemeline = ""
+            if os.path.isfile(overridesfile+fpakid):
+                with open(overridesfile+fpakid, 'r') as fp:
+                    for i in fp.readlines(): #Obtain the GTK_THEME line, if there is one
+                        if i.startswith("[Environment]"):
+                            environmentreached = True
+                        elif i.startswith("[") and environmentreached == True:
+                            break #Exit the loop after environment settings're read
+                        elif i.startswith("GTK_THEME=") and environmentreached == True:
+                            gtkthemeline = i
+                            break #We have what we came for
+                gtkthemeline=gtkthemeline.strip() #Remove \n and such
             if gtkthemeline == "GTK_THEME="+themeid:
                 continue #Skip if the theme lock is already set as intended
             shouldthemelock = False
@@ -96,25 +97,56 @@ class module():
             for i in themelockrequirements:
                 if gtkthemeline == "GTK_THEME="+i or gtkthemeline == "GTK_THEME="+i+":light" or gtkthemeline == "GTK_THEME="+i+":dark":
                     shouldthemelock = True
+            if gtkthemeline == "" or gtkthemeline == "GTK_THEME=":
+                shouldthemelock = True #Force themelock when no value or invalid syntax
             if shouldthemelock != True:
                 continue #Skip if the user has a custom theme forced.
             #Now requirements are satisfied, apply the requested theme lock
-            overridecommand[-1] == fpakid
-            overridecommand[-2] == "--env=GTK_THEME="+themeid
+            overridecommand[-1] = fpakid
+            overridecommand[-2] = "--env=GTK_THEME="+themeid
             subprocess.Popen(overridecommand)
 
 
     def addGTKOverrides(self):
-        pass #TODO: Add filesystem path global overrides
+        #Add filesystem path overrides to Flatpaks by default
+        overridesfile = "/var/lib/flatpak/overrides/global"
+        overridecommand = ["/usr/bin/flatpak", "--system", "override", "--filesystem="]
+        #Check if these have not already been added:
+        required = ["xdg-config/gtk-3.0", "xdg-config/gtk-4.0"]
+        if os.path.isfile(overridesfile):
+            fsline = ""
+            with open(overridesfile, 'r') as fp:
+                for i in fp.readlines():
+                    if i.startswith("[Context]"):
+                        contextreached = True
+                    elif i.startswith("[") and contextreached == True:
+                        break #Exit the loop after context settings're read
+                    elif i.startswith("filesystems=") and contextreached == True:
+                        fsline = i
+                        break #We have what we came for
+            fsline=fsline.strip()[12:] #Remove \n and such, as well as 'filesystems='
+            directories = ";".split(fsline)
+            pathsmet = 0
+            for i in required:
+                if i in directories or i+":ro" in directories:
+                    pathsmet += 1
+            if pathsmet == len(required):
+                #Write to config file to inform this has been done
+                return #Don't continue if the paths are already added.
+        #Now that all the conditions have been met, add the filesystem overrides
+        for i in required:
+            overridecommand[-1] = "--filesystem="+i+":ro"
+            subprocess.Popen(overridecommand)
+
 
     def themePreferenceChanged(self, path, intent, value):
         if path != "org.freedesktop.appearance" or intent != "color-scheme":
             return #Ignore other signals
         overridesfile = os.path.expanduser("~") + "/.local/share/flatpak/overrides/"
         overridecommand = ["/usr/bin/flatpak", "--user", "override", "--env=GTK_THEME=", ""]
-        if value == "0" or value == "2": #No preference and light preference are basically the same due to a bug in GTK, so we might as well merge them here.
+        if value == 0 or value == 2: #No preference and light preference are basically the same due to a bug in GTK, so we might as well merge them here.
             self.setGTKThemeLock(overridesfile, overridecommand, "Adwaita:light")
-        elif value == "1":
+        elif value == 1:
             self.setGTKThemeLock(overridesfile, overridecommand, "Adwaita:dark")
 
 
