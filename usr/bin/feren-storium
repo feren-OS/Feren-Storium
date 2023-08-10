@@ -14,6 +14,7 @@ import locale
 import importlib #Used for module loading
 import collections.abc #Required for dictMerge
 import copy #Used to create clones of variables
+import datetime
 
 import requests #Grabbing files from internet
 
@@ -336,7 +337,7 @@ class StoriumBrain():
         self.debug = True #Enables additional debug output TODO: Move to Settings portion
         self.frontendname = _("Storium")
         self.frontendversion = "2023.07"
-        #self.reqHeaders = {'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.114 Safari/537.36'}
+        self.requestHeaders = {'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36'}
 
         ############################################
         # NON-CONFIGURABLE STUFF
@@ -863,7 +864,7 @@ class StoriumBrain():
         result = copy.deepcopy(self.modules[moduleid].getItemInformation(itemid, sourceid))
         #Use only strings appropriate to the current language=
         for i in ["fullname", "summary", "description", "images", "author", "website", "bugreportsurl", "donateurl", "tosurl", "privpolurl"]:
-            keeplang = self.getTranslation(result[i], True)
+            keeplang = self.getTranslation(result[i], True) #TODO: Should be False?
             ii = result[i][keeplang]
             result[i] = ii
         if result["changelog"] != {}:
@@ -885,25 +886,26 @@ class StoriumBrain():
 
     def APIgetItemName(self, itemid, moduleid, sourceid):
         #Returns only the human-readable name of the supplied item
-        pass #TODO
+        result = copy.deepcopy(self.modules[moduleid].getItemName(itemid, sourceid))
+        return self.getTranslation(result, False)
 
     def APIgetDefaultSource(self, itemid):
         #Returns the first source in GUI API's getAvailableSources
         pass #TODO
 
-    def APIgetIcon(self, itemid, moduleid, sourceid, iconurl, fallbacklocation):
-        #Downloads the icon to cache and returns it, and failing that checks for the icon in its fallback location and returns it
+    def APIgetIcon(self, itemid, moduleid, sourceid, iconurl):
+        #Downloads the icon to cache and returns it
         #Also returns the icon in cache if it's already downloaded and not older than 4 days
-
-        #Check the icon exists in our cache
-            #Check the icon is not older than 4 days
-            #If it is, delete it
-            #Else, return the icon in cache: itemid:moduleid:sourceid.png/.svg/.whatever
-        #If not, download it
-        #If that fails, check fallbacklocation exists
-            #If it does, return it
-            #Else return ""
-        pass #TODO
+        target = itemid+":"+moduleid+":"+sourceid
+        cachelocat = self.getFromCache(target, "icons")
+        if cachelocat != "":
+            return cachelocat
+        #Download the icon to the cache
+        self.generateCache()
+        r=requests.get(iconurl, headers=self.requestHeaders)
+        with open(self.usercachedir + "/icons/" + target, "wb") as f:
+            f.write(r.content)
+        return self.usercachedir + "/icons/" + target
 
     def APIgetImages(self, folder, images):
         #Gets each image from the images dict, and puts them in the cache folder named the folder variable value
@@ -938,6 +940,29 @@ class StoriumBrain():
     def searchItemSort(self, results):
         #Sorts results given, before removing all characters up to their first ':' and returning the sorted version of results with these changes
         pass #TODO
+
+    def generateCache(self):
+        for i in [self.usercachedir, self.usercachedir + "/icons", self.usercachedir + "/images"]:
+            if not os.path.isdir(i):
+                os.mkdir(i)
+
+    def getFromCache(self, folder, filename):
+        #Check cache folder exists
+        if not os.path.isdir(self.usercachedir):
+            return ""
+        self.deleteAgedCache(self.usercachedir + "/" + folder + "/" + filename)
+        if os.path.isfile(self.usercachedir + "/" + folder + "/" + filename):
+            return self.usercachedir + "/" + folder + "/" + filename
+        else:
+            return ""
+
+    def deleteAgedCache(self, filepath):
+        if os.path.isfile(filepath):
+            #Check if the file is 4+ days old
+            creationtime = datetime.date.strftime(os.path.getctime(filepath), "%Y%m%d")
+            currenttime = datetime.date.strftime(datetime.date.today(), "%Y%m%d")
+            if currenttime-creationtime >= 4: #If so delete it
+                os.remove(filepath)
 
 
     ############################################

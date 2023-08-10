@@ -128,7 +128,7 @@ class module():
             directories = ";".split(fsline)
             pathsmet = 0
             for i in required:
-                if i in directories or i+":ro" in directories:
+                if i in directories+";" or i+":ro;" in directories:
                     pathsmet += 1
             if pathsmet == len(required):
                 #Write to config file to inform this has been done

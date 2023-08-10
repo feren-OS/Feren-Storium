@@ -1106,7 +1106,8 @@ class itemDetailsHeader(Gtk.Box):
         result = result.scale_simple(size, size, GdkPixbuf.InterpType.BILINEAR)
         return result
 
-    def setIcon(self, iconid, iconurl):
+    def setIcon(self, iconid, iconurl, itemid, moduleid, sourceid):
+        GLib.idle_add(self.appiconloading.start)
         GLib.idle_add(self.appiconstack.set_visible_child, self.appiconloading)
         GLib.idle_add(self.appiconstack.set_visible, True)
         #Try using icon from icon set first
@@ -1114,14 +1115,25 @@ class itemDetailsHeader(Gtk.Box):
             try:
                 GLib.idle_add(self.appicon.set_from_pixbuf, self.iconPixbuf(self.getIconIDLocation(iconid)))
                 GLib.idle_add(self.appiconstack.set_visible_child, self.appicon)
+                GLib.idle_add(self.appiconloading.stop)
                 return
             except:
                 pass
-        #TODO: Grab icon from internet
+        #If not in the icon set, grab its icon from the internet
+        try:
+            cachepath = self.module.api.getIcon(itemid, moduleid, sourceid, iconurl)
+            GLib.idle_add(self.appicon.set_from_pixbuf, self.iconPixbuf(cachepath))
+            GLib.idle_add(self.appiconstack.set_visible_child, self.appicon)
+            GLib.idle_add(self.appiconloading.stop)
+            return
+        except Exception as e:
+            #TODO: Debug check
+            print(_("DEBUG: Could not download icon for %s: %s") % (itemid, e))
         #Fall back to missing icon if all else fails
         try:
             GLib.idle_add(self.appicon.set_from_pixbuf, self.iconPixbuf(self.getIconIDLocation("package-x-generic")))
             GLib.idle_add(self.appiconstack.set_visible_child, self.appicon)
+            GLib.idle_add(self.appiconloading.stop)
             return
         except:
             try: #Fallback of all fallbacks
@@ -1129,6 +1141,7 @@ class itemDetailsHeader(Gtk.Box):
             except:
                 GLib.idle_add(self.appiconstack.set_visible, False)
                 GLib.idle_add(self.appiconstack.set_visible_child, self.appicon)
+                GLib.idle_add(self.appiconloading.stop)
                 raise DemoGUIException(_("This icon set has no icons??"))
 
 
@@ -1288,16 +1301,9 @@ class window(Gtk.Window):
         result.pack_start(toolbarspacer, True, True, 0)
         result.pack_end(menu_btn, False, False, 0)
 
-        funnibutton = Gtk.Button()
-        funnibutton.connect("clicked", self.test)
-        result.pack_end(funnibutton, False, False, 0)
-
         result.pack_end(self.pageswitcher, False, False, 0)
 
         return result
-
-    def test(self, button):
-        self.body.set_visible_child(self.itempage)
 
     def GUIViewChanged(self, stckswch, idk):
         self.pageswitcher.set_visible(self.body.get_visible_child() == self.pages)
@@ -1356,9 +1362,12 @@ class window(Gtk.Window):
         self.body.set_visible_child(self.pages)
 
     def gotoID(self, itemid, moduleid="", sourceid="", subsourceid=""):
+        self.body.set_visible_child(self.itempage)
         a = self.parent.api.getItemInformation(itemid, "itemmgmt-example", "example1")
-        print(a)
-        self.itempage.header.setIcon(a["iconid"], a["iconurl"])
+        self.itempage.header.setIcon(a["iconid"], a["iconurl"], itemid, "itemmgmt-example", "example1")
+        #TODO: Tell header to load available sources
+        # Then the header can tell itself and body to load the item information of the default source
+        #TODO: Any way to prevent source changing twice technically if we supply a command to open Storium immediately to an item with a source override and module override?
 
 
     ############################################
