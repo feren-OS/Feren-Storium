@@ -1401,8 +1401,6 @@ class module():
         self.configwnd = None
         self.wnd = None
 
-        self.test = "guitesT"
-
     def initGUI(self):
         # Program identification
         GLib.set_prgname('/usr/bin/feren-storium')

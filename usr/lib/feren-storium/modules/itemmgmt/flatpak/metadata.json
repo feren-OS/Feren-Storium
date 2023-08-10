@@ -1,0 +1,25 @@
+{
+    "fullName": {
+        "C": "Flatpak Applications Management"
+    },
+    "summary": {
+        "C": "Module for Storium-powered Stores that provides Flatpak package management functionality."
+    },
+    "authors": [
+        {
+            "email": "ferenosdev@outlook.com",
+            "name": {
+                "C": "Dominic Hayes",
+                "ja": "ヘイズドミニク"
+            }
+        }
+    ],
+    "appsourcesFullName": {
+        "C": "Flatpak Applications"
+    },
+    "conditionFilesExist": {},
+    "watchFiles": [],
+    "canManageAutoUpdates": true,
+    "canUpdatesRunOnShutdown": true,
+    "APIVersion": 1
+}

@@ -17,8 +17,6 @@ class module():
         #Storium APIs
         self.api = genericapi
         self.itemapi = itemapi
-
-        self.test = "example"
         
         #Package Storage will store the data of opened packages this instance, to make future loads faster
         self.itemcache = {}

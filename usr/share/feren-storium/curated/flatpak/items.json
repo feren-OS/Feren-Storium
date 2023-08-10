@@ -1,0 +1,20 @@
+{
+  "mozilla-firefox": {
+    "all": {
+      "flatpakID": "org.mozilla.firefox",
+      "respectsnativetheme": "forcedoff"
+    }
+  },
+  "librewolf-librewolf": {
+    "all": {
+      "flatpakID": "io.gitlab.librewolf-community",
+      "respectsnativetheme": "forcedoff"
+    }
+  },
+  "floorp-floorp": {
+    "all": {
+      "flatpakID": "one.ablaze.floorp",
+      "respectsnativetheme": "forcedoff"
+    }
+  }
+}
