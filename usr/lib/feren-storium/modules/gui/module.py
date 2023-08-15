@@ -1051,10 +1051,10 @@ class itemDetailsHeader(Gtk.Box):
         Gtk.Box.__init__(self)
         self.parent = parent
         self.module = module
-        self.get_style_context().add_class(Gtk.STYLE_CLASS_PRIMARY_TOOLBAR)
+        self.get_style_context().add_class("only-toolbar")
         self.icontheme = Gtk.IconTheme.get_default() #Used in isIconInIcons
 
-        # Item icon
+        #Item icon
         self.appicon = Gtk.Image()
         self.appiconloading = Gtk.Spinner()
         self.appiconstack = Gtk.Stack()
@@ -1062,7 +1062,7 @@ class itemDetailsHeader(Gtk.Box):
         self.appiconstack.add_named(self.appicon, "AppIcon")
         self.appiconstack.set_visible_child(self.appicon)
 
-        # Item fullname and summary
+        #Item fullname and summary
         self.fullname = Gtk.Label(label="Dummy")
         self.summary = Gtk.Label(label="Dummy description")
 
@@ -1076,20 +1076,126 @@ class itemDetailsHeader(Gtk.Box):
         fullnameSummaryBox.pack_start(fullnameBox, False, False, 0)
         fullnameSummaryBox.pack_end(summaryBox, False, False, 0)
 
-        # Source dropdown and buttons
+        #Source dropdowns
+        sourceslbl = Gtk.Label(label=_("Source:"))
+        sourcesarea = Gtk.VBox()
+        sourcesarea.pack_start(Gtk.Box(), True, True, 0)
+        sourcesarea.pack_end(Gtk.Box(), True, True, 0)
+        self.sources = Gtk.Stack()
+        self.source = Gtk.ComboBox()
+        self.sourcelbl = Gtk.Label(label=_("srcnm"))
+        self.sources.add_named(self.source, "dropdown")
+        self.sources.add_named(self.sourcelbl, "label")
+        sourcesarea.pack_start(self.sources, False, False, 0)
+
+        #Buttons and status
         actionsarea = Gtk.VBox()
         actionsarea.pack_start(Gtk.Box(), True, True, 0)
         actionsarea.pack_end(Gtk.Box(), True, True, 0)
-        actions = Gtk.Box()
-        actions.pack_start(Gtk.Button(label="test"), False, False, 4) #TEMP
-        actions.pack_start(Gtk.Button(label="test2"), False, False, 4) #TEMP
-        actionsarea.pack_start(actions, False, False, 0)
+        self.itemstatus = Gtk.Stack()
+        self.itemstatus.connect("notify::visible-child", self.onStatusChanged)
+
+        # Buttons (not queued)
+        self.moduleactions = Gtk.Box() #Extra buttons from the current module
+        self.actions = Gtk.Box()
+        #  Install
+        self.install = Gtk.Button(label=_("Install"))
+        self.install.set_no_show_all(True) #Prevent being shown on show_all(), thus preventing W I D E  window
+        self.install.get_style_context().add_class(Gtk.STYLE_CLASS_SUGGESTED_ACTION)
+        #self.install.connect('clicked', self.onInstall)
+        #  Install (requires adding application source)
+        self.installsource = Gtk.Button(label=_("Install..."))
+        self.installsource.set_no_show_all(True)
+        self.installsource.get_style_context().add_class(Gtk.STYLE_CLASS_SUGGESTED_ACTION)
+        #self.installsource.connect('clicked', self.onInstallSource)
+        #  Update
+        self.update = Gtk.Button(label=_("Update"))
+        self.update.set_no_show_all(True)
+        #self.update.connect('clicked', self.onUpdate)
+        #  Reinstall
+        self.reinstall = Gtk.Button(label=_("Reinstall"))
+        self.reinstall.set_no_show_all(True)
+        #self.reinstall.connect('clicked', self.onReinstall)
+        #  Remove
+        self.remove = Gtk.Button(label=_("Remove"))
+        self.remove.set_no_show_all(True)
+        self.remove.get_style_context().add_class(Gtk.STYLE_CLASS_DESTRUCTIVE_ACTION)
+        #self.remove.connect('clicked', self.onRemove)
+        self.actions.pack_end(self.remove, False, False, 4)
+        self.actions.pack_end(self.update, False, False, 4)
+        self.actions.pack_end(self.reinstall, False, False, 4)
+        self.actions.pack_end(self.installsource, False, False, 4)
+        self.actions.pack_end(self.install, False, False, 4)
+        #Combine extra buttons and buttons and add
+        self.statusunqueued = Gtk.Box()
+        self.statusunqueued.pack_start(self.moduleactions, False, False, 0)
+        self.statusunqueued.pack_start(self.actions, False, False, 0)
+        self.itemstatus.add_named(self.statusunqueued, "unqueued")
+
+        # Queued / Pending
+        self.statusqueued = Gtk.Box()
+        self.queuedlbl = Gtk.Label(label=_("Waiting for OPERATIONHERE"))
+        cancelqueuebtn = Gtk.Button(label=_("Cancel"))
+        #cancelqueuebtn.connect('clicked', self.onCancelQueue)
+        self.statusqueued.pack_start(self.queuedlbl, False, False, 4)
+        self.statusqueued.pack_end(cancelqueuebtn, False, False, 4)
+        self.itemstatus.add_named(self.statusqueued, "queued")
+
+        # Progress
+        self.statusinprogress = Gtk.Box()
+        self.itemprogress = Gtk.ProgressBar()
+        self.itemprogress.set_size_request(270, -1)
+        self.cancelbtn = Gtk.Button(label=_("Cancel"))
+        #self.cancelbtn.connect('clicked', self.onCancel)
+        self.statusinprogress.pack_start(self.itemprogress, False, False, 4)
+        self.statusinprogress.pack_end(self.cancelbtn, False, False, 4)
+        self.itemstatus.add_named(self.statusinprogress, "inprogress")
+
+        # Loading status
+        self.statusunknown = Gtk.Box()
+        self.statusunknown.set_size_request(self.install.get_allocation().width, -1)
+        self.statusloading = Gtk.Spinner()
+        self.statusunknown.pack_start(Gtk.Box(), True, True, 0)
+        self.statusunknown.pack_end(Gtk.Box(), True, True, 0)
+        self.statusunknown.pack_start(self.statusloading, False, False, 0)
+        self.itemstatus.add_named(self.statusunknown, "loading")
 
         # Adding it all into the header area
+        actionsarea.pack_start(self.itemstatus, False, False, 0)
         self.pack_start(self.appiconstack, False, False, 8)
         self.pack_start(fullnameSummaryBox, True, True, 4)
         self.pack_end(actionsarea, False, False, 4)
+        self.pack_end(sourcesarea, False, False, 4)
+        self.pack_end(sourceslbl, False, False, 4)
         self.show_all()
+
+        #TEST
+        self.moduleactions.pack_start(Gtk.Button(label="TEST"), False, False, 4)
+        self.moduleactions.pack_start(Gtk.Button(label="Extra button test"), False, False, 4)
+
+
+    def onStatusChanged(self, stckswch, idk):
+        #TODO: Make all stacks with loading spinners start/stop depending on their loading stack being visible
+        a = stckswch.get_visible_child()
+        if a == self.statusunqueued:
+            self.install.set_sensitive(True)
+        else: #TODO: Destroy module's extra buttons here
+            pass
+            for i in [self.installsource, self.reinstall, self.update, self.remove]: #TODO: add sources label and sources dropdown
+                i.hide()
+        if a == self.statusqueued:
+            self.statusqueued.show()
+        else:
+            self.statusqueued.hide()
+        if a == self.statusinprogress:
+            self.statusinprogress.show()
+        else:
+            self.statusinprogress.hide()
+        if a == self.statusunknown:
+            self.statusunknown.show()
+            self.install.set_sensitive(False)
+        else:
+            self.statusunknown.hide()
 
 
     def isIconInIcons(self, iconid):
@@ -1362,9 +1468,41 @@ class window(Gtk.Window):
         self.body.set_visible_child(self.pages)
 
     def gotoID(self, itemid, moduleid="", sourceid="", subsourceid=""):
-        self.body.set_visible_child(self.itempage)
+        #Show a loading item page
+        GLib.idle_add(self.itempage.loadspin.start)
+        GLib.idle_add(self.itempage.set_visible_child, self.itempage.loading)
+
+        GLib.idle_add(self.body.set_visible_child, self.itempage)
+
+        #Get the available sources of the item
+
+
+        #Switch to the manually selected source
+
+        GLib.idle_add(self.itempage.set_visible_child, self.itempage.loaded)
+        GLib.idle_add(self.itempage.loadspin.stop)
+
+        GLib.idle_add(self.itempage.bodyloadspin.start)
+        GLib.idle_add(self.itempage.body.set_visible_child, self.itempage.bodyloading)
+
+        GLib.idle_add(self.itempage.header.statusloading.start)
+        GLib.idle_add(self.itempage.header.itemstatus.set_visible_child, self.itempage.header.statusunknown)
+
+        #Load information onto header and information page
+
+
+        #Also load the status of the item in another thread
+
+        GLib.idle_add(self.itempage.body.set_visible_child, self.itempage.bodyloaded)
+        GLib.idle_add(self.itempage.bodyloadspin.stop)
+
+        GLib.idle_add(self.itempage.header.itemstatus.set_visible_child, self.itempage.header.statusunqueued)
+        GLib.idle_add(self.itempage.header.statusloading.stop)
+
+ #TEMP
         a = self.parent.api.getItemInformation(itemid, "itemmgmt-example", "example1")
         self.itempage.header.setIcon(a["iconid"], a["iconurl"], itemid, "itemmgmt-example", "example1")
+        self.itempage.header.install.show()
         #TODO: Tell header to load available sources
         # Then the header can tell itself and body to load the item information of the default source
         #TODO: Any way to prevent source changing twice technically if we supply a command to open Storium immediately to an item with a source override and module override?
@@ -1375,22 +1513,42 @@ class window(Gtk.Window):
     ############################################
 
     def itemPage(self):
-        result = Gtk.VBox()
+        result = Gtk.Stack()
+        result.loading = Gtk.VBox()
+        result.loaded = Gtk.VBox()
+        result.loadspin = Gtk.Spinner()
+
         #Item information header
         itemdetailsheader = itemDetailsHeader(self, self.parent)
         result.header = itemdetailsheader
 
         #Item information area
-        iteminfoScroll = Gtk.ScrolledWindow()
-        iteminfoScroll.get_style_context().add_class(Gtk.STYLE_CLASS_VIEW)
-        iteminfoScroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
-        iteminfo = itemInfoBody(self, self.parent)
-        iteminfoScroll.add(iteminfo)
-        result.body = iteminfo
+        result.bodyloaded = Gtk.ScrolledWindow()
+        result.bodyloaded.get_style_context().add_class(Gtk.STYLE_CLASS_VIEW)
+        result.bodyloaded.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        result.iteminfo = itemInfoBody(self, self.parent)
+        result.bodyloaded.add(result.iteminfo)
+
+        result.body = Gtk.Stack()
+        result.body.get_style_context().add_class(Gtk.STYLE_CLASS_VIEW)
+        result.bodyloading = Gtk.VBox()
+        result.bodyloadspin = Gtk.Spinner()
 
         #Putting it all together
-        result.pack_start(itemdetailsheader, False, False, 0)
-        result.pack_end(iteminfoScroll, True, True, 0)
+        result.loading.pack_start(Gtk.Box(), True, True, 0)
+        result.loading.pack_end(Gtk.Box(), True, True, 0)
+        result.loading.pack_start(result.loadspin, False, False, 0)
+        result.add_named(result.loading, "loading")
+        result.add_named(result.loaded, "loaded")
+
+        result.bodyloading.pack_start(Gtk.Box(), True, True, 0)
+        result.bodyloading.pack_end(Gtk.Box(), True, True, 0)
+        result.bodyloading.pack_start(result.bodyloadspin, False, False, 0)
+        result.body.add_named(result.bodyloading, "loading")
+        result.body.add_named(result.bodyloaded, "loaded")
+
+        result.loaded.pack_start(itemdetailsheader, False, False, 0)
+        result.loaded.pack_end(result.body, True, True, 0)
         return result
 
 
@@ -1673,7 +1831,9 @@ class module():
 
     # API CALLS FOR CLASSES
     def gotoID(self, itemid):
-        self.pagearea.gotoID(itemid)
+        thread = Thread(target=self.pagearea.gotoID,
+                            args=(itemid))
+        thread.start()
 
     def showTaskConfirmation(self, taskbody, idsadded, idsupdated, idsremoved, bonusavailability):
         #TODO: Make an actual GUI for this
