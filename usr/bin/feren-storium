@@ -145,7 +145,7 @@ class TaskManager():
         newtask = TaskBody(itemid, moduleid, operation, sourceid, subsourceid, becauseof, dependson)
         #TODO: Give a task a progress callback, and a state-change callback
 
-        taskname = moduleid+":"+itemid+":"+str(operation)+":"+sourceid+":"+subsourceid
+        taskname = moduleid+"/"+itemid+"/"+str(operation)+"/"+sourceid+"/"+subsourceid
         
         if preconfirmed == False:
             #Add to pending tasks
@@ -467,7 +467,14 @@ class StoriumBrain():
         self.genericapi.getImages = self.APIgetImages
         self.genericapi.isModuleAvailable = self.APIisModuleAvailable
         self.genericapi.dictMerge = self.dictMerge
+        self.genericapi.getTranslation = self.getTranslation
         self.genericapi.isInitialised = self.isInitialised
+        self.genericapi.configdir = self.configdir
+        self.genericapi.usrdir = self.usrdir
+        self.genericapi.libdir = self.libdir
+        self.genericapi.userconfigdir = self.userconfigdir
+        self.genericapi.usercachedir = self.usercachedir
+        #TODO: Add access to getting settings
         ############################################
         # Tasks API
         ############################################
@@ -782,16 +789,11 @@ class StoriumBrain():
             moduleinfo.pop("watchFiles", None)
             moduleinfo.pop("APIVersion")
             for i in ["fullName", "summary"] + self.moduleinfoextras[moduletype]:
-                keeplang = self.getTranslation(moduleinfo[i], True)
-                #Clear out unused translations from our current cache
-                ii = moduleinfo[i][keeplang]
-                moduleinfo[i] = ii #By replacing the value with the used translation.
+                #Only keep the locale-appropriate translation in cache
+                moduleinfo[i] = self.getTranslation(moduleinfo[i])
             count = 0
             while count < len(moduleinfo["authors"]):
-                keeplang = self.getTranslation(moduleinfo["authors"][count]["name"], True)
-                #Clear out unused translations from our current cache here too
-                i = moduleinfo["authors"][count]["name"][keeplang]
-                moduleinfo["authors"][count]["name"] = i
+                moduleinfo["authors"][count]["name"] = self.getTranslation(moduleinfo["authors"][count]["name"])
                 count += 1
 
         #Check the module has code, and that said code is valid
@@ -825,10 +827,8 @@ class StoriumBrain():
             else:
                 result = i.module.settings()
 
-            #Now give the module an ID so Storium can store it later
-            # result.moduleid = modulepath.split("/")[-2] + "-" + modulepath.split("/")[-1]
+            #Inform the module of its ID so it can use it later
             result.moduleid = moduleid
-            #FIXME: Do we need the module to know its ID now?
         except Exception as e:
             raise StoriumBrainException(e)
 
@@ -862,32 +862,26 @@ class StoriumBrain():
         if moduleid not in self.modules:
             raise StoriumBrainException(_("%s is not a loaded module") % moduleid)
         result = copy.deepcopy(self.modules[moduleid].getItemInformation(itemid, sourceid))
-        #Use only strings appropriate to the current language=
+        #Use only strings appropriate to the current language
         for i in ["fullname", "summary", "description", "images", "author", "website", "bugreportsurl", "donateurl", "tosurl", "privpolurl"]:
-            keeplang = self.getTranslation(result[i], True) #TODO: Should be False?
-            ii = result[i][keeplang]
-            result[i] = ii
+            result[i] = self.getTranslation(result[i])
         if result["changelog"] != {}:
             for i in result["changelog"]: #Duplicated code as I don't know how to do these at once yet
-                keeplang = self.getTranslation(result["changelog"][i], True)
-                ii = result["changelog"][i][keeplang]
-                result["changelog"][i] = ii
+                result["changelog"][i] = self.getTranslation(result["changelog"][i])
         if result["warnings"] != []:
             count = 0
             for i in result["warnings"]:
                 if (count % 2) == 0:
                     count += 1
                     continue #Skip 0, 2, etc. (the translatable text is 1, 3, etc.)
-                keeplang = self.getTranslation(result["warnings"][count], True)
-                ii = result["warnings"][count][keeplang]
-                result["warnings"][count] = ii
+                result["warnings"][count] = self.getTranslation(result["warnings"][count])
                 count += 1
         return result
 
     def APIgetItemName(self, itemid, moduleid, sourceid):
         #Returns only the human-readable name of the supplied item
         result = copy.deepcopy(self.modules[moduleid].getItemName(itemid, sourceid))
-        return self.getTranslation(result, False)
+        return self.getTranslation(result)
 
     def APIgetDefaultSource(self, itemid):
         #Returns the first source in GUI API's getAvailableSources
@@ -946,7 +940,7 @@ class StoriumBrain():
             if not os.path.isdir(i):
                 os.mkdir(i)
 
-    def getFromCache(self, folder, filename):
+    def getFromCache(self, filename, folder):
         #Check cache folder exists
         if not os.path.isdir(self.usercachedir):
             return ""
@@ -959,10 +953,11 @@ class StoriumBrain():
     def deleteAgedCache(self, filepath):
         if os.path.isfile(filepath):
             #Check if the file is 4+ days old
-            creationtime = datetime.date.strftime(os.path.getctime(filepath), "%Y%m%d")
-            currenttime = datetime.date.strftime(datetime.date.today(), "%Y%m%d")
+            creationtime = int(datetime.date.strftime(datetime.datetime.fromtimestamp(os.path.getmtime(filepath)), "%Y%m%d"))
+            currenttime = int(datetime.date.strftime(datetime.date.today(), "%Y%m%d"))
             if currenttime-creationtime >= 4: #If so delete it
                 os.remove(filepath)
+        #TODO: Delete all outdated cache on Storium launch.
 
 
     ############################################
@@ -1061,7 +1056,67 @@ class StoriumBrain():
 
     def APIgetAvailableSources(self, itemid):
         #Returns all available sources, from all modules, for this itemid
-        pass #TODO
+        unsorted = {} #Get non-sorted order of sources first, and segment by priority
+        for i in self.modules:
+            if i.startswith("itemmgmt-"):
+                sources = copy.deepcopy(self.modules[i].getAvailableSources(itemid))
+                for source in sources:
+                    sourceid = i + "/" + source
+                    if "priority" in sources[source]:
+                        priority = sources[source]["priority"]
+                    else: #Default to 50
+                        priority = 50
+                        sources[source]["priority"] = priority #Helps save a check later during single source
+                    #Fix negative (invalid) priorities
+                    if priority < 0:
+                        priority == 0
+                    #Reduce priority of redirection sources
+                    if "redirectitemid" in sources[source]:
+                        priority += 900
+                    #Add to matching segment
+                    if priority not in unsorted:
+                        unsorted[priority] = {}
+                    unsorted[priority][sourceid] = sources[source]
+                    del unsorted[priority][sourceid]["priority"] #Redundant
+        #Convert strings to their language-appropriate values
+        for priority in unsorted:
+            for i in unsorted[priority]:
+                target = unsorted[priority][i]
+                for ii in ["fullname"]:
+                    target[ii] = self.getTranslation(target[ii])
+                for ii in target["subsources"]:
+                    target["subsources"][ii]["fullname"] = self.getTranslation(target["subsources"][ii]["fullname"])
+        #If there's only 0-1 sources, return them immediately as sorting is redundant
+        if len(unsorted) == 0:
+            return unsorted
+        elif len(unsorted) == 1:
+            for i in unsorted:
+                if len(unsorted[i]) <= 1:
+                    return unsorted[i]
+        #Sort priorities
+        priorities = []
+        for i in unsorted:
+            priorities.append((i, unsorted[i]))
+        del unsorted #No longer needed
+        priorities.sort(key=self.sortFirst)
+        #For each priority, sort their sources, and then merge the sources into one dict
+        count = 0
+        result = {}
+        for priority in priorities:
+            itemlist = []
+            #Alphanumercalbetically sort the sources, per priority, based on their human-readable names
+            for i in priority[1]:
+                itemlist.append((priority[1][i]["fullname"], i))
+            itemlist.sort(key=self.sortFirst)
+            for i in itemlist: #Reassemble the sources, now in order, to a dict
+                sourceid = i[1]
+                result[sourceid] = priority[1][sourceid]
+            count += 1
+        del priorities
+        #Return the ordered sources
+        return result
+    def sortFirst(self, i):
+        return i[0]
 
     def APIinstallItemSource(self, sourceitemid, itemid, moduleid, sourceid, subsourceid):
         #Adds the necessary source needing installing to pending, as well as adding the item itself to pending with a follows value of this task

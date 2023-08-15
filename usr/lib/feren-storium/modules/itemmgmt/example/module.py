@@ -20,6 +20,7 @@ class module():
         
         #Package Storage will store the data of opened packages this instance, to make future loads faster
         self.itemcache = {}
+        self.sourcescache = {}
 
         #Refresh memory for the first time
         self.refreshMemory()
@@ -29,8 +30,10 @@ class module():
         #self.memory_refreshing = True
 
         self.itemcache = {}
-        with open("/usr/share/feren-storium/curated/itemmgmtexample/items.json", 'r') as fp:
+        with open(self.api.usrdir + "/curated/itemmgmtexample/items.json", 'r') as fp:
             self.itemcache = json.loads(fp.read())
+        with open(self.api.usrdir + "/curated/itemmgmtexample/sourceitems.json", 'r') as fp:
+            self.sourcescache = json.loads(fp.read())
         
         #self.memory_refreshing = False
 
@@ -44,6 +47,7 @@ class module():
             "websites-example": ["applications-profiling", _("Example (Websites)")], \
             "example": ["applications-profiling", _("Example Category")]}
     
+
     def getItemsFromCategory(self, category):
         result = []
         for i in self.itemcache:
@@ -51,6 +55,7 @@ class module():
                 result.append(i)
 
         return result
+
 
     def getItemInformation(self, itemid, sourceid):
         result = {}
@@ -60,4 +65,24 @@ class module():
             result = self.api.dictMerge(result, self.itemcache[itemid]["all"])
         if sourceid in self.itemcache[itemid]: #Merge information from specific source over all
             result = self.api.dictMerge(result, self.itemcache[itemid][sourceid])
+        return result
+
+
+    def getAvailableSources(self, itemid):
+        result = {}
+        for i in self.itemcache[itemid]["sources"]:
+            if i == "exampleredir": #Pretend this is a check for an item having moved or being replaced by another item on this source
+                result[self.moduleid + "-appsource-" + i] = {"fullname": self.sourcescache[i]["fullname"], \
+                    "subsources": {}, \
+                    "redirectitemid": "mozilla-firefox", \
+                    "redirectmoduleid": "flatpak", \
+                    "redirectsourceid": "flathub", \
+                    "redirectmessage": "This is a test redirect", \
+                    "priority": 10}
+                #NOTE: Priority = Priority - 900 after being sent to Storium
+            else:
+                result[self.moduleid + "-appsource-" + i] = {"fullname": self.sourcescache[i]["fullname"], \
+                    "subsources": {"sub1": {"fullname": {"C": "subsource 1"}}, "sub2": {"fullname": {"C": "subsource 2"}}}, \
+                    "defereasymode": True}
+                #NOTE: Priority falls back to 50
         return result

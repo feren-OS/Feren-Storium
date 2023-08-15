@@ -43,7 +43,7 @@ class module():
         #self.memory_refreshing = True
 
         self.itemcache = {}
-        with open("/usr/share/feren-storium/curated/flatpak/items.json", 'r') as fp:
+        with open(self.api.usrdir + "/curated/flatpak/items.json", 'r') as fp:
             self.itemcache = json.loads(fp.read())
         
         #self.memory_refreshing = False
@@ -171,3 +171,6 @@ class module():
         if sourceid in self.itemcache[itemid]: #Merge information from specific source over all
             result = self.api.dictMerge(result, self.itemcache[itemid][sourceid])
         return result
+
+    def getAvailableSources(self, itemid):
+        return {} #TODO

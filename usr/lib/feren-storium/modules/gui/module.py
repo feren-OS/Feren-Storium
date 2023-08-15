@@ -1038,7 +1038,9 @@ class categoricalPage(Gtk.Box):
 
 
     def itemPressed(self, button):
-        self.parent.gotoID(button.itemid)
+        thread = Thread(target=self.parent.gotoID,
+                            args=(button.itemid,))
+        thread.start()
 
 
 
@@ -1051,7 +1053,7 @@ class itemDetailsHeader(Gtk.Box):
         Gtk.Box.__init__(self)
         self.parent = parent
         self.module = module
-        self.get_style_context().add_class("only-toolbar")
+        self.sourcesdata = {}
         self.icontheme = Gtk.IconTheme.get_default() #Used in isIconInIcons
 
         #Item icon
@@ -1083,6 +1085,9 @@ class itemDetailsHeader(Gtk.Box):
         sourcesarea.pack_end(Gtk.Box(), True, True, 0)
         self.sources = Gtk.Stack()
         self.source = Gtk.ComboBox()
+        cell = Gtk.CellRendererText()
+        self.source.pack_start(cell, True)
+        self.source.add_attribute(cell, "text", 0) #Otherwise it completely lacks text
         self.sourcelbl = Gtk.Label(label=_("srcnm"))
         self.sources.add_named(self.source, "dropdown")
         self.sources.add_named(self.sourcelbl, "label")
@@ -1121,13 +1126,20 @@ class itemDetailsHeader(Gtk.Box):
         self.remove.set_no_show_all(True)
         self.remove.get_style_context().add_class(Gtk.STYLE_CLASS_DESTRUCTIVE_ACTION)
         #self.remove.connect('clicked', self.onRemove)
+        #  Assemble them
         self.actions.pack_end(self.remove, False, False, 4)
         self.actions.pack_end(self.update, False, False, 4)
         self.actions.pack_end(self.reinstall, False, False, 4)
         self.actions.pack_end(self.installsource, False, False, 4)
         self.actions.pack_end(self.install, False, False, 4)
+        #  Subsources selector
+        self.subsource = Gtk.ComboBox()
+        cell2 = Gtk.CellRendererText()
+        self.subsource.pack_start(cell2, True)
+        self.subsource.add_attribute(cell2, "text", 0)
         #Combine extra buttons and buttons and add
         self.statusunqueued = Gtk.Box()
+        self.statusunqueued.pack_start(self.subsource, False, False, 4)
         self.statusunqueued.pack_start(self.moduleactions, False, False, 0)
         self.statusunqueued.pack_start(self.actions, False, False, 0)
         self.itemstatus.add_named(self.statusunqueued, "unqueued")
@@ -1251,6 +1263,32 @@ class itemDetailsHeader(Gtk.Box):
                 raise DemoGUIException(_("This icon set has no icons??"))
 
 
+    def loadSources(self, sources, itemid):
+        #TODO: Add check to ensure we're still on the page
+        if len(sources) == 0:
+            pass #TODO: "Not available" page
+            return
+        self.sourcesdata = sources
+
+        if len(self.sourcesdata) == 1:
+            #TODO: Change sourcelbl text during source changed
+            GLib.idle_add(self.sources.set_visible_child, self.sourcelbl)
+            GLib.idle_add(self.source.hide)
+        else:
+            GLib.idle_add(self.source.show)
+            GLib.idle_add(self.sources.set_visible_child, self.source)
+
+        iface_list_store = Gtk.ListStore(GObject.TYPE_STRING)
+        for source in self.sourcesdata: #Why did they design it to need to be a list?
+            iface_list_store.append([self.sourcesdata[source]["fullname"]])
+        GLib.idle_add(self.source.set_model, iface_list_store)
+        GLib.idle_add(self.source.set_active, 0)
+
+        #TODO: Stop on first non-easymode-deferring source when on Simple Mode
+        #TODO: Add way to instantly select alternative source without triggering event for the first selected source
+
+    def loadSubsources(self, sourceid, itemid):
+        pass #TODO
 
 
 
@@ -1475,7 +1513,7 @@ class window(Gtk.Window):
         GLib.idle_add(self.body.set_visible_child, self.itempage)
 
         #Get the available sources of the item
-
+        self.itempage.header.loadSources(self.parent.guiapi.getAvailableSources(itemid), itemid)
 
         #Switch to the manually selected source
 
@@ -1515,6 +1553,7 @@ class window(Gtk.Window):
     def itemPage(self):
         result = Gtk.Stack()
         result.loading = Gtk.VBox()
+        result.loading.get_style_context().add_class(Gtk.STYLE_CLASS_VIEW)
         result.loaded = Gtk.VBox()
         result.loadspin = Gtk.Spinner()
 
@@ -1548,6 +1587,7 @@ class window(Gtk.Window):
         result.body.add_named(result.bodyloaded, "loaded")
 
         result.loaded.pack_start(itemdetailsheader, False, False, 0)
+        result.loaded.pack_start(Gtk.Separator(), False, False, 0)
         result.loaded.pack_end(result.body, True, True, 0)
         return result
 
