@@ -709,6 +709,8 @@ class StoriumBrain():
         #Reopen GUI if closed, and go to a page in the GUI if one is given
         self.modules["gui"].spawnGUI(command, targetid, moduleid, sourceid, subsourceid) #Don't wait this time as this time acts as a window open trigger
 
+        #TODO: Allow stripping the 'itemmgmt-' from the sourceid, and adding it back in automatically here if not present?
+
 
     def dbusSessionSignals(self):
         #Receive DBus signals to perform certain actions, and respond to certain methods, in the session bus

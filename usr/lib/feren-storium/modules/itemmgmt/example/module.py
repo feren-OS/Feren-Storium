@@ -59,6 +59,7 @@ class module():
 
     def getItemInformation(self, itemid, sourceid):
         result = {}
+        sourceid = sourceid[len(self.moduleid + "-appsource-"):]
         if sourceid not in self.itemcache[itemid] and "all" not in self.itemcache[itemid]:
             raise ExampleModuleException(_("%s does not exist in source %s") % (itemid, sourceid))
         if "all" in self.itemcache[itemid]:

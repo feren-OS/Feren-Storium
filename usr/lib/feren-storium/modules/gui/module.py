@@ -1024,7 +1024,6 @@ class categoricalPage(Gtk.Box):
 
 
     def onCategoryChanged(self, listbox, row):
-        print(row.category, self.listingsPane)
         items = self.module.guiapi.allItemsFilterCategory(row.category, 200, True, False)
         for i in self.listingsPane.get_children():
             GLib.idle_add(i.destroy)
@@ -1054,6 +1053,7 @@ class itemDetailsHeader(Gtk.Box):
         self.parent = parent
         self.module = module
         self.sourcesdata = {}
+        self.targetsubsource = None
         self.icontheme = Gtk.IconTheme.get_default() #Used in isIconInIcons
 
         #Item icon
@@ -1065,8 +1065,8 @@ class itemDetailsHeader(Gtk.Box):
         self.appiconstack.set_visible_child(self.appicon)
 
         #Item fullname and summary
-        self.fullname = Gtk.Label(label="Dummy")
-        self.summary = Gtk.Label(label="Dummy description")
+        self.fullname = Gtk.Label()
+        self.summary = Gtk.Label()
 
         fullnameBox = Gtk.Box()
         summaryBox = Gtk.Box()
@@ -1085,10 +1085,11 @@ class itemDetailsHeader(Gtk.Box):
         sourcesarea.pack_end(Gtk.Box(), True, True, 0)
         self.sources = Gtk.Stack()
         self.source = Gtk.ComboBox()
+        self.source.connect("changed", self.onSourceChange)
         cell = Gtk.CellRendererText()
         self.source.pack_start(cell, True)
         self.source.add_attribute(cell, "text", 0) #Otherwise it completely lacks text
-        self.sourcelbl = Gtk.Label(label=_("srcnm"))
+        self.sourcelbl = Gtk.Label()
         self.sources.add_named(self.source, "dropdown")
         self.sources.add_named(self.sourcelbl, "label")
         sourcesarea.pack_start(self.sources, False, False, 0)
@@ -1134,6 +1135,7 @@ class itemDetailsHeader(Gtk.Box):
         self.actions.pack_end(self.install, False, False, 4)
         #  Subsources selector
         self.subsource = Gtk.ComboBox()
+        self.subsource.connect("changed", self.onSubsourceChange)
         cell2 = Gtk.CellRendererText()
         self.subsource.pack_start(cell2, True)
         self.subsource.add_attribute(cell2, "text", 0)
@@ -1192,7 +1194,8 @@ class itemDetailsHeader(Gtk.Box):
         if a == self.statusunqueued:
             self.install.set_sensitive(True)
         else: #TODO: Destroy module's extra buttons here
-            pass
+            for i in self.moduleactions.get_children():
+                GLib.idle_add(i.destroy) #idle_add seems smoother for this
             for i in [self.installsource, self.reinstall, self.update, self.remove]: #TODO: add sources label and sources dropdown
                 i.hide()
         if a == self.statusqueued:
@@ -1225,9 +1228,10 @@ class itemDetailsHeader(Gtk.Box):
         return result
 
     def setIcon(self, iconid, iconurl, itemid, moduleid, sourceid):
+        #Just in case
         GLib.idle_add(self.appiconloading.start)
         GLib.idle_add(self.appiconstack.set_visible_child, self.appiconloading)
-        GLib.idle_add(self.appiconstack.set_visible, True)
+        GLib.idle_add(self.appiconstack.show)
         #Try using icon from icon set first
         if self.isIconInIcons(iconid):
             try:
@@ -1257,21 +1261,29 @@ class itemDetailsHeader(Gtk.Box):
             try: #Fallback of all fallbacks
                 GLib.idle_add(self.appicon.set_from_pixbuf, self.iconPixbuf(self.getIconIDLocation("image-missing")))
             except:
-                GLib.idle_add(self.appiconstack.set_visible, False)
+                GLib.idle_add(self.appiconstack.hide)
                 GLib.idle_add(self.appiconstack.set_visible_child, self.appicon)
                 GLib.idle_add(self.appiconloading.stop)
                 raise DemoGUIException(_("This icon set has no icons??"))
 
 
-    def loadSources(self, sources, itemid):
-        #TODO: Add check to ensure we're still on the page
+    def loadSources(self, itemid, targetmodule="", targetsource="", targetsubsource=""):
+        if itemid != self.parent.currentItem:
+            return #Do not run if the item being viewed is not itemid
+
+        #Show a loading item page
+        GLib.idle_add(self.parent.itempage.loadspin.start)
+        GLib.idle_add(self.parent.itempage.set_visible_child, self.parent.itempage.loading)
+
+        #Get the sources
+        sources = self.module.guiapi.getAvailableSources(itemid)
         if len(sources) == 0:
             pass #TODO: "Not available" page
             return
         self.sourcesdata = sources
+        self.targetsubsource = None #Reset if not yet reset
 
         if len(self.sourcesdata) == 1:
-            #TODO: Change sourcelbl text during source changed
             GLib.idle_add(self.sources.set_visible_child, self.sourcelbl)
             GLib.idle_add(self.source.hide)
         else:
@@ -1282,14 +1294,144 @@ class itemDetailsHeader(Gtk.Box):
         for source in self.sourcesdata: #Why did they design it to need to be a list?
             iface_list_store.append([self.sourcesdata[source]["fullname"]])
         GLib.idle_add(self.source.set_model, iface_list_store)
-        GLib.idle_add(self.source.set_active, 0)
+
+        #Select the appropriate source
+        targetindex = 0
+        if targetmodule != "" and targetsource != "":
+            target = targetmodule + "/" + targetsource
+            if target in sources:
+                targetindex = list(self.sourcesdata.keys()).index(target)
+                if targetsubsource != "": #Store targetsubsource so the subsource automatically switches upon source selection
+                    self.targetsubsource = targetsubsource
+            else:
+                #TODO: Debug output check/@...
+                print(_("DEBUG: Could not switch source to %s from %s as it is not available for this item.") % (targetsource, targetmodule))
+        #Select a source automatically
+        GLib.idle_add(self.source.set_active, targetindex)
+
+        #Show the page to the user
+        GLib.idle_add(self.parent.itempage.set_visible_child, self.parent.itempage.loaded)
+        GLib.idle_add(self.parent.itempage.loadspin.stop)
 
         #TODO: Stop on first non-easymode-deferring source when on Simple Mode
-        #TODO: Add way to instantly select alternative source without triggering event for the first selected source
 
-    def loadSubsources(self, sourceid, itemid):
-        pass #TODO
+    def onSourceChange(self, combobox):
+        if combobox.get_active() == -1: #Prevent exceptions on invalid values
+            return
 
+        newsourceid = list(self.sourcesdata.keys())[combobox.get_active()]
+        self.parent.currentModuleSource = newsourceid
+        self.sourcelbl.set_label(self.sourcesdata[newsourceid]["fullname"])
+
+        #Switch item page to loading
+        GLib.idle_add(self.parent.itempage.bodyloadspin.start)
+        GLib.idle_add(self.parent.itempage.body.set_visible_child, self.parent.itempage.bodyloading)
+        GLib.idle_add(self.appiconloading.start)
+        GLib.idle_add(self.appiconstack.set_visible_child, self.appiconloading)
+        GLib.idle_add(self.appiconstack.set_visible, True)
+        GLib.idle_add(self.fullname.set_label, "")
+        GLib.idle_add(self.summary.set_label, "")
+
+        #Ditto with item status
+        GLib.idle_add(self.statusloading.start)
+        GLib.idle_add(self.itemstatus.set_visible_child, self.statusunknown)
+
+        #Redirect if this source is a redirection source
+        #TODO
+
+        #Load item information from this source
+        thread = Thread(target=self.parent.loadItemInformation,
+                        args=(newsourceid, self.parent.currentItem))
+        thread.daemon = True
+        thread.start()
+
+        #Load subsources
+        self.loadSubsources(newsourceid, self.parent.currentItem)
+
+        #Load status of the item
+        self.loadStatus(newsourceid, self.parent.currentItem)
+    def loadSubsources(self, modulesourceid, itemid):
+        if itemid != self.parent.currentItem:
+            return #Do not run if the item being viewed is not itemid
+        if modulesourceid != self.parent.currentModuleSource:
+            return #Do not run if the source being viewed is not this
+        subsources = self.sourcesdata[modulesourceid]["subsources"]
+
+        if len(subsources) <= 1:
+            #TODO: Move this code to loadStatus as it'll toggle dropdown visibility
+            GLib.idle_add(self.subsource.hide)
+        else:
+            GLib.idle_add(self.subsource.show)
+
+        iface_list_store = Gtk.ListStore(GObject.TYPE_STRING)
+        for subsource in subsources: #Why did they design it to need to be a list?
+            iface_list_store.append([subsources[subsource]["fullname"]])
+        GLib.idle_add(self.subsource.set_model, iface_list_store)
+
+        #Select the appropriate source
+        targetindex = 0
+        if self.targetsubsource != None and not len(subsources) <= 1:
+            if target in subsources:
+                targetindex = list(subsources.keys()).index(self.targetsubsource)
+            else:
+                #TODO: Debug output check/@...
+                print(_("DEBUG: Could not switch subsource to %s as it is not available for this item.") % self.targetsubsource)
+        self.targetsubsource = None #Reset the value once used
+        #Select a source automatically
+        GLib.idle_add(self.subsource.set_active, targetindex)
+
+
+    def onSubsourceChange(self, combobox):
+        self.parent.currentSubsource = list(self.sourcesdata[self.parent.currentModuleSource]["subsources"].keys())[combobox.get_active()]
+
+
+    def loadStatus(self, modulesourceid, itemid):
+        if itemid != self.parent.currentItem:
+            return #Do not run if the item being viewed is not itemid
+        if modulesourceid != self.parent.currentModuleSource:
+            return #Do not run if the source being viewed is not this
+
+        #Just in case
+        GLib.idle_add(self.parent.itempage.header.statusloading.start)
+        GLib.idle_add(self.parent.itempage.header.itemstatus.set_visible_child, self.parent.itempage.header.statusunknown)
+
+        #Get split values for source and module IDs
+        moduleid, sourceid = modulesourceid.split("/")
+        #FIXME: We'd need to change this to only split the final / and not precursor ones
+
+        #Get status, and subsource if relevant via API
+        status, installedsubsource = None, None #TODO
+
+        #Change subsource accordingly if installed
+
+
+        #Change visibility of buttons accordingly (alongside subsource selector's visibility)
+
+        #TODO: Also get module's extra buttons and add those here
+
+        GLib.idle_add(self.parent.itempage.header.itemstatus.set_visible_child, self.parent.itempage.header.statusunqueued)
+        #TODO: Check for queued, etc. statuses once Tasks are implemented
+        #TODO: to check for "Install...", before checking this item's status query getItemStatus on the source ID itself to check if the source is installed
+        GLib.idle_add(self.parent.itempage.header.statusloading.stop)
+
+
+    def loadInfo(self, iteminfo, modulesourceid, itemid):
+        if itemid != self.parent.currentItem:
+            return
+        if modulesourceid != self.parent.currentModuleSource:
+            return
+
+        #Show the appropriate icon
+        moduleid, sourceid = modulesourceid.split("/")
+        #FIXME: We'd need to change this to only split the final / and not precursor ones
+        thread = Thread(target=self.setIcon,
+                        args=(iteminfo["iconid"], iteminfo["iconurl"], itemid, moduleid, sourceid))
+        thread.daemon = True
+        thread.start()
+
+        #There are only two labels left in the header to change:
+        GLib.idle_add(self.fullname.set_label, iteminfo["fullname"])
+        GLib.idle_add(self.summary.set_label, iteminfo["summary"])
 
 
 ############################################
@@ -1308,6 +1450,13 @@ class itemInfoBody(Gtk.FlowBox):
         #TODO: Remaining contents
         self.show_all()
 
+    def loadInfo(self, iteminfo, modulesourceid, itemid):
+        if itemid != self.parent.currentItem:
+            return
+        if modulesourceid != self.parent.currentModuleSource:
+            return
+
+        print(iteminfo)
 
 
 ############################################
@@ -1322,9 +1471,9 @@ class window(Gtk.Window):
         self.wndstack = None
 
         #These three are used to skip page updating code whenever otherwise inappropriate to continue execution of, such as dropdown changes and so on.
-        self.current_itemid = ""
-        self.current_sourceid = ""
-        self.current_subsourceid = ""
+        self.currentItem = ""
+        self.currentModuleSource = ""
+        self.currentSubsource = ""
 
         self.set_position(Gtk.WindowPosition.CENTER)
         self.set_title(_("Feren Storium API Demo - GUI Module"))
@@ -1506,40 +1655,13 @@ class window(Gtk.Window):
         self.body.set_visible_child(self.pages)
 
     def gotoID(self, itemid, moduleid="", sourceid="", subsourceid=""):
-        #Show a loading item page
-        GLib.idle_add(self.itempage.loadspin.start)
-        GLib.idle_add(self.itempage.set_visible_child, self.itempage.loading)
-
         GLib.idle_add(self.body.set_visible_child, self.itempage)
 
-        #Get the available sources of the item
-        self.itempage.header.loadSources(self.parent.guiapi.getAvailableSources(itemid), itemid)
-
-        #Switch to the manually selected source
-
-        GLib.idle_add(self.itempage.set_visible_child, self.itempage.loaded)
-        GLib.idle_add(self.itempage.loadspin.stop)
-
-        GLib.idle_add(self.itempage.bodyloadspin.start)
-        GLib.idle_add(self.itempage.body.set_visible_child, self.itempage.bodyloading)
-
-        GLib.idle_add(self.itempage.header.statusloading.start)
-        GLib.idle_add(self.itempage.header.itemstatus.set_visible_child, self.itempage.header.statusunknown)
-
-        #Load information onto header and information page
-
-
-        #Also load the status of the item in another thread
-
-        GLib.idle_add(self.itempage.body.set_visible_child, self.itempage.bodyloaded)
-        GLib.idle_add(self.itempage.bodyloadspin.stop)
-
-        GLib.idle_add(self.itempage.header.itemstatus.set_visible_child, self.itempage.header.statusunqueued)
-        GLib.idle_add(self.itempage.header.statusloading.stop)
+        #Get the available sources of the item, and switch to the appropriate source
+        self.currentItem = itemid
+        self.itempage.header.loadSources(itemid, moduleid, sourceid, subsourceid)
 
  #TEMP
-        a = self.parent.api.getItemInformation(itemid, "itemmgmt-example", "example1")
-        self.itempage.header.setIcon(a["iconid"], a["iconurl"], itemid, "itemmgmt-example", "example1")
         self.itempage.header.install.show()
         #TODO: Tell header to load available sources
         # Then the header can tell itself and body to load the item information of the default source
@@ -1591,6 +1713,32 @@ class window(Gtk.Window):
         result.loaded.pack_end(result.body, True, True, 0)
         return result
 
+
+    def loadItemInformation(self, modulesourceid, itemid):
+        if itemid != self.currentItem:
+            return #Do not run if the item being viewed is not itemid
+        if modulesourceid != self.currentModuleSource:
+            return #Do not run if the source being viewed is not this
+
+        #Just in case
+        GLib.idle_add(self.itempage.bodyloadspin.start)
+        GLib.idle_add(self.itempage.body.set_visible_child, self.itempage.bodyloading)
+        GLib.idle_add(self.itempage.header.appiconloading.start)
+        GLib.idle_add(self.itempage.header.appiconstack.set_visible_child, self.itempage.header.appiconloading)
+        GLib.idle_add(self.itempage.header.appiconstack.set_visible, True)
+        GLib.idle_add(self.itempage.header.fullname.set_label, "")
+        GLib.idle_add(self.itempage.header.summary.set_label, "")
+
+        #Get split values for source and module IDs
+        moduleid, sourceid = modulesourceid.split("/")
+        #FIXME: We'd need to change this to only split the final / and not precursor ones
+
+        iteminfo = self.parent.api.getItemInformation(itemid, moduleid, sourceid)
+        self.itempage.header.loadInfo(iteminfo, modulesourceid, itemid)
+        self.itempage.iteminfo.loadInfo(iteminfo, modulesourceid, itemid)
+
+        GLib.idle_add(self.itempage.body.set_visible_child, self.itempage.bodyloaded)
+        GLib.idle_add(self.itempage.bodyloadspin.stop)
 
 
 ############################################
