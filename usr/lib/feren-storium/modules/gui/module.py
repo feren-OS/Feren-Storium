@@ -1055,6 +1055,7 @@ class itemDetailsHeader(Gtk.Box):
         self.sourcesdata = {}
         self.targetsubsource = None
         self.icontheme = Gtk.IconTheme.get_default() #Used in isIconInIcons
+        self.extrabuttoncallbacks = {}
 
         #Item icon
         self.appicon = Gtk.Image()
@@ -1193,11 +1194,6 @@ class itemDetailsHeader(Gtk.Box):
         a = stckswch.get_visible_child()
         if a == self.statusunqueued:
             self.install.set_sensitive(True)
-        else: #TODO: Destroy module's extra buttons here
-            for i in self.moduleactions.get_children():
-                GLib.idle_add(i.destroy) #idle_add seems smoother for this
-            for i in [self.installsource, self.reinstall, self.update, self.remove]: #TODO: add sources label and sources dropdown
-                i.hide()
         if a == self.statusqueued:
             self.statusqueued.show()
         else:
@@ -1209,6 +1205,7 @@ class itemDetailsHeader(Gtk.Box):
         if a == self.statusunknown:
             self.statusunknown.show()
             self.install.set_sensitive(False)
+            self.install.show()
         else:
             self.statusunknown.hide()
 
@@ -1367,16 +1364,22 @@ class itemDetailsHeader(Gtk.Box):
         for subsource in subsources: #Why did they design it to need to be a list?
             iface_list_store.append([subsources[subsource]["fullname"]])
         GLib.idle_add(self.subsource.set_model, iface_list_store)
+        self.changeSubsource(subsources, modulesourceid, itemid, self.targetsubsource)
+        self.targetsubsource = None #Reset the value once used
 
+    def changeSubsource(self, subsources, modulesourceid, itemid, targetsubsource):
+        if itemid != self.parent.currentItem:
+            return #Do not run if the item being viewed is not itemid
+        if modulesourceid != self.parent.currentModuleSource:
+            return #Do not run if the source being viewed is not this
         #Select the appropriate source
         targetindex = 0
-        if self.targetsubsource != None and not len(subsources) <= 1:
-            if target in subsources:
-                targetindex = list(subsources.keys()).index(self.targetsubsource)
+        if targetsubsource != None and not len(subsources) <= 1:
+            if targetsubsource in subsources:
+                targetindex = list(subsources.keys()).index(targetsubsource)
             else:
                 #TODO: Debug output check/@...
-                print(_("DEBUG: Could not switch subsource to %s as it is not available for this item.") % self.targetsubsource)
-        self.targetsubsource = None #Reset the value once used
+                print(_("DEBUG: Could not switch subsource to %s as it is not available for this item.") % targetsubsource)
         #Select a source automatically
         GLib.idle_add(self.subsource.set_active, targetindex)
 
@@ -1400,17 +1403,69 @@ class itemDetailsHeader(Gtk.Box):
         #FIXME: We'd need to change this to only split the final / and not precursor ones
 
         #Get status, and subsource if relevant via API
-        status, installedsubsource = None, None #TODO
-
-        #Change subsource accordingly if installed
-
+        status, installedsubsource = self.module.guiapi.getItemStatus(itemid, moduleid, sourceid)
 
         #Change visibility of buttons accordingly (alongside subsource selector's visibility)
+        GLib.idle_add(self.parent.itempage.header.install.hide)
+        GLib.idle_add(self.parent.itempage.header.installsource.hide)
+        GLib.idle_add(self.parent.itempage.header.reinstall.hide)
+        GLib.idle_add(self.parent.itempage.header.update.hide)
+        GLib.idle_add(self.parent.itempage.header.remove.hide)
+        GLib.idle_add(self.parent.itempage.header.subsource.hide)
+        for i in self.moduleactions.get_children():
+            GLib.idle_add(i.destroy) #idle_add seems smoother for this
+        self.extrabuttoncallbacks = {} #Erase existing callback values now the buttons are gone
+        if status == 0:
+            #Check if the necessary source is installed if not installed
+            sourceavailable = True #TODO
+            if sourceavailable == True:
+                GLib.idle_add(self.parent.itempage.header.install.show)
+            else:
+                GLib.idle_add(self.parent.itempage.header.installsource.show)
+            GLib.idle_add(self.parent.itempage.header.subsource.show)
+        elif status == 1:
+            GLib.idle_add(self.parent.itempage.header.reinstall.show)
+            GLib.idle_add(self.parent.itempage.header.remove.show)
+            #Change subsource accordingly if installed
+            self.changeSubsource(self.sourcesdata[modulesourceid]["subsources"], modulesourceid, itemid, installedsubsource)
+        elif status == 2:
+            GLib.idle_add(self.parent.itempage.header.update.show)
+            GLib.idle_add(self.parent.itempage.header.remove.show)
+            self.changeSubsource(self.sourcesdata[modulesourceid]["subsources"], modulesourceid, itemid, installedsubsource)
+        elif status == 3: #Queued
+            GLib.idle_add(self.parent.itempage.header.statusqueued.set_label, _("Waiting for installation"))
+        elif status == 4:
+            GLib.idle_add(self.parent.itempage.header.statusqueued.set_label, _("Waiting for reinstallation"))
+        elif status == 5:
+            GLib.idle_add(self.parent.itempage.header.statusqueued.set_label, _("Waiting for update"))
+        elif status == 6:
+            GLib.idle_add(self.parent.itempage.header.statusqueued.set_label, _("Waiting for removal"))
+        elif status >= 7 and status <= 10:
+            pass #TODO: Get current progress and immediately place it on the in-page progress bar
 
-        #TODO: Also get module's extra buttons and add those here
+        #Get extra buttons from the selected module
+        for i in self.module.guiapi.getExtraItemButtons(itemid, moduleid, sourceid, status):
+            img = Gtk.Image()
+            img.set_from_icon_name(i["icon"], Gtk.IconSize.BUTTON);
+            ii = Gtk.Button(label=i["text"], image=img)
+            ii.set_tooltip_text(i["tooltip"])
+            callbackid = 0
+            while callbackid in self.extrabuttoncallbacks:
+                callbackid += 1
+            self.extrabuttoncallbacks[callbackid] = i["callback"]
+            ii.connect("clicked", self.extraButtonCallback, callbackid)
+            #Add the extra button to the row of 'em
+            self.moduleactions.pack_end(ii, False, False, 4)
+            ii.show()
 
-        GLib.idle_add(self.parent.itempage.header.itemstatus.set_visible_child, self.parent.itempage.header.statusunqueued)
-        #TODO: Check for queued, etc. statuses once Tasks are implemented
+        #Show the appropriate items
+        if status >= 0 and status <= 2:
+            GLib.idle_add(self.parent.itempage.header.itemstatus.set_visible_child, self.parent.itempage.header.statusunqueued)
+        elif status >= 3 and status <= 6:
+            GLib.idle_add(self.parent.itempage.header.itemstatus.set_visible_child, self.parent.itempage.header.statusqueued)
+        elif status >= 7 and status <= 10:
+            GLib.idle_add(self.parent.itempage.header.itemstatus.set_visible_child, self.parent.itempage.header.statusinprogress)
+
         #TODO: to check for "Install...", before checking this item's status query getItemStatus on the source ID itself to check if the source is installed
         GLib.idle_add(self.parent.itempage.header.statusloading.stop)
 
@@ -1432,6 +1487,13 @@ class itemDetailsHeader(Gtk.Box):
         #There are only two labels left in the header to change:
         GLib.idle_add(self.fullname.set_label, iteminfo["fullname"])
         GLib.idle_add(self.summary.set_label, iteminfo["summary"])
+
+
+    def extraButtonCallback(self, button, callbackid):
+        if callbackid not in self.extrabuttoncallbacks:
+            return
+
+        self.extrabuttoncallbacks[callbackid]()
 
 
 ############################################
@@ -1661,8 +1723,6 @@ class window(Gtk.Window):
         self.currentItem = itemid
         self.itempage.header.loadSources(itemid, moduleid, sourceid, subsourceid)
 
- #TEMP
-        self.itempage.header.install.show()
         #TODO: Tell header to load available sources
         # Then the header can tell itself and body to load the item information of the default source
         #TODO: Any way to prevent source changing twice technically if we supply a command to open Storium immediately to an item with a source override and module override?

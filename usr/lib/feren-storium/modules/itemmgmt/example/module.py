@@ -2,7 +2,7 @@
 import time
 import gettext
 import json
-
+from functools import partial
 
 class ExampleModuleException(Exception): # Name this according to the module to allow easier debugging
     pass
@@ -87,3 +87,41 @@ class module():
                     "defereasymode": True}
                 #NOTE: Priority falls back to 50
         return result
+
+
+    ############################################
+    # Item Management
+    ############################################
+
+    def getItemStatus(self, itemid, sourceid):
+        #This is just so the functionality can be shown off - in an actual module, you should query your chosen backend for installation status and respond appropriately.
+        # NOTE: Only 0, 1, and 2 are accepted status values for a module to return.
+        if itemid == "exampleinstall":
+            return 0, ""
+        elif itemid == "examplenosource":
+            return 0, "" #TODO: Make this example fail the source installed check, and add a check for this separately
+        elif itemid == "exampleupdate":
+            return 2, "sub2"
+        elif itemid == "exampleinstalled":
+            return 1, "sub1"
+        else:
+            return 0, ""
+
+
+    def getExtraItemButtons(self, itemid, sourceid, status):
+        result = []
+        result.append({"text": "Test button", \
+                       "tooltip": "A test button!", \
+                       "icon": "softwarecenter", \
+                       "callback": self.callbackTest})
+        if status == 1:
+            result.append({"text": "Another", \
+                       "tooltip": "Another test button!", \
+                       "icon": "dialog-apply", \
+                       "callback": partial(self.callbackTest, True)})
+        return result
+    def callbackTest(self, alt=False):
+        if alt == False:
+            print("IT WORKS")
+        else:
+            print("I'll tell you what yo")

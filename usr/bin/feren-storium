@@ -493,6 +493,8 @@ class StoriumBrain():
         self.guiapi.getCustomCategories = self.APIgetCustomCategories
         self.guiapi.allItemsFilterCategory = self.APIallItemsFilterCategory
         self.guiapi.getAvailableSources = self.APIgetAvailableSources
+        self.guiapi.getItemStatus = self.APTgetItemStatus
+        self.guiapi.getExtraItemButtons = self.APIgetExtraItemButtons
         self.guiapi.installItemSource = self.APIinstallItemSource
         self.guiapi.installItem = self.APIinstallItem
         self.guiapi.reinstallItem = self.APIreinstallItem
@@ -1047,7 +1049,7 @@ class StoriumBrain():
         result = []
         for i in self.modules:
             if i.startswith("itemmgmt-"):
-                ii = self.modules[i].getItemsFromCategory(category)
+                ii = copy.deepcopy(self.modules[i].getItemsFromCategory(category))
                 for item in ii:
                     if item not in result:
                         result.append(item)
@@ -1119,6 +1121,49 @@ class StoriumBrain():
         return result
     def sortFirst(self, i):
         return i[0]
+
+
+    def APTgetItemStatus(self, itemid, moduleid, sourceid):
+        #Returns the item's status as an ID out of the following, as well as the subsource if installed:
+        # Not currently a task:
+        #  0: Not installed
+        #  1: Installed
+        #  2: Out of date
+        # Queued:
+        #  3: Pending installation
+        #  4: Pending reinstallation
+        #  5: Pending updating
+        #  6: Pending removal
+        # In progress:
+        #  7: Installing...
+        #  8: Reinstalling...
+        #  9: Updating...
+        #  10: Removing...
+
+
+        #TODO: Add checks for item being in tasks, and if so returning the corresponding status instead of querying its module
+        return copy.deepcopy(self.modules[moduleid].getItemStatus(itemid, sourceid))
+
+
+    def APIgetExtraItemButtons(self, itemid, moduleid, sourceid, status):
+        #Returns extra buttons for displaying in the item details page, and installation notifications
+        # Formatted as [{"text": "Test button", "tooltip": "An example button", "icon": "softwarecenter", callback: callbackHere}]
+
+        orig = self.modules[moduleid].getExtraItemButtons(itemid, sourceid, status)
+        result = []
+        limit = 0
+        for i in orig:
+            if limit >= 2:
+                break #Don't allow more than 2 buttons for sanity reasons
+            a = {}
+            a["text"] = copy.deepcopy(i["text"])
+            a["tooltip"] = copy.deepcopy(i["tooltip"])
+            a["icon"] = copy.deepcopy(i["icon"])
+            a["callback"] = i["callback"]
+            result.append(a)
+            limit += 1
+        return result
+
 
     def APIinstallItemSource(self, sourceitemid, itemid, moduleid, sourceid, subsourceid):
         #Adds the necessary source needing installing to pending, as well as adding the item itself to pending with a follows value of this task
