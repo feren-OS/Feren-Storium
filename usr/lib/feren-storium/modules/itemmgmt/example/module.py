@@ -72,21 +72,28 @@ class module():
     def getAvailableSources(self, itemid):
         result = {}
         for i in self.itemcache[itemid]["sources"]:
-            if i == "exampleredir": #Pretend this is a check for an item having moved or being replaced by another item on this source
-                result[self.moduleid + "-appsource-" + i] = {"fullname": self.sourcescache[i]["fullname"], \
-                    "subsources": {}, \
-                    "redirectitemid": "mozilla-firefox", \
-                    "redirectmoduleid": "flatpak", \
-                    "redirectsourceid": "flathub", \
-                    "redirectmessage": "This is a test redirect", \
-                    "priority": 10}
-                #NOTE: Priority = Priority - 900 after being sent to Storium
-            else:
-                result[self.moduleid + "-appsource-" + i] = {"fullname": self.sourcescache[i]["fullname"], \
-                    "subsources": {"sub1": {"fullname": {"C": "subsource 1"}}, "sub2": {"fullname": {"C": "subsource 2"}}}, \
-                    "defereasymode": True}
-                #NOTE: Priority falls back to 50
+            result[self.moduleid + "-appsource-" + i] = self.getSourceInformation(itemid, i)
         return result
+
+
+    def getSourceInformation(self, itemid, sourceid):
+        if sourceid.startswith(self.moduleid + "-appsource-"):
+            sourceid = sourceid[len(self.moduleid + "-appsource-"):]
+        if sourceid == "exampleredir": #Pretend this is a check for an item having moved or being replaced by another item on this source
+            return {"fullname": self.sourcescache[sourceid]["fullname"], \
+                "subsources": {}, \
+                "redirectitemid": "mozilla-firefox", \
+                "redirectmoduleid": "flatpak", \
+                "redirectsourceid": "flathub", \
+                "redirectmessage": "This is a test redirect", \
+                "priority": 10}
+            #NOTE: Priority = Priority - 900 after being sent to Storium
+        else:
+            elevated = True if sourceid == "example2" else False
+            return {"fullname": self.sourcescache[sourceid]["fullname"], \
+                "subsources": {"sub1": {"fullname": {"C": "subsource 1"}}, "sub2": {"fullname": {"C": "subsource 2"}}}, \
+                "defereasymode": True, "elevated": elevated}
+            #NOTE: Priority falls back to 50
 
 
     ############################################

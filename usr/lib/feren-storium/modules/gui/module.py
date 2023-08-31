@@ -159,709 +159,106 @@ class configWindow(Gtk.Window):
         #TODO: Move everything window-related into here
 
 
+############################################
+# Item Block
+############################################
+class itemBlockButton(Gtk.Button):
+    def __init__(self, parent, itemid, moduleid=None, sourceid=None, manage=True):
+        Gtk.Button.__init__(self)
+
+        #TODO: Move everything window-related into here
 
 
 
+    #TODO: itemBlock (a panel with the same contents as the button, just no connect event whatsoever)
 
 
-
-
-
-
-####Application icon (used for application details page, and tasks buttons)
-class AppItemIcon(Gtk.Stack):
-
-    def __init__(self, api):
+############################################
+# Item Icon
+############################################
+class itemIcon(Gtk.Stack):
+    def __init__(self, parent, module):
         Gtk.Stack.__init__(self)
-        GObject.threads_init()
+        self.connect("notify::visible-child", self.stateChanged)
+        self.parent = parent
+        self.module = module
+        self.size = 48
+        self.set_size_request(self.size, self.size)
+        self.icontheme = Gtk.IconTheme.get_default() #Used in isIconInIcons
 
+        self.icon = Gtk.Image()
+        self.loading = Gtk.Spinner()
+        self.add_named(self.loading, "loading")
+        self.add_named(self.icon, "icon")
+        self.set_visible_child(self.icon)
+        self.set_no_show_all(True) #Don't show when auto-shown post-summoning
 
-        self.api = api
+        #Show children so that when show'd the icon and loading indicator are visible
+        self.icon.show_all()
+        self.loading.show_all()
 
-        self.app_iconimg = Gtk.Image()
-        self.app_iconimg_loading = Gtk.Spinner()
-        self.app_iconimg_loading_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        self.app_iconimg_loading_box.set_center_widget(self.app_iconimg_loading)
+    def isIconInIcons(self, iconid):
+        return self.icontheme.has_icon(iconid)
 
-        self.add_named(self.app_iconimg_loading_box, "load")
-        self.add_named(self.app_iconimg, "icon")
+    def getIconIDLocation(self, iconid):
+        if self.isIconInIcons(iconid) == False:
+            raise DemoGUIException(_("%s is not in this icon set") % iconid)
+        return self.icontheme.lookup_icon_for_scale(iconid, self.size, Gtk.Image().get_scale_factor(), Gtk.IconLookupFlags.FORCE_SIZE).get_filename()
 
-        self.desired_size = 48
+    def iconPixbuf(self, filepath):
+        size = self.size * Gtk.Image().get_scale_factor()
+        result = GdkPixbuf.Pixbuf.new_from_file(filepath)
+        result = result.scale_simple(size, size, GdkPixbuf.InterpType.BILINEAR)
+        return result
 
-        self.show_all()
-
-
-    def set_icon(self, iconname, iconlocal, iconuri, itemid):
-        thread = Thread(target=self._set_icon,
-                        args=(iconname, iconlocal, iconuri, itemid))
-        thread.daemon = True
-        thread.start()
-
-    def _set_icon(self, iconname, iconlocal, iconuri, itemid):
-        GLib.idle_add(self.set_visible_child, self.app_iconimg_loading_box)
-        GLib.idle_add(self.app_iconimg_loading.start,)
-
-        iconlocat = None
-        #TODO: Try to get from icon set first
-        try:
-            raise
-        except: #Get it from fallback location
-            try: #TODO: Try to get from icon set
-                iconlocat = self.api.getFallbackIconLocation(iconlocal, iconuri, itemid)
+    def setIcon(self, iconid, iconurl, itemid, moduleid, sourceid):
+        #Just in case
+        GLib.idle_add(self.set_visible_child, self.loading)
+        #Try using icon from icon set first
+        if self.isIconInIcons(iconid):
+            try:
+                GLib.idle_add(self.icon.set_from_pixbuf, self.iconPixbuf(self.getIconIDLocation(iconid)))
+                GLib.idle_add(self.set_visible_child, self.icon)
+                return
             except:
                 pass
+        #If not in the icon set, grab its icon from the internet
+        try:
+            cachepath = self.module.api.getIcon(itemid, moduleid, sourceid, iconurl)
+            GLib.idle_add(self.icon.set_from_pixbuf, self.iconPixbuf(cachepath))
+            GLib.idle_add(self.set_visible_child, self.icon)
+            return
+        except Exception as e:
+            #TODO: Debug check
+            print(_("DEBUG: Could not download icon for %s: %s") % (itemid, e))
+        #Fall back to missing icon if all else fails
+        try:
+            GLib.idle_add(self.icon.set_from_pixbuf, self.iconPixbuf(self.getIconIDLocation("package-x-generic")))
+            GLib.idle_add(self.set_visible_child, self.icon)
+            return
+        except:
+            try: #Fallback of all fallbacks
+                GLib.idle_add(self.icon.set_from_pixbuf, self.iconPixbuf(self.getIconIDLocation("image-missing")))
+            except:
+                GLib.idle_add(self.icon.hide)
+                GLib.idle_add(self.set_visible_child, self.icon)
+                raise DemoGUIException(_("This icon set has no icons??"))
 
-        if iconlocat == None:
-            #TODO: Change to store-missing-icon
-            #TODO: iconurilocat = "icon:store-missing-icon"
-            iconlocat = "/usr/share/icons/Inspire/256/apps/feren-store.png"
 
-        if iconlocat.startswith("icon:"):
-            #TODO
-            pass
+    def stateChanged(self, stckswch, idk):
+        a = stckswch.get_visible_child()
+        if a == self.loading:
+            self.loading.start()
+            self.show()
         else:
-            icon_pixbuf = GdkPixbuf.Pixbuf.new_from_file(iconlocat)
-            icon_pixbuf = icon_pixbuf.scale_simple(self.desired_size, self.desired_size, GdkPixbuf.InterpType.BILINEAR)
+            self.loading.stop()
 
 
-        GLib.idle_add(self.app_iconimg.set_from_pixbuf, icon_pixbuf)
-        GLib.idle_add(self.app_iconimg_loading.stop,)
-        GLib.idle_add(self.set_visible_child, self.app_iconimg)
 
 
 
 
 
-
-####Application Details Header
-class AppDetailsHeader(Gtk.VBox):
-
-    def __init__(self, guimain):
-        Gtk.Box.__init__(self)
-        self.guimain = guimain
-
-
-
-
-        self.app_icon = AppItemIcon(guimain.api)
-
-        self.app_title = Gtk.Label()
-        self.app_title.set_label("APPLICATION TITLE")
-
-        self.app_shortdesc = Gtk.Label()
-        self.app_shortdesc.set_label("APPLICATION SHORT DESCRIPTION")
-
-        self.app_source_dropdown = Gtk.ComboBox()
-        #NOTE TO SELF: NEVER put this in the dropdown refreshing code - it'll cause duplicated labels
-        cell = Gtk.CellRendererText()
-        self.app_source_dropdown.pack_start(cell, True)
-        self.app_source_dropdown.add_attribute(cell, "text", 0)
-        self.app_source_dropdown.connect("changed", self.on_source_dropdown_changed)
-
-        self.app_subsource_dropdown = Gtk.ComboBox()
-        cell2 = Gtk.CellRendererText()
-        self.app_subsource_dropdown.pack_start(cell2, True)
-        self.app_subsource_dropdown.add_attribute(cell2, "text", 0)
-        self.app_subsource_dropdown.connect("changed", self.on_subsource_dropdown_changed)
-
-        self.app_mgmt_progress = Gtk.ProgressBar()
-
-        buttonsbox = Gtk.Box()
-
-        self.installapp_btn = Gtk.Button(label=("Install"))
-        self.installappnosource_btn = Gtk.Button(label=("Install..."))
-        self.updateapp_btn = Gtk.Button(label=("Update"))
-        self.removeapp_btn = Gtk.Button(label=("Remove"))
-        self.cancelapp_btn = Gtk.Button(label=("Cancel"))
-
-        buttonsbox.pack_start(self.installapp_btn, False, False, 4)
-        buttonsbox.pack_start(self.installappnosource_btn, False, False, 4)
-        buttonsbox.pack_start(self.updateapp_btn, False, False, 4)
-        buttonsbox.pack_start(self.removeapp_btn, False, False, 4)
-        buttonsbox.pack_start(self.cancelapp_btn, False, False, 4)
-
-        self.pack_start(self.app_icon, False, False, 4)
-        self.pack_start(self.app_title, True, False, 4)
-        self.pack_start(self.app_shortdesc, True, False, 4)
-        self.pack_start(self.app_source_dropdown, False, False, 4)
-        self.pack_start(self.app_subsource_dropdown, False, False, 4)
-        self.pack_start(self.app_mgmt_progress, True, False, 4)
-        self.pack_start(buttonsbox, True, False, 4)
-
-
-        self.installapp_btn.connect("clicked", self.installapp_pressed)
-        #self.installappnosource_btn.connect("clicked", self.installappnosource_pressed)
-        self.updateapp_btn.connect("clicked", self.updateapp_pressed)
-        self.removeapp_btn.connect("clicked", self.removeapp_pressed)
-        #self.cancelapp_btn.connect("clicked", self.cancelapp_pressed)
-
-        #For sources
-        self.current_sourcelist = {}
-        self.current_subsources = [] #Makes accessing them way easier
-
-        pass
-
-
-    def load_sources(self, availablesources, itemid, sourceid=""):
-        if itemid != self.guimain.current_itemid:
-            return
-
-        self.current_sourcelist = {} #Reset
-
-        iface_list_store = Gtk.ListStore(GObject.TYPE_STRING)
-
-        for item in availablesources["recommended"]:
-            iface_list_store.append([availablesources["recommended"][item]['name']])
-            self.current_sourcelist[item] = availablesources["recommended"][item]
-        #TODO: Stop here on Simple Mode
-        for item in availablesources["normal"]:
-            iface_list_store.append([availablesources["normal"][item]['name']])
-            self.current_sourcelist[item] = availablesources["normal"][item]
-        for item in availablesources["nonrecommended"]:
-            iface_list_store.append([availablesources["nonrecommended"][item]['name']])
-            self.current_sourcelist[item] = availablesources["nonrecommended"][item]
-
-        GLib.idle_add(self.app_source_dropdown.set_model, iface_list_store)
-        GLib.idle_add(self.app_source_dropdown.set_active, 0)
-        if len(iface_list_store) == 0:
-            #If there are no sources, show the unavailable screen and stop
-            GLib.idle_add(self.guimain.pagearea.itempagestack.set_visible_child, self.guimain.pagearea.itempageunavailable)
-            GLib.idle_add(self.set_visible, False)
-            return
-        elif len(iface_list_store) <= 1:
-            GLib.idle_add(self.app_source_dropdown.set_sensitive, False)
-        else:
-            GLib.idle_add(self.app_source_dropdown.set_sensitive, True)
-
-
-        thread = None
-        #If sourceid isn't "", switch source over automatically
-        if sourceid != "":
-            #Find the appropriate source first, and then set it
-            n = 0
-            for item in self.current_sourcelist:
-                if item == sourceid:
-                    GLib.idle_add(self.app_source_dropdown.set_active, n)
-                    break
-                n += 1
-
-
-    def on_source_dropdown_changed(self, combobox):
-        if combobox.get_active() == -1:
-            return
-
-        self.guimain.current_sourceid = list(self.current_sourcelist.keys())[combobox.get_active()] #Convert to list of keys, so we can use the combobox.get_active() index on it to get the currently selected source's ID
-
-        thread = Thread(target=self.guimain.pagearea._sourceChange,
-                            args=( self.guimain.current_itemid, self.current_sourcelist[self.guimain.current_sourceid] ) )
-        thread.start()
-
-        print("TEMPDEBUG SOURCE_DROPDOWN_CHANGED - source changed to " + self.guimain.current_sourceid)
-
-        thread = Thread(target=self.load_sourcedata,
-                            args=(self.guimain.current_sourceid, self.guimain.current_itemid) )
-        thread.start()
-
-
-    def load_sourcedata(self, sourceid, itemid):
-        if itemid != self.guimain.current_itemid:
-            return
-
-        GLib.idle_add(self.app_subsource_dropdown.set_visible, False) #Temporarily hide the subsource selector while loading
-        self.load_subsources(sourceid, itemid)
-
-        if itemid != self.guimain.current_itemid:
-            return
-
-        self.load_item_status(sourceid, itemid)
-
-        if itemid != self.guimain.current_itemid:
-            return
-
-
-    def load_subsources(self, sourceid, itemid):
-        if itemid != self.guimain.current_itemid:
-            return
-
-        self.current_subsources = [] #Reset
-
-        iface_list_store = Gtk.ListStore(GObject.TYPE_STRING)
-
-        if "subsources" in self.current_sourcelist[sourceid]:
-            #Add subsources if there are actually subsources
-            for item in self.current_sourcelist[sourceid]["subsources"]:
-                iface_list_store.append([self.current_sourcelist[sourceid]["subsources"][item]["name"]])
-                self.current_subsources.append(item) #Add the subsource IDs to a list so we
-                    #have an easier time accessing them than the chaotic code that'd
-                    #otherwise be needed to access them
-
-        GLib.idle_add(self.app_subsource_dropdown.set_model, iface_list_store)
-        GLib.idle_add(self.app_subsource_dropdown.set_active, 0)
-        if len(iface_list_store) <= 1:
-            GLib.idle_add(self.app_subsource_dropdown.set_sensitive, False)
-        else:
-            GLib.idle_add(self.app_subsource_dropdown.set_sensitive, True)
-
-
-    def on_subsource_dropdown_changed(self, combobox):
-        if combobox.get_active() == -1:
-            self.guimain.current_subsourceid = ""
-        else:
-            self.guimain.current_subsourceid = self.current_subsources[combobox.get_active()] #This code would be chaos if it wasn't for self.current_subsources
-
-        print("TEMPDEBUG SUBSOURCE_DROPDOWN_CHANGED - subsource changed to " + self.guimain.current_subsourceid)
-
-
-    def load_item_status(self, sourceid, itemid):
-        if itemid != self.guimain.current_itemid:
-            return
-
-        #Disable all buttons, and hide subsource selection
-        GLib.idle_add(self.installapp_btn.set_sensitive, False)
-        GLib.idle_add(self.installappnosource_btn.set_sensitive, False)
-        GLib.idle_add(self.updateapp_btn.set_sensitive, False)
-        GLib.idle_add(self.removeapp_btn.set_sensitive, False)
-        GLib.idle_add(self.cancelapp_btn.set_sensitive, False)
-        GLib.idle_add(self.app_subsource_dropdown.set_visible, False)
-
-        result, subsource = self.guimain.api.getAppStatus(self.guimain.current_itemid, self.guimain.current_sourceid)
-
-        if subsource != None: #If a subsource was provided, switch to it
-            n = 0
-            for item in self.current_subsources:
-                if item == subsource:
-                    GLib.idle_add(self.app_subsource_dropdown.set_active, n)
-                    break
-                n += 1
-
-        if result >= 20 and result <= 22: #Currently being worked on
-            pass #TODO
-        elif result >= 10 and result <= 12: #Waiting in tasks queue
-            pass #TODO
-        else:
-            if result == 0: #Not installed
-                GLib.idle_add(self.installapp_btn.set_sensitive, True)
-                GLib.idle_add(self.app_subsource_dropdown.set_visible, True)
-            elif result == 1: #Installed
-                GLib.idle_add(self.removeapp_btn.set_sensitive, True)
-            elif result == 2: #Updatable
-                GLib.idle_add(self.updateapp_btn.set_sensitive, True)
-            elif result == 3: #Available in disabled source
-                GLib.idle_add(self.installappnosource_btn.set_sensitive, True)
-                GLib.idle_add(self.app_subsource_dropdown.set_visible, True)
-
-        print("TEMPDEBUG LOAD_ITEM_STATUS - result is {0}, subsource is {1}".format(str(result), subsource))
-
-
-    def load_data(self, itemid, pkginfo):
-        if self.guimain.current_itemid != itemid:
-            return
-
-        thread = Thread(target=self._load_data,
-                            args=(itemid, pkginfo))
-        thread.start()
-
-    def _load_data(self, itemid, pkginfo):
-        #Update icons and information according to the pkginfo
-        self.app_icon.set_icon(pkginfo["iconname"], pkginfo["iconlocal"], pkginfo["iconuri"], itemid)
-        self.app_title.set_label(pkginfo["realname"])
-        self.app_shortdesc.set_label(pkginfo["shortdescription"])
-
-        if self.guimain.current_itemid == itemid:
-            GLib.idle_add(self.set_visible, True)
-
-
-
-    def installapp_pressed(self, btn):
-        self.guimain.api.installApp(self.guimain.current_itemid, self.guimain.current_sourceid, self.guimain.current_subsourceid)
-
-    def updateapp_pressed(self, btn):
-        self.guimain.api.updateApp(self.guimain.current_itemid, self.guimain.current_sourceid, self.guimain.current_subsourceid)
-
-    def removeapp_pressed(self, btn):
-        self.guimain.api.removeApp(self.guimain.current_itemid, self.guimain.current_sourceid, self.guimain.current_subsourceid)
-
-
-
-
-####AppView
-class PageArea(Gtk.Stack):
-
-    def __init__(self, guimain):
-        Gtk.Stack.__init__(self)
-        self.guimain = guimain
-
-
-        #Main Page
-        self.mainpage = Gtk.ScrolledWindow()
-        self.mainpage.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
-        mainpagesub = Gtk.VBox(spacing=8)
-
-        #Main Page: Application Listings
-        appslabel_box = Gtk.Box()
-        appslabel = Gtk.Label(label="Application Listings:")
-        appslabel_box.pack_start(appslabel, False, False, 0)
-
-        self.appsitems = Gtk.FlowBox()
-        self.appsitems.set_min_children_per_line(3)
-        self.appsitems.set_margin_top(4)
-        self.appsitems.set_margin_bottom(4)
-        self.appsitems.set_row_spacing(4)
-        self.appsitems.set_homogeneous(True)
-        self.appsitems.set_valign(Gtk.Align.START)
-
-
-        #Main Page: Games Listings
-        gameslabel_box = Gtk.Box()
-        gameslabel = Gtk.Label(label="Games Listings:")
-        gameslabel_box.pack_start(gameslabel, False, False, 0)
-
-        self.gamesitems = Gtk.FlowBox()
-        self.gamesitems.set_min_children_per_line(3)
-        self.gamesitems.set_margin_top(4)
-        self.gamesitems.set_margin_bottom(4)
-        self.gamesitems.set_row_spacing(4)
-        self.gamesitems.set_homogeneous(True)
-        self.gamesitems.set_valign(Gtk.Align.START)
-
-
-        #Main Page: Themes Listings
-        themeslabel_box = Gtk.Box()
-        themeslabel = Gtk.Label(label="Themes Listings:")
-        themeslabel_box.pack_start(themeslabel, False, False, 0)
-
-        self.themesitems = Gtk.FlowBox()
-        self.themesitems.set_min_children_per_line(3)
-        self.themesitems.set_margin_top(4)
-        self.themesitems.set_margin_bottom(4)
-        self.themesitems.set_row_spacing(4)
-        self.themesitems.set_homogeneous(True)
-        self.themesitems.set_valign(Gtk.Align.START)
-
-
-        #Main Page: Websites Listings
-        websiteslabel_box = Gtk.Box()
-        websiteslabel = Gtk.Label(label="Websites Listings:")
-        websiteslabel_box.pack_start(websiteslabel, False, False, 0)
-
-        self.websitesitems = Gtk.FlowBox()
-        self.websitesitems.set_min_children_per_line(3)
-        self.websitesitems.set_margin_top(4)
-        self.websitesitems.set_margin_bottom(4)
-        self.websitesitems.set_row_spacing(4)
-        self.websitesitems.set_homogeneous(True)
-        self.websitesitems.set_valign(Gtk.Align.START)
-
-
-        #Assemble the main page
-        mainpagesub.pack_start(appslabel_box, False, False, 0)
-        mainpagesub.pack_start(self.appsitems, False, False, 0)
-        mainpagesub.pack_start(gameslabel_box, False, False, 0)
-        mainpagesub.pack_start(self.gamesitems, False, False, 0)
-        mainpagesub.pack_start(themeslabel_box, False, False, 0)
-        mainpagesub.pack_start(self.themesitems, False, False, 0)
-        mainpagesub.pack_start(websiteslabel_box, False, False, 0)
-        mainpagesub.pack_start(self.websitesitems, False, False, 0)
-
-        mainpagesub.set_margin_bottom(8)
-        mainpagesub.set_margin_top(8)
-        mainpagesub.set_margin_left(10)
-        mainpagesub.set_margin_right(10)
-
-        self.mainpage.add(mainpagesub)
-
-        #Add the main page to the page control
-        self.add_named(self.mainpage, "home")
-
-
-        #Tasks Page
-        self.taskspage = Gtk.ScrolledWindow()
-        self.taskspage.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
-        taskspagesub = Gtk.VBox(spacing=8)
-
-        #Tasks Page: Tasks in progress
-        taskslabel_box = Gtk.Box()
-        taskslabel = Gtk.Label(label="Currently working on these tasks:")
-        taskslabel_box.pack_start(taskslabel, False, False, 0)
-
-        self.tasksitemscontainer = Gtk.Box()
-        self.tasksitemscontainer.set_margin_top(4)
-        self.tasksitemscontainer.set_margin_bottom(4)
-        self.tasksitemscontainer.set_valign(Gtk.Align.START)
-        self.tasksitems = None
-
-
-        #Tasks Page: Updates available
-        updateslabel_box = Gtk.Box()
-        updateslabel = Gtk.Label(label="Updates are available for:")
-        updateslabel_box.pack_start(updateslabel, False, False, 0)
-
-        self.updatesitems = Gtk.FlowBox()
-        self.updatesitems.set_margin_top(4)
-        self.updatesitems.set_margin_bottom(4)
-        self.updatesitems.set_min_children_per_line(1)
-        self.updatesitems.set_max_children_per_line(1)
-        self.updatesitems.set_row_spacing(4)
-        self.updatesitems.set_homogeneous(True)
-        self.updatesitems.set_valign(Gtk.Align.START)
-
-
-        #Tasks Page: Installed items
-        installedlabel_box = Gtk.Box()
-        installedlabel = Gtk.Label(label="Currently installed:")
-        installedlabel_box.pack_start(installedlabel, False, False, 0)
-
-        self.installeditems = Gtk.FlowBox()
-        self.installeditems.set_margin_top(4)
-        self.installeditems.set_margin_bottom(4)
-        self.installeditems.set_min_children_per_line(1)
-        self.installeditems.set_max_children_per_line(1)
-        self.installeditems.set_row_spacing(4)
-        self.installeditems.set_homogeneous(True)
-        self.installeditems.set_valign(Gtk.Align.START)
-
-
-        #Assemble the tasks page
-        taskspagesub.pack_start(taskslabel_box, False, False, 0)
-        taskspagesub.pack_start(self.tasksitemscontainer, False, False, 0)
-        taskspagesub.pack_start(updateslabel_box, False, False, 0)
-        taskspagesub.pack_start(self.updatesitems, False, False, 0)
-        taskspagesub.pack_start(installedlabel_box, False, False, 0)
-        taskspagesub.pack_start(self.installeditems, False, False, 0)
-
-        taskspagesub.set_margin_bottom(8)
-        taskspagesub.set_margin_top(8)
-        taskspagesub.set_margin_left(10)
-        taskspagesub.set_margin_right(10)
-
-        self.taskspage.add(taskspagesub)
-
-        #Add the tasks page to the main control
-        self.add_named(self.taskspage, "tasks")
-
-
-
-        #Search Page
-        self.searchpage = Gtk.ScrolledWindow()
-        self.searchpage.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
-        searchpagesub = Gtk.VBox(spacing=8)
-
-        #Search Page: Main Searchbar
-        self.searchbar = Gtk.Entry()
-        #self.searchbar.connect("changed", self.searchbar_search)
-
-
-        #Search Page: Search Results
-        self.searchresultscontainer = Gtk.Box()
-        self.searchresultscontainer.set_margin_top(4)
-        self.searchresultscontainer.set_margin_bottom(4)
-        self.searchresults = None
-
-
-        #Assemble the search page
-        searchpagesub.pack_start(self.searchbar, False, False, 4)
-        searchpagesub.pack_start(self.searchresultscontainer, False, False, 4)
-
-        searchpagesub.set_margin_bottom(8)
-        searchpagesub.set_margin_top(8)
-        searchpagesub.set_margin_left(10)
-        searchpagesub.set_margin_right(10)
-
-        self.searchpage.add(searchpagesub)
-
-
-        #Add the search page to the main control
-        self.add_named(self.searchpage, "search")
-
-
-        #Item's page
-        self.itempage = Gtk.ScrolledWindow()
-        self.itempage.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
-        self.itempagestack = Gtk.Stack()
-        self.itempagesub = Gtk.VBox(spacing=8)
-        self.itempageloading = Gtk.Label(label=_("Loading..."))
-        self.itempageunavailable = Gtk.Label(label=_("This item is not available."))
-
-
-        #Item's Page: Information container
-        self.itempagecontents = Gtk.FlowBox()
-        self.itempagecontents.set_min_children_per_line(1)
-        self.itempagecontents.set_max_children_per_line(1)
-
-        self.itempagesub.pack_start(self.itempagecontents, True, True, 8)
-
-        # build another scrolled window widget and add our package view
-
-        self.itempagesub.set_margin_bottom(8)
-        self.itempagesub.set_margin_top(8)
-        self.itempagesub.set_margin_left(10)
-        self.itempagesub.set_margin_right(10)
-
-        self.itempage.add(self.itempagestack)
-        self.itempagestack.add_named(self.itempagesub, "page")
-        self.itempagestack.add_named(self.itempageloading, "loading")
-        self.itempagestack.add_named(self.itempageunavailable, "unavailable")
-
-
-        self.add_named(self.itempage, "itempage")
-
-
-    #Main page
-    def populate_mainpage(self):
-        thread = Thread(target=self._populate_mainpage,
-                            args=())
-        thread.start()
-
-    def _populate_mainpage(self):
-        #TODO: Split into sections
-        data = self.guimain.api.getItemIDs(["all"])
-        for category in data:
-            for pkgname in data[category]:
-                btn = Gtk.Button(label=(pkgname))
-                btn.connect("clicked", self.btn_goto_itempage, pkgname)
-                if category.startswith("ice-"):
-                    GLib.idle_add(self.websitesitems.insert, btn, -1)
-                elif category.startswith("themes-"):
-                    GLib.idle_add(self.themesitems.insert, btn, -1)
-                elif category.startswith("games-"):
-                    GLib.idle_add(self.themesitems.insert, btn, -1)
-                else:
-                    GLib.idle_add(self.appsitems.insert, btn, -1)
-        GLib.idle_add(self.show_all)
-
-
-    def btn_goto_itempage(self, btn, itemid, sourceid=""):
-        self.gotoID(itemid, sourceid)
-
-    def gotoID(self, itemid, sourceid=""): #API call
-        thread = Thread(target=self._gotoID,
-                            args=(itemid, sourceid))
-        thread.start()
-
-    def _gotoID(self, itemid, sourceid=""):
-        #Go to Item Page, with the loading screen for now
-        GLib.idle_add(self.itempagestack.set_visible_child, self.itempageloading)
-        GLib.idle_add(self.set_visible_child, self.itempage)
-        self.guimain.current_itemid = itemid
-
-        #Get available sources
-        availablesources = self.guimain.api.getAvailableSources(itemid)
-
-        #Feed the information to the header to get it loading
-        self.guimain.detailsheader.load_sources(availablesources, itemid, sourceid)
-
-
-    #### ITEM INFORMATION ####
-    def sourceChange(self, itemid, sourceid):
-        thread = Thread(target=self._sourceChange,
-                            args=(itemid, sourceid))
-        thread.start()
-
-    def _sourceChange(self, itemid, sourceid):
-        #Go to loading screen
-        GLib.idle_add(self.itempagestack.set_visible_child, self.itempageloading)
-
-        #Get information from default source
-        pkginfo = self.guimain.api.getItemInformation(itemid, sourceid["id"].split(":")[0], sourceid["id"].split(":")[1], "") #TODO: subsourceid, and make this trigger when subsource is changed instead, with this call here only serving to change source and subsource and then call subsource changed
-
-        #Pass information to header to load into the information there
-        self.guimain.detailsheader._load_data(itemid, pkginfo)
-
-        self._loadItemInformation(pkginfo, itemid)
-
-        #Switch from loading screen to page now the loading's done
-        GLib.idle_add(self.itempagestack.set_visible_child, self.itempagesub)
-        pass #TODO
-
-
-    def loadItemInformation(self, pkginfo, itemid):
-        thread = Thread(target=self._loadItemInformation,
-                            args=(pkginfo, itemid))
-        thread.start()
-
-    def _loadItemInformation(self, pkginfo, itemid):
-        itemstoadd = []
-
-        #Now provide the information: NOTE Boxes are used to left-align the labels
-        #Warnings
-        #TODO: Retrieve warnings outta pkginfo
-
-
-        #Images
-        images_box = Gtk.Box()
-        self.pkgpage_images = Gtk.Label(label=_("Images: %s") % pkginfo["images"])
-        GLib.idle_add(images_box.pack_start, self.pkgpage_images, False, False, 0)
-        itemstoadd.append(images_box)
-
-        #Description
-        description_box = Gtk.Box()
-        self.pkgpage_description = Gtk.Label(label=_("Description: %s") % pkginfo["description"])
-        GLib.idle_add(description_box.pack_start, self.pkgpage_description, False, False, 0)
-        itemstoadd.append(description_box)
-
-        #Category
-        category_box = Gtk.Box()
-        self.pkgpage_category = Gtk.Label(label=_("Category: %s") % pkginfo["category"])
-        GLib.idle_add(category_box.pack_start, self.pkgpage_category, False, False, 0)
-
-        itemstoadd.append(category_box)
-
-        #Website
-        website_box = Gtk.Box()
-        self.pkgpage_website = Gtk.Label(label=_("Website: %s") % pkginfo["website"])
-        GLib.idle_add(website_box.pack_start, self.pkgpage_website, False, False, 0)
-
-        itemstoadd.append(website_box)
-
-        #Author
-        author_box = Gtk.Box()
-        self.pkgpage_author = Gtk.Label(label=_("Author: %s") % pkginfo["author"])
-        GLib.idle_add(author_box.pack_start, self.pkgpage_author, False, False, 0)
-
-        itemstoadd.append(author_box)
-
-        #URL for Donations
-        donateurl_box = Gtk.Box()
-        self.pkgpage_donateurl = Gtk.Label(label=_("Donate URL: %s") % pkginfo["donateurl"])
-        GLib.idle_add(donateurl_box.pack_start, self.pkgpage_donateurl, False, False, 0)
-
-        itemstoadd.append(donateurl_box)
-
-        #URL for Bugs
-        bugsurl_box = Gtk.Box()
-        self.pkgpage_bugsurl = Gtk.Label(label=_("Bugs URL: %s") % pkginfo["bugreporturl"])
-        GLib.idle_add(bugsurl_box.pack_start, self.pkgpage_bugsurl, False, False, 0)
-
-        itemstoadd.append(bugsurl_box)
-
-        #URL for Terms of Service
-        tosurl_box = Gtk.Box()
-        self.pkgpage_tosurl = Gtk.Label(label=_("Terms of Service URL: %s") % pkginfo["tosurl"])
-        GLib.idle_add(tosurl_box.pack_start, self.pkgpage_tosurl, False, False, 0)
-
-        itemstoadd.append(tosurl_box)
-
-        #URL for Privacy Policy
-        privpolurl_box = Gtk.Box()
-        self.pkgpage_privpolurl = Gtk.Label(label=_("Privacy Policy URL: %s") % pkginfo["privpolurl"])
-        GLib.idle_add(privpolurl_box.pack_start, self.pkgpage_privpolurl, False, False, 0)
-
-        itemstoadd.append(privpolurl_box)
-
-        GLib.idle_add(self.placeItemInformation, itemid, itemstoadd)
-
-
-    def placeItemInformation(self, itemid, itemstoadd):
-        #First, delete all children on the item information page
-        for child in self.itempagecontents.get_children():
-            GLib.idle_add(child.destroy)
-
-        #Now add the new children to the item information page in order
-        for item in itemstoadd:
-            self.itempagecontents.insert(item, -1)
-
-        #Finally, show them all
-        self.itempagecontents.show_all()
 
 ############################################
 # Notifications
@@ -1054,16 +451,10 @@ class itemDetailsHeader(Gtk.Box):
         self.module = module
         self.sourcesdata = {}
         self.targetsubsource = None
-        self.icontheme = Gtk.IconTheme.get_default() #Used in isIconInIcons
         self.extrabuttoncallbacks = {}
 
         #Item icon
-        self.appicon = Gtk.Image()
-        self.appiconloading = Gtk.Spinner()
-        self.appiconstack = Gtk.Stack()
-        self.appiconstack.add_named(self.appiconloading, "Loading")
-        self.appiconstack.add_named(self.appicon, "AppIcon")
-        self.appiconstack.set_visible_child(self.appicon)
+        self.itemicon = itemIcon(self, module)
 
         #Item fullname and summary
         self.fullname = Gtk.Label()
@@ -1109,25 +500,26 @@ class itemDetailsHeader(Gtk.Box):
         self.install = Gtk.Button(label=_("Install"))
         self.install.set_no_show_all(True) #Prevent being shown on show_all(), thus preventing W I D E  window
         self.install.get_style_context().add_class(Gtk.STYLE_CLASS_SUGGESTED_ACTION)
-        #self.install.connect('clicked', self.onInstall)
+        self.install.connect('clicked', self.onInstall)
         #  Install (requires adding application source)
         self.installsource = Gtk.Button(label=_("Install..."))
         self.installsource.set_no_show_all(True)
         self.installsource.get_style_context().add_class(Gtk.STYLE_CLASS_SUGGESTED_ACTION)
-        #self.installsource.connect('clicked', self.onInstallSource)
+        self.installsource.connect('clicked', self.onInstallSource)
         #  Update
         self.update = Gtk.Button(label=_("Update"))
+        self.update.get_style_context().add_class(Gtk.STYLE_CLASS_SUGGESTED_ACTION)
         self.update.set_no_show_all(True)
-        #self.update.connect('clicked', self.onUpdate)
+        self.update.connect('clicked', self.onUpdate)
         #  Reinstall
         self.reinstall = Gtk.Button(label=_("Reinstall"))
         self.reinstall.set_no_show_all(True)
-        #self.reinstall.connect('clicked', self.onReinstall)
+        self.reinstall.connect('clicked', self.onReinstall)
         #  Remove
         self.remove = Gtk.Button(label=_("Remove"))
         self.remove.set_no_show_all(True)
         self.remove.get_style_context().add_class(Gtk.STYLE_CLASS_DESTRUCTIVE_ACTION)
-        #self.remove.connect('clicked', self.onRemove)
+        self.remove.connect('clicked', self.onRemove)
         #  Assemble them
         self.actions.pack_end(self.remove, False, False, 4)
         self.actions.pack_end(self.update, False, False, 4)
@@ -1177,16 +569,12 @@ class itemDetailsHeader(Gtk.Box):
 
         # Adding it all into the header area
         actionsarea.pack_start(self.itemstatus, False, False, 0)
-        self.pack_start(self.appiconstack, False, False, 8)
+        self.pack_start(self.itemicon, False, False, 8)
         self.pack_start(fullnameSummaryBox, True, True, 4)
         self.pack_end(actionsarea, False, False, 4)
         self.pack_end(sourcesarea, False, False, 4)
         self.pack_end(sourceslbl, False, False, 4)
         self.show_all()
-
-        #TEST
-        self.moduleactions.pack_start(Gtk.Button(label="TEST"), False, False, 4)
-        self.moduleactions.pack_start(Gtk.Button(label="Extra button test"), False, False, 4)
 
 
     def onStatusChanged(self, stckswch, idk):
@@ -1208,60 +596,6 @@ class itemDetailsHeader(Gtk.Box):
             self.install.show()
         else:
             self.statusunknown.hide()
-
-
-    def isIconInIcons(self, iconid):
-        return self.icontheme.has_icon(iconid)
-
-    def getIconIDLocation(self, iconid):
-        if self.isIconInIcons(iconid) == False:
-            raise DemoGUIException(_("%s is not in this icon set") % iconid)
-        return self.icontheme.lookup_icon_for_scale(iconid, 48, Gtk.Image().get_scale_factor(), Gtk.IconLookupFlags.FORCE_SIZE).get_filename()
-
-    def iconPixbuf(self, filepath):
-        size = 48 * Gtk.Image().get_scale_factor()
-        result = GdkPixbuf.Pixbuf.new_from_file(filepath)
-        result = result.scale_simple(size, size, GdkPixbuf.InterpType.BILINEAR)
-        return result
-
-    def setIcon(self, iconid, iconurl, itemid, moduleid, sourceid):
-        #Just in case
-        GLib.idle_add(self.appiconloading.start)
-        GLib.idle_add(self.appiconstack.set_visible_child, self.appiconloading)
-        GLib.idle_add(self.appiconstack.show)
-        #Try using icon from icon set first
-        if self.isIconInIcons(iconid):
-            try:
-                GLib.idle_add(self.appicon.set_from_pixbuf, self.iconPixbuf(self.getIconIDLocation(iconid)))
-                GLib.idle_add(self.appiconstack.set_visible_child, self.appicon)
-                GLib.idle_add(self.appiconloading.stop)
-                return
-            except:
-                pass
-        #If not in the icon set, grab its icon from the internet
-        try:
-            cachepath = self.module.api.getIcon(itemid, moduleid, sourceid, iconurl)
-            GLib.idle_add(self.appicon.set_from_pixbuf, self.iconPixbuf(cachepath))
-            GLib.idle_add(self.appiconstack.set_visible_child, self.appicon)
-            GLib.idle_add(self.appiconloading.stop)
-            return
-        except Exception as e:
-            #TODO: Debug check
-            print(_("DEBUG: Could not download icon for %s: %s") % (itemid, e))
-        #Fall back to missing icon if all else fails
-        try:
-            GLib.idle_add(self.appicon.set_from_pixbuf, self.iconPixbuf(self.getIconIDLocation("package-x-generic")))
-            GLib.idle_add(self.appiconstack.set_visible_child, self.appicon)
-            GLib.idle_add(self.appiconloading.stop)
-            return
-        except:
-            try: #Fallback of all fallbacks
-                GLib.idle_add(self.appicon.set_from_pixbuf, self.iconPixbuf(self.getIconIDLocation("image-missing")))
-            except:
-                GLib.idle_add(self.appiconstack.hide)
-                GLib.idle_add(self.appiconstack.set_visible_child, self.appicon)
-                GLib.idle_add(self.appiconloading.stop)
-                raise DemoGUIException(_("This icon set has no icons??"))
 
 
     def loadSources(self, itemid, targetmodule="", targetsource="", targetsubsource=""):
@@ -1323,9 +657,7 @@ class itemDetailsHeader(Gtk.Box):
         #Switch item page to loading
         GLib.idle_add(self.parent.itempage.bodyloadspin.start)
         GLib.idle_add(self.parent.itempage.body.set_visible_child, self.parent.itempage.bodyloading)
-        GLib.idle_add(self.appiconloading.start)
-        GLib.idle_add(self.appiconstack.set_visible_child, self.appiconloading)
-        GLib.idle_add(self.appiconstack.set_visible, True)
+        GLib.idle_add(self.itemicon.set_visible_child, self.itemicon.loading)
         GLib.idle_add(self.fullname.set_label, "")
         GLib.idle_add(self.summary.set_label, "")
 
@@ -1393,7 +725,12 @@ class itemDetailsHeader(Gtk.Box):
             return #Do not run if the item being viewed is not itemid
         if modulesourceid != self.parent.currentModuleSource:
             return #Do not run if the source being viewed is not this
-
+        #Run in a thread
+        thread = Thread(target=self._loadStatus,
+                        args=(modulesourceid, itemid))
+        thread.daemon = True
+        thread.start()
+    def _loadStatus(self, modulesourceid, itemid):
         #Just in case
         GLib.idle_add(self.parent.itempage.header.statusloading.start)
         GLib.idle_add(self.parent.itempage.header.itemstatus.set_visible_child, self.parent.itempage.header.statusunknown)
@@ -1413,7 +750,7 @@ class itemDetailsHeader(Gtk.Box):
         GLib.idle_add(self.parent.itempage.header.remove.hide)
         GLib.idle_add(self.parent.itempage.header.subsource.hide)
         for i in self.moduleactions.get_children():
-            GLib.idle_add(i.destroy) #idle_add seems smoother for this
+            GLib.idle_add(i.destroy)
         self.extrabuttoncallbacks = {} #Erase existing callback values now the buttons are gone
         if status == 0:
             #Check if the necessary source is installed if not installed
@@ -1455,7 +792,7 @@ class itemDetailsHeader(Gtk.Box):
             self.extrabuttoncallbacks[callbackid] = i["callback"]
             ii.connect("clicked", self.extraButtonCallback, callbackid)
             #Add the extra button to the row of 'em
-            self.moduleactions.pack_end(ii, False, False, 4)
+            GLib.idle_add(self.moduleactions.pack_end, ii, False, False, 4) #Prevent showing both the newly spawned buttons and the deleted ones at the same time
             ii.show()
 
         #Show the appropriate items
@@ -1479,7 +816,7 @@ class itemDetailsHeader(Gtk.Box):
         #Show the appropriate icon
         moduleid, sourceid = modulesourceid.split("/")
         #FIXME: We'd need to change this to only split the final / and not precursor ones
-        thread = Thread(target=self.setIcon,
+        thread = Thread(target=self.itemicon.setIcon,
                         args=(iteminfo["iconid"], iteminfo["iconurl"], itemid, moduleid, sourceid))
         thread.daemon = True
         thread.start()
@@ -1494,6 +831,30 @@ class itemDetailsHeader(Gtk.Box):
             return
 
         self.extrabuttoncallbacks[callbackid]()
+
+
+    def onInstall(self, button):
+        moduleid, sourceid = self.parent.currentModuleSource.split("/")
+        self.module.guiapi.installItem(self.parent.currentItem, moduleid, sourceid, self.parent.currentSubsource)
+
+    def onInstallSource(self, button):
+        moduleid, sourceid = self.parent.currentModuleSource.split("/")
+        #TODO: Figure out how to do sourceitemid
+        #self.module.guiapi.installItem(self.parent.currentItem, moduleid, sourceid, self.parent.currentSubsource)
+
+    def onUpdate(self, button):
+        moduleid, sourceid = self.parent.currentModuleSource.split("/")
+        self.module.guiapi.updateItem(self.parent.currentItem, moduleid, sourceid, self.parent.currentSubsource)
+
+    def onReinstall(self, button):
+        moduleid, sourceid = self.parent.currentModuleSource.split("/")
+        self.module.guiapi.reinstallItem(self.parent.currentItem, moduleid, sourceid, self.parent.currentSubsource)
+
+    def onRemove(self, button):
+        moduleid, sourceid = self.parent.currentModuleSource.split("/")
+        self.module.guiapi.removeItem(self.parent.currentItem, moduleid, sourceid, self.parent.currentSubsource)
+
+    #TODO: Change bonuses button
 
 
 ############################################
@@ -1721,7 +1082,10 @@ class window(Gtk.Window):
 
         #Get the available sources of the item, and switch to the appropriate source
         self.currentItem = itemid
-        self.itempage.header.loadSources(itemid, moduleid, sourceid, subsourceid)
+        thread = Thread(target=self.itempage.header.loadSources,
+                        args=(itemid, moduleid, sourceid, subsourceid))
+        thread.daemon = True
+        thread.start()
 
         #TODO: Tell header to load available sources
         # Then the header can tell itself and body to load the item information of the default source
@@ -1783,9 +1147,7 @@ class window(Gtk.Window):
         #Just in case
         GLib.idle_add(self.itempage.bodyloadspin.start)
         GLib.idle_add(self.itempage.body.set_visible_child, self.itempage.bodyloading)
-        GLib.idle_add(self.itempage.header.appiconloading.start)
-        GLib.idle_add(self.itempage.header.appiconstack.set_visible_child, self.itempage.header.appiconloading)
-        GLib.idle_add(self.itempage.header.appiconstack.set_visible, True)
+        GLib.idle_add(self.itempage.header.itemicon.set_visible_child, self.itempage.header.itemicon.loading)
         GLib.idle_add(self.itempage.header.fullname.set_label, "")
         GLib.idle_add(self.itempage.header.summary.set_label, "")
 

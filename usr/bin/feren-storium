@@ -91,18 +91,76 @@ class TaskBody():
 # Tasks Execution and Management
 ############################################
 class TaskManager():
-    def __init__(self):
-        self.tasks = {"pending": {"order": {}}, "queue": {"order": {}}, "staged": {"order": {}}, "currenttask": {}} #List of Tasks, in chronological order and modules order
-        #self.storeAPI = StoreGenericAPI NOTE: StoriumBrain gives it this
-        #self.storeTasksAPI = StoreTasksAPI NOTE: StoriumBrain gives it this
-        
-        self.stage_tasks = False #Are we logging out, or is Store about to restart (if so, stage future tasks instead)
-        
-        #For Tasks Management
-        self.tasks_running = [{}, {}] #Are tasks management calls running? [Pending, Queued]
+    def __init__(self, api, tasksapi):
+        self.api = api
+        self.tasksapi = tasksapi
+        self.myTasks = {"order": {}, \
+                          "pending": {}, \
+                          "queue": {}, \
+                          "staged": {}, \
+                          "waitingforshutdown": {}}
+        #Tasks order variables
+        self.systemTasksOrder = {} #Stores the value given by DBus system calls
+        self.tasksOrder = {} #Combined tasks order to provide to GUI TODO: Move to the code signal to update the GUI?
+
+        #Tasks runner locks
+        self.runningPendingRunner = False #True when iterating pending tasks
+        self.runningTaskRunners = [] #Put each moduleid in this once they start (then remove once out of tasks per each moduleid)
+
+        #Tasks management settings
+        self.stageFutureTasks = False #Set to True when entering Staging Mode
 
 
-    def newTask(self, itemid, moduleid, operation, sourceid, subsourceid, becauseof="", dependson=""):
+    def addModuleToTasks(self, moduleid):
+        if moduleid in self.myTasks["queue"]:
+            return
+        self.myTasks["pending"][moduleid] = []
+        for i in ["queue", "staged", "waitingforshutdown"]:
+            self.myTasks[i][moduleid] = {}
+
+
+
+    def makeTask(self, itemid, moduleid, operation, sourceid, subsourceid, elevated, becauseof=None, follows=None):
+        result = {}
+        #Form the task's data
+        # Item Information is reobtained via the module
+        result["itemInfo"] = self.api.getItemInformation(itemid, moduleid, sourceid)
+        result["itemid"] = itemid
+        result["moduleid"] = moduleid
+        result["sourceid"] = sourceid
+        result["subsourceid"] = subsourceid
+        # Elevated is checked for once this enters the queue
+        result["elevated"] = elevated
+        result["operation"] = operation
+        #If given a value other than None, progress and status will mirror that of the supplied task if valid, else this task will instantly fail once targetted by the pending tasks runner
+        result["becauseof"] = becauseof
+        #If given a value other than None, this task will cancel if the supplied task fails or is cancelled - additionally, if that task succeeds, this task will not be cancellable
+        result["follows"] = follows
+        #TODO: Make these be added once adding to queue, instead of instantly:
+        result["cancellable"] = False
+        # TODO: Make cancellable always be True while in queue (always False in pending)
+        # Progress (maximum is 100)
+        result["progress"] = 0
+        # Bonus IDs supplied by the changes dialog
+        result["bonusids"] = []
+        # Special value given once the task in follows has completed, preventing it from being cancelled
+        #result["followsdone"] = True
+
+        return result
+
+
+    def bulkNewTask(self, itemids, moduleids, operations, sourceids, subsourceids, becauseofs, dependsons):
+        #NOTE: All of them are a list, but where X is the item's, for each item in itemids, index, index X of moduleids, etc. is used for said item, so make sure they all have equal lengths! (use None in subsourceids, becauseofs and dependsons when not applicable)
+
+        #Adds a new task group to pending, after creating tasks for each given item and assembling them into a full task group
+        # Cannot be called by anything except for the changes dialog and Applications Playlist importer.
+
+        pass #TODO
+
+
+
+
+    def newTask(self, itemid, moduleid, operation, sourceid, subsourceid, becauseof=None, follows=None):
         #Creates task given information supplied, and adds it to pending, staged or queue depending on multiple factors
         #RETURNS THE TASK'S ID
         pass #TODO
@@ -110,11 +168,38 @@ class TaskManager():
         #TODO: For systemd mode return the task id in response to the task creation signal that was just given.
         #Also TODO: Superuser tasks are stored in userland until confirmed in which case their task body is sent to systemd via signal, and also deleted from userland.
 
+        #Create a task group to store the single task in
+        #TODO: When confirmed, add dependencies to task group before converting task group into pinned tasks
+        group = {}
+        elevated = self.api.getSourceInformation(itemid, moduleid, sourceid)["elevated"]
+        task = self.makeTask(itemid, moduleid, operation, sourceid, subsourceid, elevated, becauseof, follows)
 
+        #Give task an ID
+        tasktime = str(datetime.date.strftime(datetime.date.today(), "%H%M%Y%m%d"))
+        rootused = "0" if elevated == False else "1"
+        taskid = tasktime + ":" + rootused + ":" + itemid
+        if taskid + ":" + moduleid in self.myTasks["order"]:
+            #Not that this should be possible, but just in case
+            raise StoriumBrainException(_("There is already a task called %s:%s:%s") % (tasktime, rootused, itemid))
 
+        #Add task into group
+        group[taskid] = task
 
+        #Add task group to pending
+        self.addModuleToTasks(moduleid)
+        self.myTasks["pending"][moduleid].append(group)
+        #...and link the task into the visual tasks order
 
+        print("TEMP: ADDED TASK, PENDING IS NOW: " + str(self.myTasks["pending"][moduleid]))
 
+        #Remerge the system-user tasks order, and then inform GUI to refresh tasks view
+        pass #TODO
+
+        #Execute the tasks runner of this module in a thread
+        pass #TODO
+
+        #Return the taskid so that it can be sent down to signal-sender (systemd) or have progress tracked for (single-instance)
+        return taskid
 
 
 
@@ -463,6 +548,7 @@ class StoriumBrain():
         self.genericapi.getItemInformation = self.APIgetItemInformation
         self.genericapi.getItemName = self.APIgetItemName
         self.genericapi.getDefaultSource = self.APIgetDefaultSource
+        self.genericapi.getSourceInformation = self.APIgetSourceInformation
         self.genericapi.getIcon = self.APIgetIcon
         self.genericapi.getImages = self.APIgetImages
         self.genericapi.isModuleAvailable = self.APIisModuleAvailable
@@ -632,7 +718,7 @@ class StoriumBrain():
 
 
     def initTasksModules(self, systemmode):
-        self.taskManager = TaskManager()
+        self.taskManager = TaskManager(self.genericapi, self.tasksapi)
 
         #TODO: Skip modules disabled in settings
         if os.path.exists(self.libdir+"/modules"):
@@ -891,6 +977,11 @@ class StoriumBrain():
         #Returns the first source in GUI API's getAvailableSources
         pass #TODO
 
+    def APIgetSourceInformation(self, itemid, moduleid, sourceid):
+        #Returns information about a single source
+        result = copy.deepcopy(self.modules[moduleid].getSourceInformation(itemid, sourceid))
+        return result
+
     def APIgetIcon(self, itemid, moduleid, sourceid, iconurl):
         #Downloads the icon to cache and returns it
         #Also returns the icon in cache if it's already downloaded and not older than 4 days
@@ -1066,11 +1157,18 @@ class StoriumBrain():
                 sources = copy.deepcopy(self.modules[i].getAvailableSources(itemid))
                 for source in sources:
                     sourceid = i + "/" + source
+                    #Ensure elevated value is present, to save checking later
+                    if "elevated" in sources[source]:
+                        elevated = sources[source]["elevated"]
+                    else: #Default to False
+                        elevated = False
+                        sources[source]["elevated"] = elevated
+                    #Ensure priority value is present
                     if "priority" in sources[source]:
                         priority = sources[source]["priority"]
                     else: #Default to 50
                         priority = 50
-                        sources[source]["priority"] = priority #Helps save a check later during single source
+                        sources[source]["priority"] = priority
                     #Fix negative (invalid) priorities
                     if priority < 0:
                         priority == 0
@@ -1172,17 +1270,17 @@ class StoriumBrain():
     def APIinstallItem(self, itemid, moduleid, sourceid, subsourceid):
         #Adds the item to pending tasks to be confirmed, before starting the tasks runner if it is not currently running
         #Also runs invalidateItemStatus cache on this specific itemid.
-        pass #TODO
+        self.taskManager.newTask(itemid, moduleid, "install", sourceid, subsourceid, None, None)
 
     def APIreinstallItem(self, itemid, moduleid, sourceid, subsourceid):
         #APIinstallitem, but reinstallation instead.
-        pass #TODO
+        self.taskManager.newTask(itemid, moduleid, "reinstall", sourceid, subsourceid, None, None)
 
     def APIupdateItem(self, itemid, moduleid, sourceid, subsourceid):
-        pass #TODO
+        self.taskManager.newTask(itemid, moduleid, "update", sourceid, subsourceid, None, None)
 
     def APIremoveItem(self, itemid, moduleid, sourceid, subsourceid):
-        pass #TODO
+        self.taskManager.newTask(itemid, moduleid, "remove", sourceid, subsourceid, None, None)
 
     def APIgetAvailableBonuses(self, itemid, moduleid, sourceid, subsourceid):
         #Returns list of available bonus IDs
