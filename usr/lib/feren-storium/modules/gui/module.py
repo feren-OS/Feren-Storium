@@ -13,7 +13,7 @@ from functools import partial
 import os
 import time
 
-from gi.repository import Gtk, Gio, Gdk, GLib, Pango, GObject, GdkPixbuf
+from gi.repository import Gtk, Gio, Gdk, GLib, Pango, GObject, GdkPixbuf, Pango
 import dbus
 from dbus.mainloop.glib import DBusGMainLoop
 from threading import Thread, Event
@@ -162,15 +162,189 @@ class configWindow(Gtk.Window):
 ############################################
 # Item Block
 ############################################
-class itemBlockButton(Gtk.Button):
-    def __init__(self, parent, itemid, moduleid=None, sourceid=None, manage=True):
-        Gtk.Button.__init__(self)
+class itemBlockButton(Gtk.Box):
+    def __init__(self, module, itemid, manage=True, moduleid=None, sourceid=None):
+        self.module = module
+        self.itemid = itemid
+        #Check criteria is met, first
+        # itemid ANY available sources?
+        availsources = self.module.guiapi.getAvailableSources(itemid)
+        if availsources == {}:
+            raise DemoGUIException(_("%s has no available sources so cannot be added as an item button") % itemid)
+        if moduleid != None:
+            if sourceid != None: # sourceid, if specified, exists in this module's sources
+                if moduleid + "/" + sourceid not in availsources:
+                    raise DemoGUIException(_("%s has no available source %s in module %s so cannot be added as an item button") % (itemid, sourceid, moduleid))
+            else: # moduleid, if specified, has sources
+                sourcefound = False
+                for i in availsources:
+                    if i.startswith(moduleid + "/"):
+                        sourcefound = True
+                        break
+                if sourcefound == False:
+                    raise DemoGUIException(_("%s has no available sources in module %s so cannot be added as an item button") % (itemid, moduleid))
 
-        #TODO: Move everything window-related into here
+
+        Gtk.Box.__init__(self)
+
+        #Add the main body
+        self.itemicon = itemIcon(self, module)
+        self.fullname = Gtk.Label()
+        self.fullname.set_ellipsize(Pango.EllipsizeMode.END)
+        self.summary = Gtk.Label()
+        self.summary.set_ellipsize(Pango.EllipsizeMode.END)
+
+        fullnameBox = Gtk.Box()
+        summaryBox = Gtk.Box()
+        fullnameBox.pack_start(self.fullname, False, False, 0)
+        summaryBox.pack_start(self.summary, False, False, 0)
+        fullnameSummaryBox = Gtk.VBox()
+        fullnameSummaryBox.pack_start(Gtk.Box(), True, True, 0) #Spacing
+        fullnameSummaryBox.pack_end(Gtk.Box(), True, True, 0)
+        fullnameSummaryBox.pack_start(fullnameBox, False, False, 0)
+        fullnameSummaryBox.pack_end(summaryBox, False, False, 0)
+
+        #TODO: Add Warnings summary
+        #TODO: Do as shown in diagram before returning one self
+
+        if manage == True:
+            self.body = Gtk.Button()
+            infobox = Gtk.Box()
+            #Swapped the element with spacing here as they look better with the icon not having padding here,
+            # while the text having it instead maintains the existing status-quo of the space between icon and text:
+            infobox.pack_start(self.itemicon, False, False, 0)
+            infobox.pack_start(fullnameSummaryBox, True, True, 8)
+            self.body.add(infobox)
+            self.body.connect('clicked', self.goto)
+        else:
+            self.body = Gtk.Box()
+            self.body.pack_start(self.itemicon, False, False, 0)
+            self.body.pack_start(fullnameSummaryBox, True, True, 8)
+
+        self.set_size_request(320, 52)
+        self.pack_start(self.body, True, True, 0)
+
+        #Get item's information
+        self.loadItemInformation(list(availsources.keys())[0], itemid)
+
+        #Add the button if manage is on
+        if manage == True:
+            #NOTE: Due to a design issue in GTK, this button is not inside the button, but rather next to it, to prevent the hitbox of the parent button overriding that of the itemmgmt button
+            self.buttonsstack = Gtk.Stack()
+            self.buttonsstack.connect("notify::visible-child", self.onStatusChanged)
+
+            # Buttons (not queued)
+            #  Install
+            self.install = Gtk.Button(label=_("Install"))
+            self.install.get_style_context().add_class(Gtk.STYLE_CLASS_SUGGESTED_ACTION)
+            #self.install.connect('clicked', self.onInstall)
+            self.buttonsstack.add_named(self.install, "install")
+            #  Install (requires adding application source)
+            self.installsource = Gtk.Button(label=_("Install..."))
+            self.installsource.get_style_context().add_class(Gtk.STYLE_CLASS_SUGGESTED_ACTION)
+            #self.installsource.connect('clicked', self.onInstallSource)
+            self.buttonsstack.add_named(self.installsource, "installsource")
+            #  Update
+            self.update = Gtk.Button(label=_("Update"))
+            self.update.get_style_context().add_class(Gtk.STYLE_CLASS_SUGGESTED_ACTION)
+            #self.update.connect('clicked', self.onUpdate)
+            self.buttonsstack.add_named(self.update, "update")
+            #  Remove
+            self.remove = Gtk.Button(label=_("Remove"))
+            self.remove.get_style_context().add_class(Gtk.STYLE_CLASS_DESTRUCTIVE_ACTION)
+            #self.remove.connect('clicked', self.onRemove)
+            self.buttonsstack.add_named(self.remove, "remove")
+
+            # Buttons (Queued/Pending)
+            self.cancelqueuebtn = Gtk.Button(label=_("Cancel"))
+            #cancelqueuebtn.connect('clicked', self.onCancelQueue)
+            self.buttonsstack.add_named(self.cancelqueuebtn, "cancelqueue")
+
+            # Buttons (In Progress)
+            self.cancelbtn = Gtk.Button(label=_("Cancel"))
+            #self.cancelbtn.connect('clicked', self.onCancel)
+            self.buttonsstack.add_named(self.cancelbtn, "cancel")
+
+            # Loading status
+            self.statusunknown = Gtk.Box()
+            self.statusunknown.set_size_request(self.install.get_allocation().width, -1)
+            self.statusloading = Gtk.Spinner()
+            self.statusunknown.pack_start(Gtk.Box(), True, True, 0)
+            self.statusunknown.pack_end(Gtk.Box(), True, True, 0)
+            self.statusunknown.pack_start(self.statusloading, False, False, 0)
+            self.buttonsstack.add_named(self.statusunknown, "loading")
 
 
+            #Add buttons to the right of the block, and get the current status
+            self.pack_end(self.buttonsstack, False, False, 0)
+            thread = Thread(target=self.loadStatus,
+                            args=(list(availsources.keys())[0], itemid))
+            thread.daemon = True
+            thread.start()
+        #TODO: Figure out how we'll get item information - do we just add a clause to getItemInformation in the API where it obtains it from the task if there's a task?
 
-    #TODO: itemBlock (a panel with the same contents as the button, just no connect event whatsoever)
+        self.show_all()
+
+
+    def loadItemInformation(self, modulesourceid, itemid):
+        #Get split values for source and module IDs
+        moduleid, sourceid = modulesourceid.split("/")
+        #FIXME: We'd need to change this to only split the final / and not precursor ones
+
+        iteminfo = self.module.api.getItemInformation(itemid, moduleid, sourceid)
+
+        thread = Thread(target=self.itemicon.setIcon,
+                        args=(iteminfo["iconid"], iteminfo["iconurl"], itemid, moduleid, sourceid))
+        thread.daemon = True
+        thread.start()
+
+        #There are only two labels left in the header to change:
+        GLib.idle_add(self.fullname.set_label, iteminfo["fullname"])
+        GLib.idle_add(self.summary.set_label, iteminfo["summary"])
+
+
+    def onStatusChanged(self, stckswch, idk):
+        #TODO: Make all stacks with loading spinners start/stop depending on their loading stack being visible
+        a = stckswch.get_visible_child()
+        if a == self.statusunknown:
+            self.statusloading.start()
+        else:
+            self.statusloading.stop()
+
+    def loadStatus(self, modulesourceid, itemid):
+        #Just in case
+        GLib.idle_add(self.buttonsstack.set_visible_child, self.statusunknown)
+
+        #Get split values for source and module IDs
+        moduleid, sourceid = modulesourceid.split("/")
+        #FIXME: We'd need to change this to only split the final / and not precursor ones
+
+        status, irrelevant = self.module.guiapi.getItemStatus(itemid, moduleid, sourceid)
+
+        #Switch to appropriate button
+        if status == 0:
+            #Check if the necessary source is installed if not installed
+            sourceavailable = True #TODO
+            if sourceavailable == True:
+                GLib.idle_add(self.buttonsstack.set_visible_child, self.install)
+            else:
+                GLib.idle_add(self.buttonsstack.set_visible_child, self.installsource)
+        elif status == 1:
+            GLib.idle_add(self.buttonsstack.set_visible_child, self.remove)
+        elif status == 2:
+            GLib.idle_add(self.buttonsstack.set_visible_child, self.update)
+        elif status >= 3 and status <= 6: #Queued
+            GLib.idle_add(self.buttonsstack.set_visible_child, self.cancelqueuebtn)
+        elif status >= 7 and status <= 10:
+            GLib.idle_add(self.buttonsstack.set_visible_child, self.cancelbtn)
+
+        #TODO: to check for "Install...", before checking this item's status query getItemStatus on the source ID itself to check if the source is installed
+
+
+    def goto(self, button):
+        thread = Thread(target=self.module.gotoID,
+                            args=(self.itemid,))
+        thread.start()
 
 
 ############################################
@@ -385,6 +559,7 @@ class categoricalPage(Gtk.Box):
         listingsScroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
         listingsBox = Gtk.VBox() #Prevent stretching items in non-window-filling results
         self.listingsPane = Gtk.FlowBox()
+        self.listingsPane.set_homogeneous(True)
         listingsBox.pack_start(self.listingsPane, False, False, 0)
         listingsBox.pack_end(Gtk.Box(), True, True, 0) #used as filler space.
         listingsScroll.add(listingsBox)
@@ -426,17 +601,95 @@ class categoricalPage(Gtk.Box):
             GLib.idle_add(i.destroy)
         #TODO: Placeholder screen for no items
         for i in items:
-            testBtn = Gtk.Button(label=i)
-            testBtn.itemid = i
-            testBtn.connect('clicked', self.itemPressed)
-            GLib.idle_add(self.listingsPane.insert, testBtn, -1)
-            GLib.idle_add(self.listingsPane.show_all)
+            GLib.idle_add(self.listingsPane.insert, itemBlockButton(self.module, i, True), -1)
+        GLib.idle_add(self.listingsPane.show_all)
 
 
-    def itemPressed(self, button):
-        thread = Thread(target=self.parent.gotoID,
-                            args=(button.itemid,))
-        thread.start()
+############################################
+# Tasks/Library view
+############################################
+
+class tasksLibraryPage(Gtk.ScrolledWindow):
+    def __init__(self, parent, module):
+        Gtk.ScrolledWindow.__init__(self)
+        self.parent = parent
+        self.module = module
+
+        self.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        listingsBox = Gtk.VBox()
+        listingsBox.pack_end(Gtk.Box(), True, True, 0) #prevent stretching in non-filling-outcomes
+        listingsBox.set_margin_top(4)
+        listingsBox.set_margin_bottom(4)
+        listingsBox.set_margin_left(4)
+        listingsBox.set_margin_right(4)
+        self.add(listingsBox)
+
+        #Tasks in progress
+        self.tasksLbl = Gtk.Box()
+        tasksLbl = Gtk.Label(label=_("Tasks in progress"))
+        self.tasksLbl.pack_start(tasksLbl, False, False, 0)
+        self.tasksLbl.pack_end(Gtk.Box(), True, True, 0)
+        #self.tasksLbl.set_no_show_all(True)
+        self.tasksList = Gtk.FlowBox()
+        self.tasksList.set_min_children_per_line(1)
+        self.tasksList.set_max_children_per_line(1)
+        #self.tasksList.set_no_show_all(True)
+        listingsBox.pack_start(self.tasksLbl, False, False, 0)
+        listingsBox.pack_start(self.tasksList, False, False, 0)
+
+        #Needs attention
+        self.needsAttentionLbl = Gtk.Box()
+        needsAttentionLbl = Gtk.Label(label=_("Needs attention"))
+        self.needsAttentionLbl.pack_start(needsAttentionLbl, False, False, 0)
+        self.needsAttentionLbl.pack_end(Gtk.Box(), True, True, 0)
+        #self.needsAttentionLbl.set_no_show_all(True)
+        self.needsAttentionList = Gtk.FlowBox()
+        self.needsAttentionList.set_min_children_per_line(1)
+        self.needsAttentionList.set_max_children_per_line(1)
+        #self.needsAttentionList.set_no_show_all(True)
+        listingsBox.pack_start(self.needsAttentionLbl, False, False, 0)
+        listingsBox.pack_start(self.needsAttentionList, False, False, 0)
+
+        #Pending updates
+        self.updatesLbl = Gtk.Box()
+        updatesLbl = Gtk.Label(label=_("Pending updates"))
+        self.updatesLbl.pack_start(updatesLbl, False, False, 0)
+        self.updatesLbl.pack_end(Gtk.Box(), True, True, 0)
+        #self.updatesLbl.set_no_show_all(True)
+        self.updatesList = Gtk.FlowBox()
+        self.updatesList.set_min_children_per_line(1)
+        self.updatesList.set_max_children_per_line(1)
+        #self.updatesList.set_no_show_all(True)
+        listingsBox.pack_start(self.updatesLbl, False, False, 0)
+        listingsBox.pack_start(self.updatesList, False, False, 0)
+
+        #Drivers
+        self.driversLbl = Gtk.Box()
+        driversLbl = Gtk.Label(label=_("Available drivers"))
+        self.driversLbl.pack_start(driversLbl, False, False, 0)
+        self.driversLbl.pack_end(Gtk.Box(), True, True, 0)
+        #self.driversLbl.set_no_show_all(True)
+        self.driversList = Gtk.FlowBox()
+        self.driversList.set_min_children_per_line(1)
+        self.driversList.set_max_children_per_line(1)
+        #self.driversList.set_no_show_all(True)
+        listingsBox.pack_start(self.driversLbl, False, False, 0)
+        listingsBox.pack_start(self.driversList, False, False, 0)
+
+        #Installed
+        self.installedLbl = Gtk.Box()
+        installedLbl = Gtk.Label(label=_("Installed applications"))
+        self.installedLbl.pack_start(installedLbl, False, False, 0)
+        self.installedLbl.pack_end(Gtk.Box(), True, True, 0)
+        #self.installedLbl.set_no_show_all(True)
+        self.installedList = Gtk.FlowBox()
+        self.installedList.set_min_children_per_line(1)
+        self.installedList.set_max_children_per_line(1)
+        #self.installedList.set_no_show_all(True)
+        listingsBox.pack_start(self.installedLbl, False, False, 0)
+        listingsBox.pack_start(self.installedList, False, False, 0)
+
+        self.show_all()
 
 
 
@@ -447,6 +700,7 @@ class categoricalPage(Gtk.Box):
 class itemDetailsHeader(Gtk.Box):
     def __init__(self, parent, module):
         Gtk.Box.__init__(self)
+        self.set_size_request(-1, 52)
         self.parent = parent
         self.module = module
         self.sourcesdata = {}
@@ -458,7 +712,9 @@ class itemDetailsHeader(Gtk.Box):
 
         #Item fullname and summary
         self.fullname = Gtk.Label()
+        self.fullname.set_ellipsize(Pango.EllipsizeMode.END)
         self.summary = Gtk.Label()
+        self.summary.set_ellipsize(Pango.EllipsizeMode.END)
 
         fullnameBox = Gtk.Box()
         summaryBox = Gtk.Box()
@@ -1039,7 +1295,7 @@ class window(Gtk.Window):
         self.gamespage = categoricalPage(self, self.parent)
         self.themespage = categoricalPage(self, self.parent)
         self.websitespage = categoricalPage(self, self.parent)
-        self.taskspage = Gtk.VBox()
+        self.taskspage = tasksLibraryPage(self, self.parent)
         self.searchpage = Gtk.VBox()
         self.itempage = self.itemPage()
         # TODO: Callback to GUI, during module reinitialisation, to do tasks including refreshing the categories shown in the pages of the GUI
@@ -1440,9 +1696,10 @@ class module():
 
 
     # API CALLS FOR CLASSES
+    #TODO: Update these
     def gotoID(self, itemid):
-        thread = Thread(target=self.pagearea.gotoID,
-                            args=(itemid))
+        thread = Thread(target=self.wnd.gotoID,
+                            args=(itemid,))
         thread.start()
 
     def showTaskConfirmation(self, taskbody, idsadded, idsupdated, idsremoved, bonusavailability):
