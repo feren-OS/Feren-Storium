@@ -101,7 +101,7 @@ class TaskManager():
                           "waitingforshutdown": {}}
         #Tasks order variables
         self.systemTasksOrder = {} #Stores the value given by DBus system calls
-        self.tasksOrder = {} #Combined tasks order to provide to GUI TODO: Move to the code signal to update the GUI?
+        self.tasksOrder = {} #Combined tasks order to provide to GUI
 
         #Tasks runner locks
         self.runningPendingRunner = False #True when iterating pending tasks
@@ -160,10 +160,8 @@ class TaskManager():
 
 
 
-    def newTask(self, itemid, moduleid, operation, sourceid, subsourceid, becauseof=None, follows=None):
+    def newTask(self, itemid, moduleid, operation, sourceid, subsourceid, elevated, becauseof=None, follows=None):
         #Creates task given information supplied, and adds it to pending, staged or queue depending on multiple factors
-        #RETURNS THE TASK'S ID
-        pass #TODO
 
         #TODO: For systemd mode return the task id in response to the task creation signal that was just given.
         #Also TODO: Superuser tasks are stored in userland until confirmed in which case their task body is sent to systemd via signal, and also deleted from userland.
@@ -192,14 +190,38 @@ class TaskManager():
 
         print("TEMP: ADDED TASK, PENDING IS NOW: " + str(self.myTasks["pending"][moduleid]))
 
-        #Remerge the system-user tasks order, and then inform GUI to refresh tasks view
-        pass #TODO
+        #Add task to end of merged tasks list, instead of remerging the system-user tasks order, for optimisation reasons
+        self.tasksOrder[moduleid + ":" + taskid] = task #NOTE: Add task groups to tasksOrder as their individual tasks
+
+        #Ask GUI to refresh its tasks list
+        self.tasksapi.refreshTasksPage()
+
+        #Force invalidate item status cache for this itemid
+        pass #TODO: invalidateItemStatusCache
+
+        #Ask GUI to refresh representations of the itemid of the added task
+        pass #TODO: APIrefreshItemStatus
 
         #Execute the tasks runner of this module in a thread
         pass #TODO
 
         #Return the taskid so that it can be sent down to signal-sender (systemd) or have progress tracked for (single-instance)
         return taskid
+
+        #Current plan:
+        #   Add task
+        #   Refresh tasks list in GUI
+        #       Just add it to the end of merged order, as well?
+        #       Execute the same call to GUI refreshTasksOrder calls to refresh the Tasks page inside the GUI
+        #   Refresh status on item representations and page
+        #   ...execute task
+        #   When finished, remove task...
+        #   Refresh tasks list in GUI (only ran when adding tasks, and when removing them)
+        #       Just remove it from the merged order?
+        #       Execute the same call to GUI refreshTasksOrder calls to refresh the Tasks page inside the GUI
+        #   Refresh status on item representations and more
+        #       TODO: forceRefresh on all itemids whose tasks were just removed?
+        #   NOTE: Add call, that refreshTasksOrder calls at end, to Tasks API that tells GUI to refreshTasks?
 
 
 
@@ -568,7 +590,9 @@ class StoriumBrain():
         self.tasksapi.updateTask = self.APIupdateTask
         self.tasksapi.setTaskCancellable = self.APIsetTaskCancellable
         self.tasksapi.showItemErrorDialog = self.APIshowItemErrorDialog
-        self.tasksapi.refreshItemInfo = self.APIrefreshItemInfo
+        self.tasksapi.refreshTasksPage = self.APIrefreshTasksPage
+        self.tasksapi.refreshItemPage = self.APIrefreshItemPage
+        self.tasksapi.refreshItemStatus = self.APIrefreshItemStatus
         self.tasksapi.invalidateItemInfoCache = self.APIinvalidateItemInfoCache
         self.tasksapi.invalidateItemStatusCache = self.APIinvalidateItemStatusCache
         self.tasksapi.reinitModulesIfFileWatch = self.APIreinitModulesIfFileWatch
@@ -598,6 +622,7 @@ class StoriumBrain():
         apicontainer.showGUIToast = partial(self.APIshowGUIToast, moduleid)
         apicontainer.pkgMgrWaiting = partial(self.APIpkgMgrWaiting, moduleid)
         apicontainer.getPreferSysInst = partial(self.APIgetPreferSysInst, moduleid)
+        apicontainer.refreshLibraryPage = partial(self.APIrefreshLibraryPage, moduleid)
 
 
     def communicateWithStorium(self, command, targetid="", moduleid="", sourceid="", subsourceid=""):
@@ -1070,16 +1095,27 @@ class StoriumBrain():
         #Shows an error dialog, via the GUI, informing the user that the task has failed and why it failed.
         pass #TODO
 
-    def APIrefreshItemInfo(self, itemid, moduleid, sourceid):
-        #Tells GUI to refresh any representations', of itemid from sourceid of moduleid, package information (not the installation status)
+    def APIrefreshTasksPage(self):
+        #Tells the GUI to refresh the tasks page
+        thread = Thread(target=self.modules["gui"].refreshTasksPage,
+                        args=())
+        thread.daemon = True
+        thread.start()
+
+    def APIrefreshItemPage(self, itemid, moduleid, sourceid):
+        #Tells GUI to refresh any representations', of itemid from sourceid of moduleid
+        pass #TODO
+
+    def APIrefreshItemStatus(self, itemid, moduleid, sourceid):
+        #Tells GUI to refresh the status of representations', of itemid from sourceid of moduleid
         pass #TODO
 
     def APIinvalidateItemInfoCache(self, moduleids=[], itemids=[]):
         #Tells modules in moduleids to delete their item information cache for items in itemids
-        #Then, launches APIrefreshItemInfo for each possible source
+        #Then, launches APIrefreshItemPage for each possible source
         pass #TODO
 
-    def APIinvalidateItemStatusCache(self, moduleids=[], itemids=[]):
+    def APIinvalidateItemStatusCache(self, moduleids=[], itemids=[], skipguirefresh=False):
         #Tells modules in moduleids to delete their item status cache for items in itemids
         #Then, tells the GUI to refresh the status shown on their representations of the affected itemids.
         pass #TODO
@@ -1341,6 +1377,9 @@ class StoriumBrain():
         pass #TODO
 
     def APIgetPreferSysInst(self, moduleid):
+        pass #TODO
+
+    def APIrefreshLibraryPage(self, moduleid):
         pass #TODO
 
 

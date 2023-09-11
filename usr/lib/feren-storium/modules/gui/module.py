@@ -1712,3 +1712,7 @@ class module():
         GLib.idle_add(self.changeswnd.prepare, self.api, taskbody, idsadded, idsupdated, idsremoved, bonusavailability)
         return self.changeswnd.run()
 
+    def refreshTasksPage(self):
+        print("Received signal to refresh tasks page")
+        pass #TODO
+
