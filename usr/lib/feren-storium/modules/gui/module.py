@@ -166,6 +166,7 @@ class itemBlockButton(Gtk.Box):
     def __init__(self, module, itemid, manage=True, moduleid=None, sourceid=None):
         self.module = module
         self.itemid = itemid
+        #TODO: Support subsource direction and rewrite a bit to put moduleid, sourceid and subsourceid overrides in checks, then check for them later
         #Check criteria is met, first
         # itemid ANY available sources?
         availsources = self.module.guiapi.getAvailableSources(itemid)
@@ -215,7 +216,10 @@ class itemBlockButton(Gtk.Box):
             infobox.pack_start(self.itemicon, False, False, 0)
             infobox.pack_start(fullnameSummaryBox, True, True, 8)
             self.body.add(infobox)
-            self.body.connect('clicked', self.goto)
+            if moduleid != None and sourceid != None:
+                self.body.connect('clicked', self.goto, moduleid, sourceid)
+            else:
+                self.body.connect('clicked', self.goto)
         else:
             self.body = Gtk.Box()
             self.body.pack_start(self.itemicon, False, False, 0)
@@ -225,7 +229,10 @@ class itemBlockButton(Gtk.Box):
         self.pack_start(self.body, True, True, 0)
 
         #Get item's information
-        self.loadItemInformation(list(availsources.keys())[0], itemid)
+        if moduleid != None and sourceid != None:
+            self.loadItemInformation(moduleid + "/" + sourceid, itemid) #Existence checked earlier in code
+        else:
+            self.loadItemInformation(list(availsources.keys())[0], itemid)
 
         #Add the button if manage is on
         if manage == True:
@@ -277,7 +284,11 @@ class itemBlockButton(Gtk.Box):
 
             #Add buttons to the right of the block, and get the current status
             self.pack_end(self.buttonsstack, False, False, 0)
-            thread = Thread(target=self.loadStatus,
+            if moduleid != None and sourceid != None:
+                thread = Thread(target=self.loadStatus,
+                            args=(moduleid + "/" + sourceid, itemid))
+            else:
+                thread = Thread(target=self.loadStatus,
                             args=(list(availsources.keys())[0], itemid))
             thread.daemon = True
             thread.start()
@@ -312,6 +323,7 @@ class itemBlockButton(Gtk.Box):
             self.statusloading.stop()
 
     def loadStatus(self, modulesourceid, itemid):
+        #TODO: When entering in progress state, change subtitle to "Installing...", "Updating...", "Removing..." and so on, with their progress marked on them 'cos too lazy to implement a label-progressbar-combo in this block in demoGUI.
         #Just in case
         GLib.idle_add(self.buttonsstack.set_visible_child, self.statusunknown)
 
@@ -341,8 +353,12 @@ class itemBlockButton(Gtk.Box):
         #TODO: to check for "Install...", before checking this item's status query getItemStatus on the source ID itself to check if the source is installed
 
 
-    def goto(self, button):
-        thread = Thread(target=self.module.gotoID,
+    def goto(self, button, moduleid=None, sourceid=None):
+        if moduleid != None and sourceid != None:
+            thread = Thread(target=self.module.gotoID,
+                            args=(self.itemid, moduleid, sourceid))
+        else:
+            thread = Thread(target=self.module.gotoID,
                             args=(self.itemid,))
         thread.start()
 
@@ -692,6 +708,20 @@ class tasksLibraryPage(Gtk.ScrolledWindow):
         self.show_all()
 
 
+    def refreshTasksList(self):
+        taskslist = self.module.guiapi.getTasks()
+        #TODO: On each page body, store each item representation in a dict, with their itemid and sourceid and maybe a duplication count on show, so they can all be updated when necessary
+        #TODO: API GETITEMINFORMATION should obtain from tasks if they exist
+        print(taskslist)
+        #Remove existing items
+        for i in self.tasksList.get_children():
+            GLib.idle_add(i.destroy)
+        #Generate new item blocks for the tasks
+        for i in taskslist:
+            GLib.idle_add(self.tasksList.insert, itemBlockButton(self.module, taskslist[i]["itemid"], True, taskslist[i]["moduleid"], taskslist[i]["sourceid"]), -1)
+
+
+
 
 ############################################
 # Item Details header
@@ -1026,13 +1056,13 @@ class itemDetailsHeader(Gtk.Box):
             GLib.idle_add(self.parent.itempage.header.remove.show)
             self.changeSubsource(self.sourcesdata[modulesourceid]["subsources"], modulesourceid, itemid, installedsubsource)
         elif status == 3: #Queued
-            GLib.idle_add(self.parent.itempage.header.statusqueued.set_label, _("Waiting for installation"))
+            GLib.idle_add(self.parent.itempage.header.queuedlbl.set_label, _("Waiting for installation"))
         elif status == 4:
-            GLib.idle_add(self.parent.itempage.header.statusqueued.set_label, _("Waiting for reinstallation"))
+            GLib.idle_add(self.parent.itempage.header.queuedlbl.set_label, _("Waiting for reinstallation"))
         elif status == 5:
-            GLib.idle_add(self.parent.itempage.header.statusqueued.set_label, _("Waiting for update"))
+            GLib.idle_add(self.parent.itempage.header.queuedlbl.set_label, _("Waiting for update"))
         elif status == 6:
-            GLib.idle_add(self.parent.itempage.header.statusqueued.set_label, _("Waiting for removal"))
+            GLib.idle_add(self.parent.itempage.header.queuedlbl.set_label, _("Waiting for removal"))
         elif status >= 7 and status <= 10:
             pass #TODO: Get current progress and immediately place it on the in-page progress bar
 
@@ -1697,9 +1727,9 @@ class module():
 
     # API CALLS FOR CLASSES
     #TODO: Update these
-    def gotoID(self, itemid):
+    def gotoID(self, itemid, moduleid="", sourceid="", subsourceid=""):
         thread = Thread(target=self.wnd.gotoID,
-                            args=(itemid,))
+                            args=(itemid, moduleid, sourceid, subsourceid))
         thread.start()
 
     def showTaskConfirmation(self, taskbody, idsadded, idsupdated, idsremoved, bonusavailability):
@@ -1713,6 +1743,7 @@ class module():
         return self.changeswnd.run()
 
     def refreshTasksPage(self):
-        print("Received signal to refresh tasks page")
-        pass #TODO
+        if self.wnd is None:
+            return
+        self.wnd.taskspage.refreshTasksList()
 

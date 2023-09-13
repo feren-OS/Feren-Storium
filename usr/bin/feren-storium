@@ -101,7 +101,7 @@ class TaskManager():
                           "waitingforshutdown": {}}
         #Tasks order variables
         self.systemTasksOrder = {} #Stores the value given by DBus system calls
-        self.tasksOrder = {} #Combined tasks order to provide to GUI
+        self.tasksOrder = {} #Combined tasks orders to provide to GUI
 
         #Tasks runner locks
         self.runningPendingRunner = False #True when iterating pending tasks
@@ -173,12 +173,11 @@ class TaskManager():
         task = self.makeTask(itemid, moduleid, operation, sourceid, subsourceid, elevated, becauseof, follows)
 
         #Give task an ID
-        tasktime = str(datetime.date.strftime(datetime.date.today(), "%H%M%Y%m%d"))
         rootused = "0" if elevated == False else "1"
-        taskid = tasktime + ":" + rootused + ":" + itemid
-        if taskid + ":" + moduleid in self.myTasks["order"]:
+        taskid = rootused + ":" + itemid + ":" + sourceid
+        if moduleid + ":" + taskid in self.myTasks["order"]:
             #Not that this should be possible, but just in case
-            raise StoriumBrainException(_("There is already a task called %s:%s:%s") % (tasktime, rootused, itemid))
+            raise StoriumBrainException(_("There is already a task called %s:%s:%s") % (rootused, itemid, sourceid))
 
         #Add task into group
         group[taskid] = task
@@ -186,12 +185,13 @@ class TaskManager():
         #Add task group to pending
         self.addModuleToTasks(moduleid)
         self.myTasks["pending"][moduleid].append(group)
-        #...and link the task into the visual tasks order
+        #...and link the individual tasks themselves onto the visual tasks order
+        self.myTasks["order"][moduleid + ":" + taskid] = task
 
         print("TEMP: ADDED TASK, PENDING IS NOW: " + str(self.myTasks["pending"][moduleid]))
 
         #Add task to end of merged tasks list, instead of remerging the system-user tasks order, for optimisation reasons
-        self.tasksOrder[moduleid + ":" + taskid] = task #NOTE: Add task groups to tasksOrder as their individual tasks
+        self.tasksOrder[moduleid + ":" + taskid] = task
 
         #Ask GUI to refresh its tasks list
         self.tasksapi.refreshTasksPage()
@@ -612,6 +612,7 @@ class StoriumBrain():
         self.guiapi.removeItem = self.APIremoveItem
         self.guiapi.getAvailableBonuses = self.APIgetAvailableBonuses
         self.guiapi.changeItemBonuses = self.APIchangeItemBonuses
+        self.guiapi.getTasks = self.APIgetTasks
         self.guiapi.checkForUpdates = self.APIcheckForUpdates
         #TODO: changeSetting
 
@@ -976,6 +977,12 @@ class StoriumBrain():
         #Returns information of the supplied item
         if moduleid not in self.modules:
             raise StoriumBrainException(_("%s is not a loaded module") % moduleid)
+
+        #Return information from task if there is one
+        task = self.getTaskID(itemid, moduleid, sourceid)
+        if task != None:
+            return copy.deepcopy(self.taskManager.tasksOrder[task]["itemInfo"])
+
         result = copy.deepcopy(self.modules[moduleid].getItemInformation(itemid, sourceid))
         #Use only strings appropriate to the current language
         for i in ["fullname", "summary", "description", "images", "author", "website", "bugreportsurl", "donateurl", "tosurl", "privpolurl"]:
@@ -1078,6 +1085,15 @@ class StoriumBrain():
             if currenttime-creationtime >= 4: #If so delete it
                 os.remove(filepath)
         #TODO: Delete all outdated cache on Storium launch.
+
+    def getTaskID(self, itemid, moduleid, sourceid):
+        #Checks if there is a task for itemid from sourceid in moduleid, and if so return the task ID in tasksOrder, otherwise return None
+        for i in self.taskManager.tasksOrder:
+            task = self.taskManager.tasksOrder[i]
+            if task["itemid"] == itemid and task["moduleid"] == moduleid \
+                and task["sourceid"] == sourceid:
+                return i
+        return None
 
 
     ############################################
@@ -1274,8 +1290,34 @@ class StoriumBrain():
         #  9: Updating...
         #  10: Removing...
 
-
-        #TODO: Add checks for item being in tasks, and if so returning the corresponding status instead of querying its module
+        #Check there's a task
+        for ttype in [self.taskManager.systemTasksOrder, self.taskManager.myTasks["order"]]:
+            for i in ttype:
+                task = ttype[i]
+                if task["itemid"] == itemid and task["moduleid"] == moduleid \
+                    and task["sourceid"] == sourceid:
+                    inprogress = True if list(ttype.keys()).index(i) == 0 else False
+                    if task["operation"] == "install":
+                        if inprogress == True:
+                            return 7, ""
+                        else:
+                            return 3, ""
+                    elif task["operation"] == "reinstall":
+                        if inprogress == True:
+                            return 8, ""
+                        else:
+                            return 4, ""
+                    elif task["operation"] == "update":
+                        if inprogress == True:
+                            return 9, ""
+                        else:
+                            return 5, ""
+                    elif task["operation"] == "remove":
+                        if inprogress == True:
+                            return 10, ""
+                        else:
+                            return 6, ""
+        #No task? Query the module for the current status.
         return copy.deepcopy(self.modules[moduleid].getItemStatus(itemid, sourceid))
 
 
@@ -1327,6 +1369,10 @@ class StoriumBrain():
         #Tasks for each bonus change, with becauseof values set to the resulting task as well as having matching operations, will be added
         pass #TODO
 
+    def APIgetTasks(self):
+        #Returns the current merged tasks order
+        return copy.deepcopy(self.taskManager.tasksOrder)
+
     def APIcheckForUpdates(self):
         #Gets the values of getProblemItems from all item management modules, then getUpdates, getDrivers, and getInstalled. Then, assembles them and runs reloadInstalledPage in the GUI with the IDs in those aforementioned segmented-lists, while making sure each ID only appears once.
         pass #TODO
@@ -1366,6 +1412,7 @@ class StoriumBrain():
             self.modules["gui"].updateInitStatus(value)
         if self.guiconfigs != None and self.guiconfigs.getDebugOutput() == True:
             print(_("Initialisation process: %s") % value)
+
 
     ############################################
     # API Callbacks - ItemMgmt API
