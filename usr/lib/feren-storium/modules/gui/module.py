@@ -1747,3 +1747,7 @@ class module():
             return
         self.wnd.taskspage.refreshTasksList()
 
+    def refreshItemStatus(self, itemid, moduleid, sourceid):
+        #TODO: For each block in the GUI currently of the item, update them too
+        modulesourceid = moduleid + "/" + sourceid
+        self.wnd.itempage.header.loadStatus(modulesourceid, itemid)

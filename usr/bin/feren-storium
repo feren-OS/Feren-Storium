@@ -188,7 +188,7 @@ class TaskManager():
         #...and link the individual tasks themselves onto the visual tasks order
         self.myTasks["order"][moduleid + ":" + taskid] = task
 
-        print("TEMP: ADDED TASK, PENDING IS NOW: " + str(self.myTasks["pending"][moduleid]))
+        print("TEMP: ADDED TASK, ORDER IS NOW: " + str(self.myTasks["order"]))
 
         #Add task to end of merged tasks list, instead of remerging the system-user tasks order, for optimisation reasons
         self.tasksOrder[moduleid + ":" + taskid] = task
@@ -197,10 +197,10 @@ class TaskManager():
         self.tasksapi.refreshTasksPage()
 
         #Force invalidate item status cache for this itemid
-        pass #TODO: invalidateItemStatusCache
+        self.tasksapi.invalidateItemStatusCache([moduleid], [itemid])
 
         #Ask GUI to refresh representations of the itemid of the added task
-        pass #TODO: APIrefreshItemStatus
+        self.tasksapi.refreshItemStatus(itemid, moduleid, sourceid)
 
         #Execute the tasks runner of this module in a thread
         pass #TODO
@@ -1124,17 +1124,22 @@ class StoriumBrain():
 
     def APIrefreshItemStatus(self, itemid, moduleid, sourceid):
         #Tells GUI to refresh the status of representations', of itemid from sourceid of moduleid
-        pass #TODO
+        thread = Thread(target=self.modules["gui"].refreshItemStatus,
+                        args=(itemid, moduleid, sourceid))
+        thread.daemon = True
+        thread.start()
 
     def APIinvalidateItemInfoCache(self, moduleids=[], itemids=[]):
         #Tells modules in moduleids to delete their item information cache for items in itemids
         #Then, launches APIrefreshItemPage for each possible source
         pass #TODO
 
-    def APIinvalidateItemStatusCache(self, moduleids=[], itemids=[], skipguirefresh=False):
+    def APIinvalidateItemStatusCache(self, moduleids=[], itemids=[]):
         #Tells modules in moduleids to delete their item status cache for items in itemids
-        #Then, tells the GUI to refresh the status shown on their representations of the affected itemids.
-        pass #TODO
+        for i in moduleids:
+            if i not in self.modules:
+                raise StoriumBrainException(_("%s is not a loaded module") % i)
+            self.modules[i].invalidateItemStatusCache(itemids)
 
     def APIreinitModulesIfFileWatch(self, finishedtaskid):
         #Reinitialises modules that have file watches on files that have changed after this task

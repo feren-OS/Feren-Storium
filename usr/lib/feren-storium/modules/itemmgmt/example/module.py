@@ -132,3 +132,14 @@ class module():
             print("IT WORKS")
         else:
             print("I'll tell you what yo")
+
+    def invalidateItemStatusCache(self, itemids):
+        #If we stored the status of items visited in this Store session in memory,
+        # this call would be used to erase the remembered statuses, from memory,
+        # of items in the list itemids.
+        #However, since this example module does not store any caches in memory,
+        # besides hardcoded information to allow test-cases to occur, this does
+        # nothing.
+
+        #NOTE: If IDs in itemids don't exist in this module, don't throw an exception, just ignore them.
+        return
