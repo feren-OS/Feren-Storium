@@ -166,25 +166,30 @@ class itemBlockButton(Gtk.Box):
     def __init__(self, module, itemid, manage=True, moduleid=None, sourceid=None):
         self.module = module
         self.itemid = itemid
-        #TODO: Support subsource direction and rewrite a bit to put moduleid, sourceid and subsourceid overrides in checks, then check for them later
+        self.sourceid = sourceid
+        self.moduleid = moduleid
+        self.manage = manage
+        #TODO: Support subsource direction
         #Check criteria is met, first
-        # itemid ANY available sources?
-        availsources = self.module.guiapi.getAvailableSources(itemid)
+        # Does itemid have any available sources?
+        availsources = self.module.guiapi.getAvailableSources(self.itemid)
         if availsources == {}:
-            raise DemoGUIException(_("%s has no available sources so cannot be added as an item button") % itemid)
-        if moduleid != None:
-            if sourceid != None: # sourceid, if specified, exists in this module's sources
-                if moduleid + "/" + sourceid not in availsources:
-                    raise DemoGUIException(_("%s has no available source %s in module %s so cannot be added as an item button") % (itemid, sourceid, moduleid))
-            else: # moduleid, if specified, has sources
-                sourcefound = False
+            raise DemoGUIException(_("%s has no available sources so cannot be added as an item button") % self.itemid)
+        # If a moduleid, or even a moduleid-sourceid combo, were specified, are there available sources within their criteria?
+        if self.moduleid != None:
+            if self.sourceid != None: # check if this module-source combo exists as an available source
+                if self.moduleid + "/" + self.sourceid not in availsources:
+                    raise DemoGUIException(_("%s has no available source %s in module %s so cannot be added as an item button") % (self.itemid, self.sourceid, self.moduleid))
+            else: # check if the module has any available sources - if so, use the first one from the module
                 for i in availsources:
-                    if i.startswith(moduleid + "/"):
-                        sourcefound = True
+                    if i.startswith(self.moduleid + "/"):
+                        self.sourceid = i[len(self.moduleid + "/"):] #Trim out moduleid portion
                         break
-                if sourcefound == False:
-                    raise DemoGUIException(_("%s has no available sources in module %s so cannot be added as an item button") % (itemid, moduleid))
-
+                if self.sourceid == None:
+                    raise DemoGUIException(_("%s has no available sources in module %s so cannot be added as an item button") % (self.itemid, self.moduleid))
+        else: #Otherwise use the first available source
+            self.moduleid, self.sourceid = list(availsources.keys())[0].split("/")
+            #FIXME: We'd need to change this to only split the final / and not precursor ones
 
         Gtk.Box.__init__(self)
 
@@ -216,10 +221,7 @@ class itemBlockButton(Gtk.Box):
             infobox.pack_start(self.itemicon, False, False, 0)
             infobox.pack_start(fullnameSummaryBox, True, True, 8)
             self.body.add(infobox)
-            if moduleid != None and sourceid != None:
-                self.body.connect('clicked', self.goto, moduleid, sourceid)
-            else:
-                self.body.connect('clicked', self.goto)
+            self.body.connect('clicked', self.goto)
         else:
             self.body = Gtk.Box()
             self.body.pack_start(self.itemicon, False, False, 0)
@@ -229,10 +231,7 @@ class itemBlockButton(Gtk.Box):
         self.pack_start(self.body, True, True, 0)
 
         #Get item's information
-        if moduleid != None and sourceid != None:
-            self.loadItemInformation(moduleid + "/" + sourceid, itemid) #Existence checked earlier in code
-        else:
-            self.loadItemInformation(list(availsources.keys())[0], itemid)
+        self.loadItemInformation()
 
         #Add the button if manage is on
         if manage == True:
@@ -284,12 +283,12 @@ class itemBlockButton(Gtk.Box):
 
             #Add buttons to the right of the block, and get the current status
             self.pack_end(self.buttonsstack, False, False, 0)
-            if moduleid != None and sourceid != None:
+            if self.moduleid != None and self.sourceid != None:
                 thread = Thread(target=self.loadStatus,
-                            args=(moduleid + "/" + sourceid, itemid))
+                            args=())
             else:
                 thread = Thread(target=self.loadStatus,
-                            args=(list(availsources.keys())[0], itemid))
+                            args=())
             thread.daemon = True
             thread.start()
         #TODO: Figure out how we'll get item information - do we just add a clause to getItemInformation in the API where it obtains it from the task if there's a task?
@@ -297,15 +296,11 @@ class itemBlockButton(Gtk.Box):
         self.show_all()
 
 
-    def loadItemInformation(self, modulesourceid, itemid):
-        #Get split values for source and module IDs
-        moduleid, sourceid = modulesourceid.split("/")
-        #FIXME: We'd need to change this to only split the final / and not precursor ones
-
-        iteminfo = self.module.api.getItemInformation(itemid, moduleid, sourceid)
+    def loadItemInformation(self):
+        iteminfo = self.module.api.getItemInformation(self.itemid, self.moduleid, self.sourceid)
 
         thread = Thread(target=self.itemicon.setIcon,
-                        args=(iteminfo["iconid"], iteminfo["iconurl"], itemid, moduleid, sourceid))
+                        args=(iteminfo["iconid"], iteminfo["iconurl"], self.itemid, self.moduleid, self.sourceid))
         thread.daemon = True
         thread.start()
 
@@ -322,16 +317,12 @@ class itemBlockButton(Gtk.Box):
         else:
             self.statusloading.stop()
 
-    def loadStatus(self, modulesourceid, itemid):
+    def loadStatus(self):
         #TODO: When entering in progress state, change subtitle to "Installing...", "Updating...", "Removing..." and so on, with their progress marked on them 'cos too lazy to implement a label-progressbar-combo in this block in demoGUI.
         #Just in case
         GLib.idle_add(self.buttonsstack.set_visible_child, self.statusunknown)
 
-        #Get split values for source and module IDs
-        moduleid, sourceid = modulesourceid.split("/")
-        #FIXME: We'd need to change this to only split the final / and not precursor ones
-
-        status, irrelevant = self.module.guiapi.getItemStatus(itemid, moduleid, sourceid)
+        status, irrelevant = self.module.guiapi.getItemStatus(self.itemid, self.moduleid, self.sourceid)
 
         #Switch to appropriate button
         if status == 0:
@@ -353,10 +344,10 @@ class itemBlockButton(Gtk.Box):
         #TODO: to check for "Install...", before checking this item's status query getItemStatus on the source ID itself to check if the source is installed
 
 
-    def goto(self, button, moduleid=None, sourceid=None):
-        if moduleid != None and sourceid != None:
+    def goto(self, button):
+        if self.moduleid != None and self.sourceid != None:
             thread = Thread(target=self.module.gotoID,
-                            args=(self.itemid, moduleid, sourceid))
+                            args=(self.itemid, self.moduleid, self.sourceid))
         else:
             thread = Thread(target=self.module.gotoID,
                             args=(self.itemid,))
@@ -614,10 +605,15 @@ class categoricalPage(Gtk.Box):
     def onCategoryChanged(self, listbox, row):
         items = self.module.guiapi.allItemsFilterCategory(row.category, 200, True, False)
         for i in self.listingsPane.get_children():
+            for iblock in i.get_children(): #Get itemblock out of FlowBoxChild
+                if iblock in self.parent.known_itemboxes:
+                    self.parent.known_itemboxes.pop(self.parent.known_itemboxes.index(iblock))
             GLib.idle_add(i.destroy)
         #TODO: Placeholder screen for no items
         for i in items:
-            GLib.idle_add(self.listingsPane.insert, itemBlockButton(self.module, i, True), -1)
+            iblock = itemBlockButton(self.module, i, True)
+            self.parent.known_itemboxes.append(iblock)
+            GLib.idle_add(self.listingsPane.insert, iblock, -1)
         GLib.idle_add(self.listingsPane.show_all)
 
 
@@ -710,15 +706,17 @@ class tasksLibraryPage(Gtk.ScrolledWindow):
 
     def refreshTasksList(self):
         taskslist = self.module.guiapi.getTasks()
-        #TODO: On each page body, store each item representation in a dict, with their itemid and sourceid and maybe a duplication count on show, so they can all be updated when necessary
-        #TODO: API GETITEMINFORMATION should obtain from tasks if they exist
-        print(taskslist)
         #Remove existing items
         for i in self.tasksList.get_children():
+            for iblock in i.get_children(): #Get itemblock out of FlowBoxChild
+                if iblock in self.parent.known_itemboxes:
+                    self.parent.known_itemboxes.pop(self.parent.known_itemboxes.index(iblock))
             GLib.idle_add(i.destroy)
         #Generate new item blocks for the tasks
         for i in taskslist:
-            GLib.idle_add(self.tasksList.insert, itemBlockButton(self.module, taskslist[i]["itemid"], True, taskslist[i]["moduleid"], taskslist[i]["sourceid"]), -1)
+            iblock = itemBlockButton(self.module, taskslist[i]["itemid"], True, taskslist[i]["moduleid"], taskslist[i]["sourceid"])
+            self.parent.known_itemboxes.append(iblock)
+            GLib.idle_add(self.tasksList.insert, iblock, -1)
 
 
 
@@ -1188,6 +1186,7 @@ class window(Gtk.Window):
         self.set_title(_("Feren Storium API Demo - GUI Module"))
         self.set_default_size(850, 640)
         self.set_size_request(850, 540)
+        self.known_itemboxes = [] #Current known item boxes in the GUI
 
 
     def spawn(self, eventtrigger=None):
@@ -1748,6 +1747,13 @@ class module():
         self.wnd.taskspage.refreshTasksList()
 
     def refreshItemStatus(self, itemid, moduleid, sourceid):
-        #TODO: For each block in the GUI currently of the item, update them too
         modulesourceid = moduleid + "/" + sourceid
+        #TODO: Exception catcher for if blocks are changed during this signal
+        for i in self.wnd.known_itemboxes:
+            if i.itemid == itemid and i.moduleid == moduleid and i.sourceid == sourceid:
+                #Reload status on existing itemboxes
+                thread = Thread(target=i.loadStatus,
+                                args=())
+                thread.daemon = True
+                thread.start()
         self.wnd.itempage.header.loadStatus(modulesourceid, itemid)
