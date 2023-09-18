@@ -95,7 +95,7 @@ class TaskManager():
         self.api = api
         self.tasksapi = tasksapi
         self.myTasks = {"order": {}, \
-                          "pending": {}, \
+                          "pending": [], \
                           "queue": {}, \
                           "staged": {}, \
                           "waitingforshutdown": {}}
@@ -114,7 +114,6 @@ class TaskManager():
     def addModuleToTasks(self, moduleid):
         if moduleid in self.myTasks["queue"]:
             return
-        self.myTasks["pending"][moduleid] = []
         for i in ["queue", "staged", "waitingforshutdown"]:
             self.myTasks[i][moduleid] = {}
 
@@ -160,8 +159,18 @@ class TaskManager():
 
 
 
-    def newTask(self, itemid, moduleid, operation, sourceid, subsourceid, elevated, becauseof=None, follows=None):
+    def newTask(self, itemid, moduleid, operation, sourceid, subsourceid, becauseof=None, follows=None):
         #Creates task given information supplied, and adds it to pending, staged or queue depending on multiple factors
+
+        #TODO:
+        #   - Add cross-module source dependencies support
+        #       - Add a dependency type for source dependencies
+        #   - Add a timeout clause, if possible, where if dependency finding takes more than 40 seconds the pending task group is skipped over until the next loop, unless it is currently the only item in the list (which case the 40 second timeout extends by 40 more seconds until the next check, etc.)
+        #   - Prevent confirmation of task groups until the source adding task(s) tasks in them follows has been completed - if not satisfied yet, skip to next group
+        #       - Task groups should split into: Task Group with Items, Task Group with Source Dependencies - TGWSD goes first in queue, and TGWI tasks will follows their respective source dependency tasks
+        #   - Implement security updates section of Library - these will run before other updates once started
+
+
 
         #TODO: For systemd mode return the task id in response to the task creation signal that was just given.
         #Also TODO: Superuser tasks are stored in userland until confirmed in which case their task body is sent to systemd via signal, and also deleted from userland.
@@ -174,8 +183,8 @@ class TaskManager():
 
         #Give task an ID
         rootused = "0" if elevated == False else "1"
-        taskid = rootused + ":" + itemid + ":" + sourceid
-        if moduleid + ":" + taskid in self.myTasks["order"]:
+        taskid = moduleid + ":" + rootused + ":" + itemid + ":" + sourceid
+        if taskid in self.myTasks["order"]:
             #Not that this should be possible, but just in case
             raise StoriumBrainException(_("There is already a task called %s:%s:%s") % (rootused, itemid, sourceid))
 
@@ -184,14 +193,14 @@ class TaskManager():
 
         #Add task group to pending
         self.addModuleToTasks(moduleid)
-        self.myTasks["pending"][moduleid].append(group)
+        self.myTasks["pending"].append(group)
         #...and link the individual tasks themselves onto the visual tasks order
-        self.myTasks["order"][moduleid + ":" + taskid] = task
+        self.myTasks["order"][taskid] = task
 
         print("TEMP: ADDED TASK, ORDER IS NOW: " + str(self.myTasks["order"]))
 
         #Add task to end of merged tasks list, instead of remerging the system-user tasks order, for optimisation reasons
-        self.tasksOrder[moduleid + ":" + taskid] = task
+        self.tasksOrder[taskid] = task
 
         #Ask GUI to refresh its tasks list
         self.tasksapi.refreshTasksPage()
@@ -223,6 +232,11 @@ class TaskManager():
         #       TODO: forceRefresh on all itemids whose tasks were just removed?
         #   NOTE: Add call, that refreshTasksOrder calls at end, to Tasks API that tells GUI to refreshTasks?
 
+
+    def pendingTasksGroupsRunner(self):
+        if self.runningPendingRunner == True: #Don't run more than once at a time
+            return
+        self.runningPendingRunner = True
 
 
 
@@ -1228,7 +1242,7 @@ class StoriumBrain():
                         sources[source]["priority"] = priority
                     #Fix negative (invalid) priorities
                     if priority < 0:
-                        priority == 0
+                        priority == 0 - priority
                     #Reduce priority of redirection sources
                     if "redirectitemid" in sources[source]:
                         priority += 900
@@ -1294,34 +1308,54 @@ class StoriumBrain():
         #  8: Reinstalling...
         #  9: Updating...
         #  10: Removing...
+        # Waiting for shutdown:
+        #  11: Waiting for shutdown
 
         #Check there's a task
-        for ttype in [self.taskManager.systemTasksOrder, self.taskManager.myTasks["order"]]:
-            for i in ttype:
-                task = ttype[i]
-                if task["itemid"] == itemid and task["moduleid"] == moduleid \
-                    and task["sourceid"] == sourceid:
-                    inprogress = True if list(ttype.keys()).index(i) == 0 else False
-                    if task["operation"] == "install":
+        task = self.getTaskID(itemid, moduleid, sourceid)
+        if task != None:
+            #Pending Tasks
+            for tgroup in self.taskManager.myTasks["pending"]:
+                if task in tgroup:
+                    if tgroup[task]["operation"] == "install":
+                        return 3, ""
+                    elif tgroup[task]["operation"] == "reinstall":
+                        return 4, ""
+                    elif tgroup[task]["operation"] == "update":
+                        return 5, ""
+                    elif tgroup[task]["operation"] == "remove":
+                        return 6, ""
+            #Queued and/or Running Task(s)
+            #TODO: Have a way to determine running superuser tasks, then implement here
+            task = ":".join(task.split(":")[2:]) #Remove moduleid and superuser indicator
+            for ttype in ["queue", "staged"]:
+                if task in self.taskManager.myTasks[ttype][moduleid]:
+                    inprogress = True if ttype == "queue" and self.taskManager.myTasks[ttype][moduleid].index(taskid) == 0 else False
+                    taskbody = self.taskManager.myTasks[ttype][moduleid][taskid]
+                    if taskbody["operation"] == "install":
                         if inprogress == True:
                             return 7, ""
                         else:
                             return 3, ""
-                    elif task["operation"] == "reinstall":
+                    elif taskbody["operation"] == "reinstall":
                         if inprogress == True:
                             return 8, ""
                         else:
                             return 4, ""
-                    elif task["operation"] == "update":
+                    elif taskbody["operation"] == "update":
                         if inprogress == True:
                             return 9, ""
                         else:
                             return 5, ""
-                    elif task["operation"] == "remove":
+                    elif taskbody["operation"] == "remove":
                         if inprogress == True:
                             return 10, ""
                         else:
                             return 6, ""
+            #Task is waiting for shutdown
+            #FIXME: waitingforshutdown should be exclusive to Superuser, and as such checked for such
+            if task in self.taskManager.myTasks["waitingforshutdown"][moduleid]:
+                return 11, ""
         #No task? Query the module for the current status.
         return copy.deepcopy(self.modules[moduleid].getItemStatus(itemid, sourceid))
 

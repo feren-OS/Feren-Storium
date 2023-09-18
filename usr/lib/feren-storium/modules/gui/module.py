@@ -668,6 +668,10 @@ class tasksLibraryPage(Gtk.ScrolledWindow):
         self.updatesLbl.pack_start(updatesLbl, False, False, 0)
         self.updatesLbl.pack_end(Gtk.Box(), True, True, 0)
         #self.updatesLbl.set_no_show_all(True)
+        self.secUpdatesList = Gtk.FlowBox() #Security updates
+        self.secUpdatesList.set_min_children_per_line(1)
+        self.secUpdatesList.set_max_children_per_line(1)
+        #self.secUpdatesList.set_no_show_all(True)
         self.updatesList = Gtk.FlowBox()
         self.updatesList.set_min_children_per_line(1)
         self.updatesList.set_max_children_per_line(1)

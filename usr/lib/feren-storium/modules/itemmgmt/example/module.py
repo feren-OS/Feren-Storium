@@ -77,6 +77,7 @@ class module():
 
 
     def getSourceInformation(self, itemid, sourceid):
+        # TODO: Migrate to using sources information JSON
         if sourceid.startswith(self.moduleid + "-appsource-"):
             sourceid = sourceid[len(self.moduleid + "-appsource-"):]
         if sourceid == "exampleredir": #Pretend this is a check for an item having moved or being replaced by another item on this source
