@@ -1,6 +1,6 @@
 {
     "exampleinstall": {
-        "sources": ["example1"],
+        "sources": ["itemsource-example1"],
         "all": {
             "fullname": {
                 "C": "Example (install)"
@@ -77,7 +77,7 @@
             "respectsa11y": true,
             "supportsdpi": true
         },
-        "example1": {
+        "itemsource-example1": {
             "reviews": {
                 "startotal": 44,
                 "2ratingsonly": false,
@@ -87,11 +87,13 @@
                         "Jennifer Andison": [3, "1.4", "Fedora 38", "This too."]
                     }
                 }
-            }
+            },
+            "testinstalledstatus": "no",
+            "testinstalledsubsource": ""
         }
     },
     "examplenosource": {
-        "sources": ["example1"],
+        "sources": ["itemsource-example1"],
         "all": {
             "fullname": {
                 "C": "Example (missing source)"
@@ -161,10 +163,14 @@
             "respectsnativetheme": "libadwaita",
             "respectsa11y": true,
             "supportsdpi": true
+        },
+        "itemsource-example1": {
+            "testinstalledstatus": "no",
+            "testinstalledsubsource": ""
         }
     },
     "exampleupdate": {
-        "sources": ["example1"],
+        "sources": ["itemsource-example1"],
         "all": {
             "fullname": {
                 "C": "Example (update)"
@@ -226,10 +232,14 @@
             "respectsnativetheme": "granite",
             "respectsa11y": true,
             "supportsdpi": true
+        },
+        "itemsource-example1": {
+            "testinstalledstatus": "updateavailable",
+            "testinstalledsubsource": "sub2"
         }
     },
     "exampleinstalled": {
-        "sources": ["example1"],
+        "sources": ["itemsource-example1"],
         "all": {
             "fullname": {
                 "C": "Example (installed)"
@@ -295,10 +305,14 @@
             "respectsnativetheme": "forcedoff",
             "respectsa11y": true,
             "supportsdpi": true
+        },
+        "itemsource-example1": {
+            "testinstalledstatus": "yes",
+            "testinstalledsubsource": "sub1"
         }
     },
     "examplemultiplesources": {
-        "sources": ["example1", "example2"],
+        "sources": ["itemsource-example1", "itemsource-example2"],
         "all": {
             "summary": {
                 "C": "Example item for installation"
@@ -372,17 +386,24 @@
             "respectsa11y": true,
             "supportsdpi": true
         },
-        "example1": {
+        "itemsource-example1": {
             "fullname": {
                 "C": "Example (multiple sources)"
             },
-            "isofficial": true
+            "isofficial": true,
+            "testinstalledstatus": "no",
+            "testinstalledsubsource": ""
         },
-        "example2": {
+        "itemsource-example2": {
             "fullname": {
                 "C": "Example (second source)"
             },
-            "isofficial": false
+            "summary": {
+                "C": "Second source demonstrating source-specific install-states"
+            },
+            "isofficial": false,
+            "testinstalledstatus": "yes",
+            "testinstalledsubsource": "sub21"
         }
     }
 }

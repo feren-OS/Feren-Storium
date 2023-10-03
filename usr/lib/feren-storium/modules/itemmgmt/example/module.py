@@ -30,9 +30,9 @@ class module():
         #self.memory_refreshing = True
 
         self.itemcache = {}
-        with open(self.api.usrdir + "/curated/itemmgmtexample/items.json", 'r') as fp:
+        with open("/usr/share/feren-storium/itemmgmtexample/items.json", 'r') as fp:
             self.itemcache = json.loads(fp.read())
-        with open(self.api.usrdir + "/curated/itemmgmtexample/sourceitems.json", 'r') as fp:
+        with open("/usr/share/feren-storium/itemmgmtexample/sourceitems.json", 'r') as fp:
             self.sourcescache = json.loads(fp.read())
         
         #self.memory_refreshing = False
@@ -58,8 +58,21 @@ class module():
 
 
     def getItemInformation(self, itemid, sourceid):
+        #Check the item's in redirects only, and if so get placeholder item information
+        if itemid not in self.itemcache:
+            if itemid in self.redirectscache:
+                if sourceid in self.redirectscache[itemid]["sources"]:
+                    sourceinfo = self.redirectscache[itemid][sourceid]
+                    return {"fullname": sourceinfo["fullname"], \
+                        "summary": sourceinfo["summary"], \
+                        "iconid": sourceinfo["iconid"], \
+                        "iconurl": self.redirectscache[itemid]["iconurl"]}
+                else:
+                    raise ExampleModuleException(_("%s is not a valid redirection source for %s") % (sourceid, itemid))
+            else:
+                raise ExampleModuleException(_("The itemid %s does not exist") % itemid)
+        #Else fall back to normal item information
         result = {}
-        sourceid = sourceid[len(self.moduleid + "-appsource-"):]
         if sourceid not in self.itemcache[itemid] and "all" not in self.itemcache[itemid]:
             raise ExampleModuleException(_("%s does not exist in source %s") % (itemid, sourceid))
         if "all" in self.itemcache[itemid]:
@@ -72,29 +85,53 @@ class module():
     def getAvailableSources(self, itemid):
         result = {}
         for i in self.itemcache[itemid]["sources"]:
-            result[self.moduleid + "-appsource-" + i] = self.getSourceInformation(itemid, i)
+            result[i] = self.getSourceInformation(itemid, i)
         return result
 
 
     def getSourceInformation(self, itemid, sourceid):
-        # TODO: Migrate to using sources information JSON
-        if sourceid.startswith(self.moduleid + "-appsource-"):
-            sourceid = sourceid[len(self.moduleid + "-appsource-"):]
-        if sourceid == "exampleredir": #Pretend this is a check for an item having moved or being replaced by another item on this source
-            return {"fullname": self.sourcescache[sourceid]["fullname"], \
-                "subsources": {}, \
-                "redirectitemid": "mozilla-firefox", \
-                "redirectmoduleid": "flatpak", \
-                "redirectsourceid": "flathub", \
-                "redirectmessage": "This is a test redirect", \
-                "priority": 10}
-            #NOTE: Priority = Priority - 900 after being sent to Storium
+        #Current redirection sources plan:
+        #   - minimum item information required for item blocks is given by getItemInformation, and NOT the redirection itself's info
+        #   - upon choosing the source the Store redirects to the new item INSTEAD of loading item information/status - this, in turn, results in the item info/status of the post-redirect being loaded automatically
+        #   - redirection items shall not appear in Store outside of Library, nor have subsources
+        #       TODO: Make modules delist items without a category from search
+        #   - when getting the sources, if a redirect source is found check its redirect exists (if not, remove said source)
+        #   - if a redirect source is valid, change its name to "*NAME HERE* (*SOURCE HERE*)"
+
+        #   - To appear in Library, the module must report an item is installed from the redirection source's ID in said module (this ID can be entirely custom)
+        #   - TODO: Should the module just list all installed IDs and then we query for attributes afterwards like up-to-date or redirection source, or should that befall the module's own duty?
+        # TODO: redirections.json for the IDs that redirect to other IDs in this module
+
+
+        #Check the item's in redirects only, and if so if the source exists in said redirects information
+        if itemid not in self.itemcache:
+            if itemid in self.redirectscache:
+                if sourceid in self.redirectscache[itemid]["sources"]:
+                    sourceinfo = self.redirectscache[itemid][sourceid]
+                    return {"redirectitemid": sourceinfo["redirectitemid"], \
+                        "redirectmoduleid": sourceinfo["redirectmoduleid"], \
+                        "redirectsourceid": sourceinfo["redirectsourceid"], \
+                        "redirectmessage": self.redirectscache[itemid]["redirectmessage"], \
+                        "priority": 0}
+                    #NOTE: Priority = Priority - 900 after being sent to Storium
+                else:
+                    raise ExampleModuleException(_("%s is not a valid redirection source for %s") % (sourceid, itemid))
+            else:
+                raise ExampleModuleException(_("The itemid %s does not exist") % itemid)
+        #Otherwise fall back to getting source information as expected
+        if "defereasymode" in self.sourcescache[sourceid]:
+            defereasymode = self.sourcescache[sourceid]["defereasymode"]
         else:
-            elevated = True if sourceid == "example2" else False
-            return {"fullname": self.sourcescache[sourceid]["fullname"], \
-                "subsources": {"sub1": {"fullname": {"C": "subsource 1"}}, "sub2": {"fullname": {"C": "subsource 2"}}}, \
-                "defereasymode": True, "elevated": elevated}
-            #NOTE: Priority falls back to 50
+            defereasymode = False
+        if "elevated" in self.sourcescache[sourceid]:
+            elevated = self.sourcescache[sourceid]["elevated"]
+        else:
+            elevated = False
+        return {"fullname": self.sourcescache[sourceid]["fullname"], \
+            "subsources": self.sourcescache[sourceid]["subsources"], \
+            "defereasymode": defereasymode, \
+            "elevated": elevated}
+        #NOTE: Priority falls back to 50
 
 
     ############################################
@@ -102,18 +139,29 @@ class module():
     ############################################
 
     def getItemStatus(self, itemid, sourceid):
+        #TODO: Migrate to using items.json and redirects.json for checking install status per each source, as well as source to imply being installed from, and based on the values return accordingly
+
         #This is just so the functionality can be shown off - in an actual module, you should query your chosen backend for installation status and respond appropriately.
         # NOTE: Only 0, 1, and 2 are accepted status values for a module to return.
-        if itemid == "exampleinstall":
-            return 0, ""
-        elif itemid == "examplenosource":
-            return 0, "" #TODO: Make this example fail the source installed check, and add a check for this separately
-        elif itemid == "exampleupdate":
-            return 2, "sub2"
-        elif itemid == "exampleinstalled":
-            return 1, "sub1"
+
+        if itemid not in self.itemcache:
+            if itemid in self.redirectscache:
+                if sourceid in self.redirectscache[itemid]["sources"]:
+                    return 1, "" #Return installed for our redirection test(s)
+                else:
+                    raise ExampleModuleException(_("%s is not a valid redirection source for %s") % (sourceid, itemid))
+            else:
+                raise ExampleModuleException(_("The itemid %s does not exist") % itemid)
         else:
-            return 0, ""
+            installed = self.itemcache[itemid][sourceid]["testinstalledstatus"]
+            subsource = self.itemcache[itemid][sourceid]["testinstalledsubsource"]
+            if installed == "no":
+                return 0, ""
+            elif installed == "updateavailable":
+                return 2, subsource
+            elif installed == "yes":
+                return 1, subsource
+        #TODO: Make examplenosource also fail the source installed check, and add a check for this separately
 
 
     def getExtraItemButtons(self, itemid, sourceid, status):

@@ -99,8 +99,11 @@ class TaskManager():
                           "queue": {}, \
                           "staged": {}, \
                           "waitingforshutdown": {}}
-        #Tasks order variables
-        self.systemTasksOrder = {} #Stores the value given by DBus system calls
+        self.systemTasks = {"order": {}, \
+                          "pending": [], \
+                          "queue": {}, \
+                          "staged": {}, \
+                          "waitingforshutdown": {}} #Stores the value given by DBus system calls
         self.tasksOrder = {} #Combined tasks orders to provide to GUI
 
         #Tasks runner locks
@@ -119,7 +122,7 @@ class TaskManager():
 
 
 
-    def makeTask(self, itemid, moduleid, operation, sourceid, subsourceid, elevated, becauseof=None, follows=None):
+    def makeTask(self, itemid, moduleid, operation, sourceid, subsourceid, elevated, becauseof=None, dependson=None):
         result = {}
         #Form the task's data
         # Item Information is reobtained via the module
@@ -134,7 +137,7 @@ class TaskManager():
         #If given a value other than None, progress and status will mirror that of the supplied task if valid, else this task will instantly fail once targetted by the pending tasks runner
         result["becauseof"] = becauseof
         #If given a value other than None, this task will cancel if the supplied task fails or is cancelled - additionally, if that task succeeds, this task will not be cancellable
-        result["follows"] = follows
+        result["dependson"] = dependson
         #TODO: Make these be added once adding to queue, instead of instantly:
         result["cancellable"] = False
         # TODO: Make cancellable always be True while in queue (always False in pending)
@@ -159,7 +162,7 @@ class TaskManager():
 
 
 
-    def newTask(self, itemid, moduleid, operation, sourceid, subsourceid, becauseof=None, follows=None):
+    def newTask(self, itemid, moduleid, operation, sourceid, subsourceid, becauseof="", dependson=[]):
         #Creates task given information supplied, and adds it to pending, staged or queue depending on multiple factors
 
         #TODO:
@@ -171,15 +174,34 @@ class TaskManager():
         #   - Implement security updates section of Library - these will run before other updates once started
 
 
-
         #TODO: For systemd mode return the task id in response to the task creation signal that was just given.
         #Also TODO: Superuser tasks are stored in userland until confirmed in which case their task body is sent to systemd via signal, and also deleted from userland.
 
-        #Create a task group to store the single task in
+
+        #Create a task group to store any source dependencies in
+        sourcesgroup = {}
+        #TODO: sourceelevated boolean to check if the source addition needs to be done as superuser
+
+        #Create another task group to store the single task in
         #TODO: When confirmed, add dependencies to task group before converting task group into pinned tasks
         group = {}
         elevated = self.api.getSourceInformation(itemid, moduleid, sourceid)["elevated"]
-        task = self.makeTask(itemid, moduleid, operation, sourceid, subsourceid, elevated, becauseof, follows)
+
+        #Check for source dependencies needed by itemid
+        #FIXME: Should this be exclusive to install, or able to be used on update too?
+        sourcedependencies = [] #TODO
+
+        #If any source dependencies were found:
+        follows = [] #NOTE: unlike becauseof, follows can be multiple values
+        if sourcedependencies != []:
+            #add them to the source dependencies group as tasks
+            pass #TODO
+
+            #and set the follows value to the dependencies
+            pass #TODO
+
+        #Create the task, set to run after source dependencies (if there are any)
+        task = self.makeTask(itemid, moduleid, operation, sourceid, subsourceid, elevated, None, follows) #NOTE: There is no becauseof
 
         #Give task an ID
         rootused = "0" if elevated == False else "1"
@@ -191,15 +213,18 @@ class TaskManager():
         #Add task into group
         group[taskid] = task
 
-        #Add task group to pending
         self.addModuleToTasks(moduleid)
+        #Add both task groups to pending
+        #TODO: sources group
         self.myTasks["pending"].append(group)
-        #...and link the individual tasks themselves onto the visual tasks order
+        #...and link the individual tasks themselves onto myTasks order
+        #TODO: sources group's tasks
         self.myTasks["order"][taskid] = task
 
         print("TEMP: ADDED TASK, ORDER IS NOW: " + str(self.myTasks["order"]))
 
-        #Add task to end of merged tasks list, instead of remerging the system-user tasks order, for optimisation reasons
+        #Add tasks to end of merged tasks list, instead of remerging the system-user tasks order, for optimisation reasons
+        #TODO: sources group's tasks
         self.tasksOrder[taskid] = task
 
         #Ask GUI to refresh its tasks list
@@ -473,11 +498,11 @@ class StoriumBrain():
         self.apiversion = 1
 
         #Information requirements for module types
-        self.moduleinforequirements = {"itemmgmt": ["canManageAutoUpdates", "canUpdatesRunOnShutdown"], \
+        self.moduleinforequirements = {"itemmgmt": ["canManageAutoUpdates", "canUpdatesRunOnShutdown", "canManageRemoveLeftovers", "canManagePackageCleanup"], \
             "search": [], \
             "gui": [], \
             "gui:configs": []}
-        self.moduleinfoextras = {"itemmgmt": ["appsourcesFullName"], \
+        self.moduleinfoextras = {"itemmgmt": ["itemsourcesFullName"], \
             "search": [], \
             "gui": [], \
             "gui:configs": []}
@@ -603,6 +628,9 @@ class StoriumBrain():
         self.tasksapi = TasksAPI()
         self.tasksapi.updateTask = self.APIupdateTask
         self.tasksapi.setTaskCancellable = self.APIsetTaskCancellable
+        self.tasksapi.getItemSourceDependencies = self.APIgetItemSourceDependencies
+        self.tasksapi.getItemRequiredChanges = self.APIgetItemRequiredChanges
+        self.tasksapi.getItemBonuses = self.APIgetItemBonuses
         self.tasksapi.showItemErrorDialog = self.APIshowItemErrorDialog
         self.tasksapi.refreshTasksPage = self.APIrefreshTasksPage
         self.tasksapi.refreshItemPage = self.APIrefreshItemPage
@@ -1121,6 +1149,20 @@ class StoriumBrain():
         #Sets if the task can be cancelled, and sends signal to GUI to update task representations' cancel button to reflect this change
         pass #TODO
 
+
+    def APIgetItemSourceDependencies(self, itemid, moduleid, sourceid):
+        #Queries moduleid and returns all source dependencies, as a list of item IDs, of itemid from sourceid from moduleid.
+        pass #TODO
+
+    def APIgetItemRequiredChanges(self, itemid, moduleid, sourceid):
+        #Queries moduleid and returns required installations, updates, and removals as 3 individual lists of dictionaries containing an itemid and sourceid each.
+        pass #TODO
+
+    def APIgetItemBonuses(self, itemid, moduleid, sourceid, subsourceid):
+        #Queries moduleid and returns the bonuses available to use on itemid from sourceid
+        pass #TODO
+
+
     def APIshowItemErrorDialog(self, itemid, moduleid, sourceid, extras, errormsg):
         #Shows an error dialog, via the GUI, informing the user that the task has failed and why it failed.
         pass #TODO
@@ -1310,6 +1352,8 @@ class StoriumBrain():
         #  10: Removing...
         # Waiting for shutdown:
         #  11: Waiting for shutdown
+        # Missing source:
+        #  21: Missing source
 
         #Check there's a task
         task = self.getTaskID(itemid, moduleid, sourceid)
@@ -1319,6 +1363,7 @@ class StoriumBrain():
                 if task in tgroup:
                     if tgroup[task]["operation"] == "install":
                         return 3, ""
+                        #No point supplying the subsource as it'll be checked for again post-task
                     elif tgroup[task]["operation"] == "reinstall":
                         return 4, ""
                     elif tgroup[task]["operation"] == "update":
@@ -1357,7 +1402,12 @@ class StoriumBrain():
             if task in self.taskManager.myTasks["waitingforshutdown"][moduleid]:
                 return 11, ""
         #No task? Query the module for the current status.
-        return copy.deepcopy(self.modules[moduleid].getItemStatus(itemid, sourceid))
+        status, subsource = copy.deepcopy(self.modules[moduleid].getItemStatus(itemid, sourceid))
+        if status == 0:
+            #TODO: Call getItemSourceDependencies, which will return only the uninstalled dependencies, and check list is empty (nothing needs installing first) before returning 0
+            if False:
+                return 21, "" #No subsource has been selected on uninstalled items
+        return status, subsource
 
 
     def APIgetExtraItemButtons(self, itemid, moduleid, sourceid, status):

@@ -14,12 +14,14 @@
             }
         }
     ],
-    "appsourcesFullName": {
+    "itemsourcesFullName": {
         "C": "Example Module Sources"
     },
     "conditionFilesExist": {},
     "watchFiles": [],
     "canManageAutoUpdates": false,
     "canUpdatesRunOnShutdown": false,
+    "canManageRemoveLeftovers": false,
+    "canManagePackageCleanup": false,
     "APIVersion": 1
 }

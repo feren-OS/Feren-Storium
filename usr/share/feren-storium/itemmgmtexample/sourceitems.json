@@ -1,5 +1,5 @@
 {
-    "example1": {
+    "itemsource-example1": {
         "fullname": {
             "C": "Example source"
         },
@@ -17,9 +17,22 @@
             "info", {
                 "C": "This warning appears on this source only inside settings"
             }
-        ]
+        ],
+        "subsources": {
+            "sub1": {
+                "fullname": {
+                    "C": "subsource 1"
+                }
+            },
+            "sub2": {
+                "fullname": {
+                    "C": "subsource 2"
+                }
+            }
+        },
+        "defereasymode": true
     },
-    "example2": {
+    "itemsource-example2": {
         "fullname": {
             "C": "Example source 2"
         },
@@ -29,19 +42,20 @@
         "iconid": "package-update",
         "iconurl": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/SMPTE_Color_Bars.svg/1200px-SMPTE_Color_Bars.svg.png",
         "warnings": [],
-        "settingswarns": []
-    },
-    "exampleredir": {
-        "fullname": {
-            "C": "Redirecting example source"
-        },
-        "summary": {
-            "C": "An example Applications Source that redirects to another item"
-        },
-        "iconid": "package-install",
-        "iconurl": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/SMPTE_Color_Bars.svg/1200px-SMPTE_Color_Bars.svg.png",
-        "warnings": [],
         "settingswarns": [],
-        "category": ""
+        "subsources": {
+            "sub21": {
+                "fullname": {
+                    "C": "subsource 1 (s2)"
+                }
+            },
+            "sub22": {
+                "fullname": {
+                    "C": "subsource 2 (s2)"
+                }
+            }
+        },
+        "elevated": true,
+        "defereasymode": false
     }
 }

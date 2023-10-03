@@ -164,6 +164,9 @@ class configWindow(Gtk.Window):
 ############################################
 class itemBlockButton(Gtk.Box):
     def __init__(self, module, itemid, manage=True, moduleid=None, sourceid=None):
+        #TODO: Add a dict of 'optional' fields of item information, mainly to accomodate for redirection sources, that have:
+        #   optionaliteminfovalue: function to call, with a value or None, that applies the information to the block or hides it depending on value provided?
+
         self.module = module
         self.itemid = itemid
         self.sourceid = sourceid
@@ -326,12 +329,9 @@ class itemBlockButton(Gtk.Box):
 
         #Switch to appropriate button
         if status == 0:
-            #Check if the necessary source is installed if not installed
-            sourceavailable = True #TODO
-            if sourceavailable == True:
-                GLib.idle_add(self.buttonsstack.set_visible_child, self.install)
-            else:
-                GLib.idle_add(self.buttonsstack.set_visible_child, self.installsource)
+            GLib.idle_add(self.buttonsstack.set_visible_child, self.install)
+        elif status == 21:
+            GLib.idle_add(self.buttonsstack.set_visible_child, self.installsource)
         elif status == 1:
             GLib.idle_add(self.buttonsstack.set_visible_child, self.remove)
         elif status == 2:
@@ -340,8 +340,7 @@ class itemBlockButton(Gtk.Box):
             GLib.idle_add(self.buttonsstack.set_visible_child, self.cancelqueuebtn)
         elif status >= 7 and status <= 10:
             GLib.idle_add(self.buttonsstack.set_visible_child, self.cancelbtn)
-
-        #TODO: to check for "Install...", before checking this item's status query getItemStatus on the source ID itself to check if the source is installed
+        #FIXME: status 11
 
 
     def goto(self, button):
@@ -1041,12 +1040,10 @@ class itemDetailsHeader(Gtk.Box):
             GLib.idle_add(i.destroy)
         self.extrabuttoncallbacks = {} #Erase existing callback values now the buttons are gone
         if status == 0:
-            #Check if the necessary source is installed if not installed
-            sourceavailable = True #TODO
-            if sourceavailable == True:
-                GLib.idle_add(self.parent.itempage.header.install.show)
-            else:
-                GLib.idle_add(self.parent.itempage.header.installsource.show)
+            GLib.idle_add(self.parent.itempage.header.install.show)
+            GLib.idle_add(self.parent.itempage.header.subsource.show)
+        elif status == 21:
+            GLib.idle_add(self.parent.itempage.header.installsource.show)
             GLib.idle_add(self.parent.itempage.header.subsource.show)
         elif status == 1:
             GLib.idle_add(self.parent.itempage.header.reinstall.show)
@@ -1067,6 +1064,7 @@ class itemDetailsHeader(Gtk.Box):
             GLib.idle_add(self.parent.itempage.header.queuedlbl.set_label, _("Waiting for removal"))
         elif status >= 7 and status <= 10:
             pass #TODO: Get current progress and immediately place it on the in-page progress bar
+        #FIXME: status 11
 
         #Get extra buttons from the selected module
         for i in self.module.guiapi.getExtraItemButtons(itemid, moduleid, sourceid, status):
