@@ -162,7 +162,7 @@ class configWindow(Gtk.Window):
 ############################################
 # Item Block
 ############################################
-class itemBlockButton(Gtk.Box):
+class itemBlockButton(Gtk.VBox):
     def __init__(self, module, itemid, manage=True, moduleid=None, sourceid=None):
         #TODO: Add a dict of 'optional' fields of item information, mainly to accomodate for redirection sources, that have:
         #   optionaliteminfovalue: function to call, with a value or None, that applies the information to the block or hides it depending on value provided?
@@ -198,10 +198,8 @@ class itemBlockButton(Gtk.Box):
 
         #Add the main body
         self.itemicon = itemIcon(self, module)
-        self.fullname = Gtk.Label()
-        self.fullname.set_ellipsize(Pango.EllipsizeMode.END)
-        self.summary = Gtk.Label()
-        self.summary.set_ellipsize(Pango.EllipsizeMode.END)
+        self.fullname = Gtk.Label(ellipsize=Pango.EllipsizeMode.END, lines=1, wrap=True, max_width_chars=30, xalign=0.0)
+        self.summary = Gtk.Label(ellipsize=Pango.EllipsizeMode.END, lines=1, wrap=True, max_width_chars=30, xalign=0.0)
 
         fullnameBox = Gtk.Box()
         summaryBox = Gtk.Box()
@@ -230,11 +228,8 @@ class itemBlockButton(Gtk.Box):
             self.body.pack_start(self.itemicon, False, False, 0)
             self.body.pack_start(fullnameSummaryBox, True, True, 8)
 
-        self.set_size_request(320, 52)
+        self.set_size_request(340, 52)
         self.pack_start(self.body, True, True, 0)
-
-        #Get item's information
-        self.loadItemInformation()
 
         #Add the button if manage is on
         if manage == True:
@@ -283,20 +278,21 @@ class itemBlockButton(Gtk.Box):
             self.statusunknown.pack_start(self.statusloading, False, False, 0)
             self.buttonsstack.add_named(self.statusunknown, "loading")
 
-
-            #Add buttons to the right of the block, and get the current status
+            #Add buttons to the right of the block
             self.pack_end(self.buttonsstack, False, False, 0)
-            if self.moduleid != None and self.sourceid != None:
-                thread = Thread(target=self.loadStatus,
-                            args=())
-            else:
-                thread = Thread(target=self.loadStatus,
-                            args=())
-            thread.daemon = True
-            thread.start()
-        #TODO: Figure out how we'll get item information - do we just add a clause to getItemInformation in the API where it obtains it from the task if there's a task?
 
         self.show_all()
+
+        #Get item's information and, if enabled, status
+        thread = Thread(target=self.loadItemInformation,
+                    args=())
+        thread.daemon = True
+        thread.start()
+        if manage == True:
+            stthread = Thread(target=self.loadStatus,
+                        args=())
+            stthread.daemon = True
+            stthread.start()
 
 
     def loadItemInformation(self):
@@ -573,7 +569,7 @@ class categoricalPage(Gtk.Box):
         self.listingsPane.set_margin_bottom(4)
         self.listingsPane.set_margin_left(4)
         self.listingsPane.set_margin_right(4)
-        self.pack_end(listingsScroll, True, True, 0)
+        self.pack_start(listingsScroll, True, True, 0)
 
         self.categoriesPane.connect('row-activated', self.onCategoryChanged)
         self.show_all()
@@ -1186,8 +1182,8 @@ class window(Gtk.Window):
 
         self.set_position(Gtk.WindowPosition.CENTER)
         self.set_title(_("Feren Storium API Demo - GUI Module"))
-        self.set_default_size(850, 640)
-        self.set_size_request(850, 540)
+        self.set_default_size(880, 680)
+        self.set_size_request(880, 560)
         self.known_itemboxes = [] #Current known item boxes in the GUI
 
 
@@ -1263,7 +1259,7 @@ class window(Gtk.Window):
         logoimg.set_from_icon_name("softwarecenter", Gtk.IconSize.DND);
 
         logotype1 = Gtk.Label(label=("Storium API"))
-        logotype2 = Gtk.Label(label=("Demonstration"))
+        logotype2 = Gtk.Label(label=("Demo"))
 
         logotype1_box = Gtk.Box()
         logotype2_box = Gtk.Box()

@@ -102,7 +102,6 @@ class module():
         #   - TODO: Should the module just list all installed IDs and then we query for attributes afterwards like up-to-date or redirection source, or should that befall the module's own duty?
         # TODO: redirections.json for the IDs that redirect to other IDs in this module
 
-
         #Check the item's in redirects only, and if so if the source exists in said redirects information
         if itemid not in self.itemcache:
             if itemid in self.redirectscache:
@@ -139,8 +138,6 @@ class module():
     ############################################
 
     def getItemStatus(self, itemid, sourceid):
-        #TODO: Migrate to using items.json and redirects.json for checking install status per each source, as well as source to imply being installed from, and based on the values return accordingly
-
         #This is just so the functionality can be shown off - in an actual module, you should query your chosen backend for installation status and respond appropriately.
         # NOTE: Only 0, 1, and 2 are accepted status values for a module to return.
 
