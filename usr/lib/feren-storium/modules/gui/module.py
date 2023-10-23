@@ -231,6 +231,12 @@ class itemBlockButton(Gtk.VBox):
         self.set_size_request(340, 52)
         self.pack_start(self.body, True, True, 0)
 
+        #Get item's information in the background
+        thread = Thread(target=self.loadItemInformation,
+                    args=())
+        thread.daemon = True
+        thread.start()
+
         #Add the button if manage is on
         if manage == True:
             #NOTE: Due to a design issue in GTK, this button is not inside the button, but rather next to it, to prevent the hitbox of the parent button overriding that of the itemmgmt button
@@ -281,18 +287,12 @@ class itemBlockButton(Gtk.VBox):
             #Add buttons to the right of the block
             self.pack_end(self.buttonsstack, False, False, 0)
 
-        self.show_all()
-
-        #Get item's information and, if enabled, status
-        thread = Thread(target=self.loadItemInformation,
-                    args=())
-        thread.daemon = True
-        thread.start()
-        if manage == True:
             stthread = Thread(target=self.loadStatus,
                         args=())
             stthread.daemon = True
             stthread.start()
+
+        self.show_all()
 
 
     def loadItemInformation(self):
@@ -328,15 +328,16 @@ class itemBlockButton(Gtk.VBox):
             GLib.idle_add(self.buttonsstack.set_visible_child, self.install)
         elif status == 21:
             GLib.idle_add(self.buttonsstack.set_visible_child, self.installsource)
-        elif status == 1:
+        elif status == 1 or status == 3:
             GLib.idle_add(self.buttonsstack.set_visible_child, self.remove)
-        elif status == 2:
+            GLib.idle_add(self.remove.set_sensitive, status != 3)
+        elif status == 2 or status == 4:
             GLib.idle_add(self.buttonsstack.set_visible_child, self.update)
-        elif status >= 3 and status <= 6: #Queued
+        elif status >= 5 and status <= 8: #Queued
             GLib.idle_add(self.buttonsstack.set_visible_child, self.cancelqueuebtn)
-        elif status >= 7 and status <= 10:
+        elif status >= 9 and status <= 12:
             GLib.idle_add(self.buttonsstack.set_visible_child, self.cancelbtn)
-        #FIXME: status 11
+        #FIXME: status 13
 
 
     def goto(self, button):
@@ -788,7 +789,7 @@ class itemDetailsHeader(Gtk.Box):
         self.installsource = Gtk.Button(label=_("Install..."))
         self.installsource.set_no_show_all(True)
         self.installsource.get_style_context().add_class(Gtk.STYLE_CLASS_SUGGESTED_ACTION)
-        self.installsource.connect('clicked', self.onInstallSource)
+        self.installsource.connect('clicked', self.onInstall)
         #  Update
         self.update = Gtk.Button(label=_("Update"))
         self.update.get_style_context().add_class(Gtk.STYLE_CLASS_SUGGESTED_ACTION)
@@ -858,6 +859,8 @@ class itemDetailsHeader(Gtk.Box):
         self.pack_end(sourcesarea, False, False, 4)
         self.pack_end(sourceslbl, False, False, 4)
         self.show_all()
+
+        #TODO: Manage Bonuses button
 
 
     def onStatusChanged(self, stckswch, idk):
@@ -961,7 +964,11 @@ class itemDetailsHeader(Gtk.Box):
         self.loadSubsources(newsourceid, self.parent.currentItem)
 
         #Load status of the item
-        self.loadStatus(newsourceid, self.parent.currentItem)
+        thread = Thread(target=self.loadStatus,
+                        args=(newsourceid, self.parent.currentItem))
+        thread.daemon = True
+        thread.start()
+
     def loadSubsources(self, modulesourceid, itemid):
         if itemid != self.parent.currentItem:
             return #Do not run if the item being viewed is not itemid
@@ -969,12 +976,7 @@ class itemDetailsHeader(Gtk.Box):
             return #Do not run if the source being viewed is not this
         subsources = self.sourcesdata[modulesourceid]["subsources"]
 
-        if len(subsources) <= 1:
-            #TODO: Move this code to loadStatus as it'll toggle dropdown visibility
-            GLib.idle_add(self.subsource.hide)
-        else:
-            GLib.idle_add(self.subsource.show)
-
+        GLib.idle_add(self.subsource.hide)
         iface_list_store = Gtk.ListStore(GObject.TYPE_STRING)
         for subsource in subsources: #Why did they design it to need to be a list?
             iface_list_store.append([subsources[subsource]["fullname"]])
@@ -1008,12 +1010,7 @@ class itemDetailsHeader(Gtk.Box):
             return #Do not run if the item being viewed is not itemid
         if modulesourceid != self.parent.currentModuleSource:
             return #Do not run if the source being viewed is not this
-        #Run in a thread
-        thread = Thread(target=self._loadStatus,
-                        args=(modulesourceid, itemid))
-        thread.daemon = True
-        thread.start()
-    def _loadStatus(self, modulesourceid, itemid):
+
         #Just in case
         GLib.idle_add(self.parent.itempage.header.statusloading.start)
         GLib.idle_add(self.parent.itempage.header.itemstatus.set_visible_child, self.parent.itempage.header.statusunknown)
@@ -1037,30 +1034,34 @@ class itemDetailsHeader(Gtk.Box):
         self.extrabuttoncallbacks = {} #Erase existing callback values now the buttons are gone
         if status == 0:
             GLib.idle_add(self.parent.itempage.header.install.show)
-            GLib.idle_add(self.parent.itempage.header.subsource.show)
+            if self.sourcesdata[modulesourceid]["subsources"] != {}:
+                GLib.idle_add(self.parent.itempage.header.subsource.show)
         elif status == 21:
             GLib.idle_add(self.parent.itempage.header.installsource.show)
-            GLib.idle_add(self.parent.itempage.header.subsource.show)
-        elif status == 1:
+            if self.sourcesdata[modulesourceid]["subsources"] != {}:
+                GLib.idle_add(self.parent.itempage.header.subsource.show)
+        elif status == 1 or status == 3:
             GLib.idle_add(self.parent.itempage.header.reinstall.show)
             GLib.idle_add(self.parent.itempage.header.remove.show)
+            GLib.idle_add(self.parent.itempage.header.remove.set_sensitive, status != 3)
             #Change subsource accordingly if installed
             self.changeSubsource(self.sourcesdata[modulesourceid]["subsources"], modulesourceid, itemid, installedsubsource)
-        elif status == 2:
+        elif status == 2 or status == 4:
             GLib.idle_add(self.parent.itempage.header.update.show)
             GLib.idle_add(self.parent.itempage.header.remove.show)
+            GLib.idle_add(self.parent.itempage.header.remove.set_sensitive, status != 4)
             self.changeSubsource(self.sourcesdata[modulesourceid]["subsources"], modulesourceid, itemid, installedsubsource)
-        elif status == 3: #Queued
+        elif status == 5: #Queued
             GLib.idle_add(self.parent.itempage.header.queuedlbl.set_label, _("Waiting for installation"))
-        elif status == 4:
-            GLib.idle_add(self.parent.itempage.header.queuedlbl.set_label, _("Waiting for reinstallation"))
-        elif status == 5:
-            GLib.idle_add(self.parent.itempage.header.queuedlbl.set_label, _("Waiting for update"))
         elif status == 6:
+            GLib.idle_add(self.parent.itempage.header.queuedlbl.set_label, _("Waiting for reinstallation"))
+        elif status == 7:
+            GLib.idle_add(self.parent.itempage.header.queuedlbl.set_label, _("Waiting for update"))
+        elif status == 8:
             GLib.idle_add(self.parent.itempage.header.queuedlbl.set_label, _("Waiting for removal"))
-        elif status >= 7 and status <= 10:
+        elif status >= 9 and status <= 12:
             pass #TODO: Get current progress and immediately place it on the in-page progress bar
-        #FIXME: status 11
+        #FIXME: status 13
 
         #Get extra buttons from the selected module
         for i in self.module.guiapi.getExtraItemButtons(itemid, moduleid, sourceid, status):
@@ -1078,14 +1079,13 @@ class itemDetailsHeader(Gtk.Box):
             ii.show()
 
         #Show the appropriate items
-        if status >= 0 and status <= 2:
+        if (status >= 0 and status <= 2) or status == 21:
             GLib.idle_add(self.parent.itempage.header.itemstatus.set_visible_child, self.parent.itempage.header.statusunqueued)
         elif status >= 3 and status <= 6:
             GLib.idle_add(self.parent.itempage.header.itemstatus.set_visible_child, self.parent.itempage.header.statusqueued)
         elif status >= 7 and status <= 10:
             GLib.idle_add(self.parent.itempage.header.itemstatus.set_visible_child, self.parent.itempage.header.statusinprogress)
 
-        #TODO: to check for "Install...", before checking this item's status query getItemStatus on the source ID itself to check if the source is installed
         GLib.idle_add(self.parent.itempage.header.statusloading.stop)
 
 
@@ -1118,11 +1118,6 @@ class itemDetailsHeader(Gtk.Box):
     def onInstall(self, button):
         moduleid, sourceid = self.parent.currentModuleSource.split("/")
         self.module.guiapi.installItem(self.parent.currentItem, moduleid, sourceid, self.parent.currentSubsource)
-
-    def onInstallSource(self, button):
-        moduleid, sourceid = self.parent.currentModuleSource.split("/")
-        #TODO: Figure out how to do sourceitemid
-        #self.module.guiapi.installItem(self.parent.currentItem, moduleid, sourceid, self.parent.currentSubsource)
 
     def onUpdate(self, button):
         moduleid, sourceid = self.parent.currentModuleSource.split("/")
@@ -1754,4 +1749,7 @@ class module():
                                 args=())
                 thread.daemon = True
                 thread.start()
-        self.wnd.itempage.header.loadStatus(modulesourceid, itemid)
+        thread = Thread(target=self.wnd.itempage.header.loadStatus,
+                        args=(modulesourceid, itemid))
+        thread.daemon = True
+        thread.start()

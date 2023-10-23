@@ -162,12 +162,18 @@ class TaskManager():
 
 
 
-    def newTask(self, itemid, moduleid, operation, sourceid, subsourceid, becauseof="", dependson=[]):
+    def newTask(self, itemid, moduleid, operation, sourceid, subsourceid, becauseof="", follows=[]):
         #Creates task given information supplied, and adds it to pending, staged or queue depending on multiple factors
+        #NOTE: unlike becauseof, follows can be multiple values
 
         #TODO:
-        #   - Add cross-module source dependencies support
-        #       - Add a dependency type for source dependencies
+        #   - Allow items and sources to be able to depend on items from other modules, such as Flatpak's main source depending on Flatpak Backend at APT, so long as they know the item ID on the other end (source is not needed, only the module, though source should be able to be optionally specified too)
+        #   - Allow modules to check if a specific moduleid is active
+        #   - For 2.0, allow a module to trigger a mid-task changes dialog, such as once Major Updater has determined changes to make?
+        #   - For cross-module source dependencies ensure they have the same elevation as the current source
+
+
+
         #   - Add a timeout clause, if possible, where if dependency finding takes more than 40 seconds the pending task group is skipped over until the next loop, unless it is currently the only item in the list (which case the 40 second timeout extends by 40 more seconds until the next check, etc.)
         #   - Prevent confirmation of task groups until the source adding task(s) tasks in them follows has been completed - if not satisfied yet, skip to next group
         #       - Task groups should split into: Task Group with Items, Task Group with Source Dependencies - TGWSD goes first in queue, and TGWI tasks will follows their respective source dependency tasks
@@ -186,25 +192,33 @@ class TaskManager():
         #TODO: When confirmed, add dependencies to task group before converting task group into pinned tasks
         group = {}
         elevated = self.api.getSourceInformation(itemid, moduleid, sourceid)["elevated"]
+        rootused = "0" if elevated == False else "1"
 
         #Check for source dependencies needed by itemid
+        sourcedeps, crossdeps = self.tasksapi.getItemRequiredSources(itemid, moduleid, sourceid)
         #FIXME: Should this be exclusive to install, or able to be used on update too?
-        sourcedependencies = [] #TODO
 
         #If any source dependencies were found:
-        follows = [] #NOTE: unlike becauseof, follows can be multiple values
-        if sourcedependencies != []:
-            #add them to the source dependencies group as tasks
-            pass #TODO
-
-            #and set the follows value to the dependencies
-            pass #TODO
+        if crossdeps != []:
+            #Add them to the source dependencies group as tasks
+            for dep in crossdeps:
+                task = self.makeTask(dep["sourceid"], dep["moduleid"], "install", "itemsource", "", elevated, None, [])
+                taskid = dep["moduleid"] + ":" + rootused + ":" + dep["sourceid"] + ":itemsource"
+                sourcesgroup[taskid] = task
+                follows.append(taskid)
+            #TODO: Work out dependencies of sources when opening changes dialog
+        if sourcedeps != []:
+            #...and these too.
+            for dep in sourcedeps:
+                task = self.makeTask(dep["sourceid"], moduleid, "install", "itemsource", "", elevated, None, [])
+                taskid = moduleid + ":" + rootused + ":" + dep["sourceid"] + ":itemsource"
+                sourcesgroup[taskid] = task
+                follows.append(taskid)
 
         #Create the task, set to run after source dependencies (if there are any)
         task = self.makeTask(itemid, moduleid, operation, sourceid, subsourceid, elevated, None, follows) #NOTE: There is no becauseof
 
         #Give task an ID
-        rootused = "0" if elevated == False else "1"
         taskid = moduleid + ":" + rootused + ":" + itemid + ":" + sourceid
         if taskid in self.myTasks["order"]:
             #Not that this should be possible, but just in case
@@ -216,6 +230,7 @@ class TaskManager():
         self.addModuleToTasks(moduleid)
         #Add both task groups to pending
         #TODO: sources group
+        self.myTasks["pending"].append(sourcesgroup)
         self.myTasks["pending"].append(group)
         #...and link the individual tasks themselves onto myTasks order
         #TODO: sources group's tasks
@@ -224,7 +239,8 @@ class TaskManager():
         print("TEMP: ADDED TASK, ORDER IS NOW: " + str(self.myTasks["order"]))
 
         #Add tasks to end of merged tasks list, instead of remerging the system-user tasks order, for optimisation reasons
-        #TODO: sources group's tasks
+        for i in sourcesgroup:
+            self.tasksOrder[i] = sourcesgroup[i]
         self.tasksOrder[taskid] = task
 
         #Ask GUI to refresh its tasks list
@@ -628,9 +644,10 @@ class StoriumBrain():
         self.tasksapi = TasksAPI()
         self.tasksapi.updateTask = self.APIupdateTask
         self.tasksapi.setTaskCancellable = self.APIsetTaskCancellable
-        self.tasksapi.getItemSourceDependencies = self.APIgetItemSourceDependencies
         self.tasksapi.getItemRequiredChanges = self.APIgetItemRequiredChanges
         self.tasksapi.getItemBonuses = self.APIgetItemBonuses
+        self.tasksapi.getItemRequiredSources = self.getItemRequiredSources
+        self.tasksapi.getSourceAvailable = self.APIgetSourceAvailable
         self.tasksapi.showItemErrorDialog = self.APIshowItemErrorDialog
         self.tasksapi.refreshTasksPage = self.APIrefreshTasksPage
         self.tasksapi.refreshItemPage = self.APIrefreshItemPage
@@ -1016,6 +1033,7 @@ class StoriumBrain():
         pass #TODO
 
     def APIgetItemInformation(self, itemid, moduleid, sourceid):
+        #TODO: Recursive translate function
         #Returns information of the supplied item
         if moduleid not in self.modules:
             raise StoriumBrainException(_("%s is not a loaded module") % moduleid)
@@ -1028,7 +1046,8 @@ class StoriumBrain():
         result = copy.deepcopy(self.modules[moduleid].getItemInformation(itemid, sourceid))
         #Use only strings appropriate to the current language
         for i in ["fullname", "summary", "description", "images", "author", "website", "bugreportsurl", "donateurl", "tosurl", "privpolurl"]:
-            result[i] = self.getTranslation(result[i])
+            if i in result:
+                result[i] = self.getTranslation(result[i])
         if result["changelog"] != {}:
             for i in result["changelog"]: #Duplicated code as I don't know how to do these at once yet
                 result["changelog"][i] = self.getTranslation(result["changelog"][i])
@@ -1046,6 +1065,24 @@ class StoriumBrain():
         #Returns only the human-readable name of the supplied item
         result = copy.deepcopy(self.modules[moduleid].getItemName(itemid, sourceid))
         return self.getTranslation(result)
+
+
+    #TODO: (was getExtraRequiredSourcesInstalled) Move to pending tasks runner, to check each time
+        # uninstalled = []
+        # pendinginstall = []
+        # pendingremoval = []
+        # for dep in deps: # Only keep note of disabled sources
+        #     status = self.APTgetItemStatus(itemid, itemid.split("-itemsource-")[0], "itemsource")
+        #     #NOTE: Sources can only have Installed and Not Installed states per each state in APIgetItemStatus
+        #     if status == 0:
+        #         uninstalled.append(dep)
+        #     elif status == 1 or status == 7:
+        #         pendinginstall.append(dep)
+        #     elif status == 6 or status == 10:
+        #         pendingremoval.append(dep)
+        # return uninstalled, pendinginstall, pendingremoval
+        #TODO: For items pendinginstall, wait until they are complete before showing this dependency confirmation dialog
+
 
     def APIgetDefaultSource(self, itemid):
         #Returns the first source in GUI API's getAvailableSources
@@ -1149,18 +1186,77 @@ class StoriumBrain():
         #Sets if the task can be cancelled, and sends signal to GUI to update task representations' cancel button to reflect this change
         pass #TODO
 
-
-    def APIgetItemSourceDependencies(self, itemid, moduleid, sourceid):
-        #Queries moduleid and returns all source dependencies, as a list of item IDs, of itemid from sourceid from moduleid.
-        pass #TODO
-
     def APIgetItemRequiredChanges(self, itemid, moduleid, sourceid):
         #Queries moduleid and returns required installations, updates, and removals as 3 individual lists of dictionaries containing an itemid and sourceid each.
+        pass #TODO
+
+        #Sanity check - Source IDs can only specify cross-module item dependencies
         pass #TODO
 
     def APIgetItemBonuses(self, itemid, moduleid, sourceid, subsourceid):
         #Queries moduleid and returns the bonuses available to use on itemid from sourceid
         pass #TODO
+
+
+    def getItemRequiredSources(self, itemid, moduleid, sourceid, skipcheckinstalled=False):
+        #Queries moduleid and returns required sources as a list of dictionaries.
+        if sourceid == "itemsource":
+            #NOTE: Item sources are skipped as they have a fixed 'sourceid' thus cannot have source dependencies.
+            return [], []
+
+        # Get any extra dependencies to collate later
+        extras = copy.deepcopy(self.modules[moduleid].getRequiredCrossSources(itemid, sourceid))
+        # Sanity checks
+        for dependency in extras:
+            #Ensure essential values are specified (itemid, sourceid, moduleid)
+            if not "itemid" in dependency or not "sourceid" in dependency or not "moduleid" in dependency:
+                raise StoriumBrainException(_("The module this item is from has stated incomplete cross-module source dependencies."))
+            #Prevent non-source dependencies from being specified
+            if not dependency["itemid"].startswith("itemsource-"):
+                raise StoriumBrainException(_("Dependencies on non-item-source items are not allowed to be stated as item source dependencies."))
+            #Ensure moduleid is enabled
+            if dependency["moduleid"] not in self.modules:
+                raise StoriumBrainException(_("Depends on a module that is not currently enabled."))
+            #Ensure itemid from sourceid at moduleid exists and is installable
+            if self.APIgetSourceAvailable(dependency["itemid"], dependency["moduleid"], dependency["sourceid"]) != True:
+                raise StoriumBrainException(_("Depends on an item, from another module, that is not available."))
+        # Depending on the value of skipcheckinstalled...
+        if skipcheckinstalled == True: #Return all dependencies
+            return [{"sourceid": "itemsource"}, {"sourceid": sourceid}], extras
+        else: #Return disabled dependencies
+            result = []
+            resultextras = []
+            #NOTE: ExtraItemSourceDependencies values only consist of sourceid and, if cross-module, moduleid
+            # Main item source
+            sourcestatus, na = self.APTgetItemStatus("itemsource", moduleid, "itemsource")
+            if sourcestatus == 0 or sourcestatus == 8 or sourcestatus == 12:
+                result.append({"sourceid": "itemsource"})
+                result.append({"sourceid": sourceid})
+            else:
+                sourcestatus, na = self.APTgetItemStatus(sourceid, moduleid, "itemsource")
+                if sourcestatus == 0 or sourcestatus == 8 or sourcestatus == 12:
+                    result.append({"sourceid": sourceid})
+            for source in extras:
+                sourcestatus, na = self.APTgetItemStatus(source["sourceid"], source["moduleid"], "itemsource")
+                if sourcestatus == 0 or sourcestatus == 8 or sourcestatus == 12:
+                    resultextras.append(source)
+            return result, resultextras
+
+
+    def APIgetSourceAvailable(self, itemid, moduleid, sourceid, subsourceid=None):
+        #Checks if a source is available, and if so returns True
+        sources = copy.deepcopy(self.modules[moduleid].getAvailableSources(itemid))
+        if sourceid in sources:
+            #Check that extra item source dependencies, if any, are valid
+            try:
+                self.getItemRequiredSources(itemid, moduleid, sourceid, True)
+            except:
+                return False #Invalid source as invalid dependencies
+            if subsourceid == None:
+                return True
+            elif subsourceid in sources[sourceid]:
+                return True
+        return False
 
 
     def APIshowItemErrorDialog(self, itemid, moduleid, sourceid, extras, errormsg):
@@ -1269,6 +1365,12 @@ class StoriumBrain():
             if i.startswith("itemmgmt-"):
                 sources = copy.deepcopy(self.modules[i].getAvailableSources(itemid))
                 for source in sources:
+                    #Check that extra item source dependencies, if any, are valid
+                    try:
+                        self.getItemRequiredSources(itemid, i, source, True)
+                    except Exception as e:
+                        print(_("Skipping source %s: %s") % (source, e))
+                        continue #Invalid source as invalid dependencies
                     sourceid = i + "/" + source
                     #Ensure elevated value is present, to save checking later
                     if "elevated" in sources[source]:
@@ -1340,18 +1442,20 @@ class StoriumBrain():
         #  0: Not installed
         #  1: Installed
         #  2: Out of date
+        #  3: Installed (mandatory)
+        #  4: Out of date (mandatory)
         # Queued:
-        #  3: Pending installation
-        #  4: Pending reinstallation
-        #  5: Pending updating
-        #  6: Pending removal
+        #  5: Pending installation
+        #  6: Pending reinstallation
+        #  7: Pending updating
+        #  8: Pending removal
         # In progress:
-        #  7: Installing...
-        #  8: Reinstalling...
-        #  9: Updating...
-        #  10: Removing...
+        #  9: Installing...
+        #  10: Reinstalling...
+        #  11: Updating...
+        #  12: Removing...
         # Waiting for shutdown:
-        #  11: Waiting for shutdown
+        #  13: Waiting for shutdown
         # Missing source:
         #  21: Missing source
 
@@ -1362,14 +1466,14 @@ class StoriumBrain():
             for tgroup in self.taskManager.myTasks["pending"]:
                 if task in tgroup:
                     if tgroup[task]["operation"] == "install":
-                        return 3, ""
+                        return 5, ""
                         #No point supplying the subsource as it'll be checked for again post-task
                     elif tgroup[task]["operation"] == "reinstall":
-                        return 4, ""
-                    elif tgroup[task]["operation"] == "update":
-                        return 5, ""
-                    elif tgroup[task]["operation"] == "remove":
                         return 6, ""
+                    elif tgroup[task]["operation"] == "update":
+                        return 7, ""
+                    elif tgroup[task]["operation"] == "remove":
+                        return 8, ""
             #Queued and/or Running Task(s)
             #TODO: Have a way to determine running superuser tasks, then implement here
             task = ":".join(task.split(":")[2:]) #Remove moduleid and superuser indicator
@@ -1379,34 +1483,35 @@ class StoriumBrain():
                     taskbody = self.taskManager.myTasks[ttype][moduleid][taskid]
                     if taskbody["operation"] == "install":
                         if inprogress == True:
-                            return 7, ""
-                        else:
-                            return 3, ""
-                    elif taskbody["operation"] == "reinstall":
-                        if inprogress == True:
-                            return 8, ""
-                        else:
-                            return 4, ""
-                    elif taskbody["operation"] == "update":
-                        if inprogress == True:
                             return 9, ""
                         else:
                             return 5, ""
-                    elif taskbody["operation"] == "remove":
+                    elif taskbody["operation"] == "reinstall":
                         if inprogress == True:
                             return 10, ""
                         else:
                             return 6, ""
+                    elif taskbody["operation"] == "update":
+                        if inprogress == True:
+                            return 11, ""
+                        else:
+                            return 7, ""
+                    elif taskbody["operation"] == "remove":
+                        if inprogress == True:
+                            return 12, ""
+                        else:
+                            return 8, ""
             #Task is waiting for shutdown
             #FIXME: waitingforshutdown should be exclusive to Superuser, and as such checked for such
             if task in self.taskManager.myTasks["waitingforshutdown"][moduleid]:
-                return 11, ""
+                return 13, ""
         #No task? Query the module for the current status.
         status, subsource = copy.deepcopy(self.modules[moduleid].getItemStatus(itemid, sourceid))
         if status == 0:
-            #TODO: Call getItemSourceDependencies, which will return only the uninstalled dependencies, and check list is empty (nothing needs installing first) before returning 0
-            if False:
-                return 21, "" #No subsource has been selected on uninstalled items
+            #Check source dependencies are satisfied
+            sourcedeps, crossdeps = self.getItemRequiredSources(itemid, moduleid, sourceid)
+            if sourcedeps != [] or crossdeps != []:
+                return 21, ""
         return status, subsource
 
 

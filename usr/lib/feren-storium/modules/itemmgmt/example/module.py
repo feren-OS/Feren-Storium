@@ -18,22 +18,28 @@ class module():
         self.api = genericapi
         self.itemapi = itemapi
         
-        #Package Storage will store the data of opened packages this instance, to make future loads faster
-        self.itemcache = {}
-        self.sourcescache = {}
+        #Item Storage will store the data of opened packages this instance, to make future loads faster
+        self.items = {}
+        self.redirects = {}
+        self.sources = {}
 
         #Refresh memory for the first time
         self.refreshMemory()
+
+        #Test value for demonstrating item source adding
+        self.obtainablesourceinstalled = False
 
         
     def refreshMemory(self): # Function to refresh some memory values
         #self.memory_refreshing = True
 
-        self.itemcache = {}
+        self.items = {}
         with open("/usr/share/feren-storium/itemmgmtexample/items.json", 'r') as fp:
-            self.itemcache = json.loads(fp.read())
-        with open("/usr/share/feren-storium/itemmgmtexample/sourceitems.json", 'r') as fp:
-            self.sourcescache = json.loads(fp.read())
+            self.items = json.loads(fp.read())
+        with open("/usr/share/feren-storium/itemmgmtexample/redirects.json", 'r') as fp:
+            self.redirects = json.loads(fp.read())
+        with open("/usr/share/feren-storium/itemmgmtexample/itemsources.json", 'r') as fp:
+            self.sources = json.loads(fp.read())
         
         #self.memory_refreshing = False
 
@@ -50,46 +56,72 @@ class module():
 
     def getItemsFromCategory(self, category):
         result = []
-        for i in self.itemcache:
-            if self.itemcache[i]["all"]["category"] == category: #category is always determined by the module's default source, so just store it in 'all' to prevent inconsistencies
-                result.append(i)
+        for i in self.items:
+            if "all" in self.items[i]:
+                if "category" in self.items[i]["all"]:
+                    if self.items[i]["all"]["category"] == category:
+                        #category is always determined by the module's default source, so just store it in 'all' to prevent inconsistencies
+                        result.append(i)
 
         return result
 
 
     def getItemInformation(self, itemid, sourceid):
-        #Check the item's in redirects only, and if so get placeholder item information
-        if itemid not in self.itemcache:
-            if itemid in self.redirectscache:
-                if sourceid in self.redirectscache[itemid]["sources"]:
-                    sourceinfo = self.redirectscache[itemid][sourceid]
-                    return {"fullname": sourceinfo["fullname"], \
-                        "summary": sourceinfo["summary"], \
-                        "iconid": sourceinfo["iconid"], \
-                        "iconurl": self.redirectscache[itemid]["iconurl"]}
-                else:
-                    raise ExampleModuleException(_("%s is not a valid redirection source for %s") % (sourceid, itemid))
-            else:
-                raise ExampleModuleException(_("The itemid %s does not exist") % itemid)
-        #Else fall back to normal item information
+        if sourceid == "itemsource":
+            return self.sources[itemid]
         result = {}
-        if sourceid not in self.itemcache[itemid] and "all" not in self.itemcache[itemid]:
+        #Check there is item information for the item from this source
+        if sourceid not in self.items[itemid] and "all" not in self.items[itemid]:
             raise ExampleModuleException(_("%s does not exist in source %s") % (itemid, sourceid))
-        if "all" in self.itemcache[itemid]:
-            result = self.api.dictMerge(result, self.itemcache[itemid]["all"])
-        if sourceid in self.itemcache[itemid]: #Merge information from specific source over all
-            result = self.api.dictMerge(result, self.itemcache[itemid][sourceid])
+        #Append generic item information first
+        if "all" in self.items[itemid]:
+            result = self.api.dictMerge(result, self.items[itemid]["all"])
+        #Then overwrite with any source-specific item information
+        if sourceid in self.items[itemid]:
+            result = self.api.dictMerge(result, self.items[itemid][sourceid])
         return result
 
 
     def getAvailableSources(self, itemid):
         result = {}
-        for i in self.itemcache[itemid]["sources"]:
+        for i in self.items[itemid]["sources"]:
             result[i] = self.getSourceInformation(itemid, i)
         return result
 
 
+    def getRequiredCrossSources(self, itemid, sourceid):
+        #TODO: Should there be an example of this added?
+        return []
+
+
     def getSourceInformation(self, itemid, sourceid):
+        #Check sourceid of itemid is in redirects, and if so return redirect source information
+        if itemid in self.redirects:
+            if sourceid in self.redirects[itemid]:
+                sourceinfo = self.redirects[itemid][sourceid]
+                return {"redirectitemid": sourceinfo["redirectitemid"], \
+                    "redirectmoduleid": sourceinfo["redirectmoduleid"], \
+                    "redirectsourceid": sourceinfo["redirectsourceid"], \
+                    "redirectmessage": sourceinfo["redirectmessage"], \
+                    "priority": 0}
+        #Failing that, return non-redirect source information
+        if sourceid in self.sources:
+            if "defereasymode" in self.sources[sourceid]:
+                defereasymode = self.sources[sourceid]["defereasymode"]
+            else:
+                defereasymode = False
+            if "elevated" in self.sources[sourceid]:
+                elevated = self.sources[sourceid]["elevated"]
+            else:
+                elevated = False
+            return {"fullname": self.sources[sourceid]["fullname"], \
+                "subsources": self.sources[sourceid]["subsources"], \
+                "defereasymode": defereasymode, \
+                "elevated": elevated}
+            #NOTE: Priority falls back to 50
+        else:
+            raise ExampleModuleException(_("The sourceid %s does not exist") % sourceid)
+
         #Current redirection sources plan:
         #   - minimum item information required for item blocks is given by getItemInformation, and NOT the redirection itself's info
         #   - upon choosing the source the Store redirects to the new item INSTEAD of loading item information/status - this, in turn, results in the item info/status of the post-redirect being loaded automatically
@@ -100,37 +132,6 @@ class module():
 
         #   - To appear in Library, the module must report an item is installed from the redirection source's ID in said module (this ID can be entirely custom)
         #   - TODO: Should the module just list all installed IDs and then we query for attributes afterwards like up-to-date or redirection source, or should that befall the module's own duty?
-        # TODO: redirections.json for the IDs that redirect to other IDs in this module
-
-        #Check the item's in redirects only, and if so if the source exists in said redirects information
-        if itemid not in self.itemcache:
-            if itemid in self.redirectscache:
-                if sourceid in self.redirectscache[itemid]["sources"]:
-                    sourceinfo = self.redirectscache[itemid][sourceid]
-                    return {"redirectitemid": sourceinfo["redirectitemid"], \
-                        "redirectmoduleid": sourceinfo["redirectmoduleid"], \
-                        "redirectsourceid": sourceinfo["redirectsourceid"], \
-                        "redirectmessage": self.redirectscache[itemid]["redirectmessage"], \
-                        "priority": 0}
-                    #NOTE: Priority = Priority - 900 after being sent to Storium
-                else:
-                    raise ExampleModuleException(_("%s is not a valid redirection source for %s") % (sourceid, itemid))
-            else:
-                raise ExampleModuleException(_("The itemid %s does not exist") % itemid)
-        #Otherwise fall back to getting source information as expected
-        if "defereasymode" in self.sourcescache[sourceid]:
-            defereasymode = self.sourcescache[sourceid]["defereasymode"]
-        else:
-            defereasymode = False
-        if "elevated" in self.sourcescache[sourceid]:
-            elevated = self.sourcescache[sourceid]["elevated"]
-        else:
-            elevated = False
-        return {"fullname": self.sourcescache[sourceid]["fullname"], \
-            "subsources": self.sourcescache[sourceid]["subsources"], \
-            "defereasymode": defereasymode, \
-            "elevated": elevated}
-        #NOTE: Priority falls back to 50
 
 
     ############################################
@@ -141,17 +142,26 @@ class module():
         #This is just so the functionality can be shown off - in an actual module, you should query your chosen backend for installation status and respond appropriately.
         # NOTE: Only 0, 1, and 2 are accepted status values for a module to return.
 
-        if itemid not in self.itemcache:
-            if itemid in self.redirectscache:
-                if sourceid in self.redirectscache[itemid]["sources"]:
+        #Item sources
+        if itemid == "itemsource": #Main item source is mandatory
+            return 3, ""
+        if itemid.startswith("itemsource-") and sourceid == "itemsource":
+            if itemid == "itemsource-exampleobtainable":
+                if self.obtainablesourceinstalled == False:
+                    return 0, "" #Unlike all other sources, this one should be uninstalled initially
+            return 1, ""
+        #Normal items
+        if itemid not in self.items:
+            if itemid in self.redirects:
+                if sourceid in self.redirects[itemid]["sources"]:
                     return 1, "" #Return installed for our redirection test(s)
                 else:
                     raise ExampleModuleException(_("%s is not a valid redirection source for %s") % (sourceid, itemid))
             else:
                 raise ExampleModuleException(_("The itemid %s does not exist") % itemid)
         else:
-            installed = self.itemcache[itemid][sourceid]["testinstalledstatus"]
-            subsource = self.itemcache[itemid][sourceid]["testinstalledsubsource"]
+            installed = self.items[itemid][sourceid]["testinstalledstatus"]
+            subsource = self.items[itemid][sourceid]["testinstalledsubsource"]
             if installed == "no":
                 return 0, ""
             elif installed == "updateavailable":

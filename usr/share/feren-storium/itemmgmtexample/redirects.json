@@ -1,21 +1,12 @@
 {
     "examplemigrated": {
-        "sources": ["itemsource-exampleredir"],
-        "redirectmessage": {
-            "C": "This is the text that tells you why the redirect is now in place"
-        },
         "itemsource-exampleredir": {
+            "redirectmessage": {
+                "C": "This is the text that tells you why the redirect is now in place"
+            },
             "redirectitemid": "exampleinstall",
             "redirectmoduleid": "example",
-            "redirectsourceid": "example1",
-            "fullname": {
-                "C": "Redirecting Example"
-            },
-            "summary": {
-                "C": "Example item for testing redirection sources"
-            },
-            "iconid": "gnome-software",
-            "iconurl": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/SMPTE_Color_Bars.svg/1200px-SMPTE_Color_Bars.svg.png"
+            "redirectsourceid": "example1"
         }
     }
 }

@@ -93,7 +93,7 @@
         }
     },
     "examplenosource": {
-        "sources": ["itemsource-example1"],
+        "sources": ["itemsource-exampleobtainable"],
         "all": {
             "fullname": {
                 "C": "Example (missing source)"
@@ -164,7 +164,7 @@
             "respectsa11y": true,
             "supportsdpi": true
         },
-        "itemsource-example1": {
+        "itemsource-exampleobtainable": {
             "testinstalledstatus": "no",
             "testinstalledsubsource": ""
         }
@@ -404,6 +404,19 @@
             "isofficial": false,
             "testinstalledstatus": "yes",
             "testinstalledsubsource": "sub21"
+        }
+    },
+    "examplemigrated": {
+        "sources": ["itemsource-exampleredir"],
+        "itemsource-exampleredir": {
+            "fullname": {
+                "C": "Redirecting Example"
+            },
+            "summary": {
+                "C": "Example item for testing redirection sources"
+            },
+            "iconid": "gnome-software",
+            "iconurl": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/SMPTE_Color_Bars.svg/1200px-SMPTE_Color_Bars.svg.png"
         }
     }
 }
