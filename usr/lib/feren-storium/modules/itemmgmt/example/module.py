@@ -38,7 +38,7 @@ class module():
             self.items = json.loads(fp.read())
         with open("/usr/share/feren-storium/itemmgmtexample/redirects.json", 'r') as fp:
             self.redirects = json.loads(fp.read())
-        with open("/usr/share/feren-storium/itemmgmtexample/itemsources.json", 'r') as fp:
+        with open("/usr/share/feren-storium/itemmgmtexample/sources.json", 'r') as fp:
             self.sources = json.loads(fp.read())
         
         #self.memory_refreshing = False
@@ -67,10 +67,7 @@ class module():
 
 
     def getItemInformation(self, itemid, sourceid):
-        if sourceid == "itemsource":
-            return self.sources[itemid]
         result = {}
-        #Check there is item information for the item from this source
         if sourceid not in self.items[itemid] and "all" not in self.items[itemid]:
             raise ExampleModuleException(_("%s does not exist in source %s") % (itemid, sourceid))
         #Append generic item information first
@@ -85,42 +82,19 @@ class module():
     def getAvailableSources(self, itemid):
         result = {}
         for i in self.items[itemid]["sources"]:
-            result[i] = self.getSourceInformation(itemid, i)
+            #Add empty values for normal sources so Brain can fill them in, saving
+            # time and referencing source-managing Tasks if they currently exist.
+            result[i] = {}
+            if itemid in self.redirects:
+                #As for redirection sources, pre-fill these in to prevent an exception as they aren't *real* sources
+                if i in self.redirects[itemid]:
+                    sourceinfo = self.redirects[itemid][i]
+                    result[i] = {"redirectitemid": sourceinfo["redirectitemid"], \
+                        "redirectmoduleid": sourceinfo["redirectmoduleid"], \
+                        "redirectsourceid": sourceinfo["redirectsourceid"], \
+                        "redirectmessage": sourceinfo["redirectmessage"], \
+                        "priority": 0}
         return result
-
-
-    def getRequiredCrossSources(self, itemid, sourceid):
-        #TODO: Should there be an example of this added?
-        return []
-
-
-    def getSourceInformation(self, itemid, sourceid):
-        #Check sourceid of itemid is in redirects, and if so return redirect source information
-        if itemid in self.redirects:
-            if sourceid in self.redirects[itemid]:
-                sourceinfo = self.redirects[itemid][sourceid]
-                return {"redirectitemid": sourceinfo["redirectitemid"], \
-                    "redirectmoduleid": sourceinfo["redirectmoduleid"], \
-                    "redirectsourceid": sourceinfo["redirectsourceid"], \
-                    "redirectmessage": sourceinfo["redirectmessage"], \
-                    "priority": 0}
-        #Failing that, return non-redirect source information
-        if sourceid in self.sources:
-            if "defereasymode" in self.sources[sourceid]:
-                defereasymode = self.sources[sourceid]["defereasymode"]
-            else:
-                defereasymode = False
-            if "elevated" in self.sources[sourceid]:
-                elevated = self.sources[sourceid]["elevated"]
-            else:
-                elevated = False
-            return {"fullname": self.sources[sourceid]["fullname"], \
-                "subsources": self.sources[sourceid]["subsources"], \
-                "defereasymode": defereasymode, \
-                "elevated": elevated}
-            #NOTE: Priority falls back to 50
-        else:
-            raise ExampleModuleException(_("The sourceid %s does not exist") % sourceid)
 
         #Current redirection sources plan:
         #   - minimum item information required for item blocks is given by getItemInformation, and NOT the redirection itself's info
@@ -134,6 +108,21 @@ class module():
         #   - TODO: Should the module just list all installed IDs and then we query for attributes afterwards like up-to-date or redirection source, or should that befall the module's own duty?
 
 
+    def getRequiredCrossSources(self, itemid, sourceid):
+        #TODO: Should there be an example of this added?
+        return []
+
+
+    def getSourceInformation(self, sourceid):
+        #no more itemid
+        #moved redirects to getAvailableSources
+        #elevated, defereasymode, and priority are now filled in by Brain, as well as the new sourceElevated value
+        if sourceid in self.sources:
+            return self.sources[sourceid]
+        else:
+            raise ExampleModuleException(_("The sourceid %s does not exist") % sourceid)
+
+
     ############################################
     # Item Management
     ############################################
@@ -142,14 +131,6 @@ class module():
         #This is just so the functionality can be shown off - in an actual module, you should query your chosen backend for installation status and respond appropriately.
         # NOTE: Only 0, 1, and 2 are accepted status values for a module to return.
 
-        #Item sources
-        if itemid == "itemsource": #Main item source is mandatory
-            return 3, ""
-        if itemid.startswith("itemsource-") and sourceid == "itemsource":
-            if itemid == "itemsource-exampleobtainable":
-                if self.obtainablesourceinstalled == False:
-                    return 0, "" #Unlike all other sources, this one should be uninstalled initially
-            return 1, ""
         #Normal items
         if itemid not in self.items:
             if itemid in self.redirects:
@@ -199,3 +180,18 @@ class module():
 
         #NOTE: If IDs in itemids don't exist in this module, don't throw an exception, just ignore them.
         return
+
+
+    ############################################
+    # Source Information
+    ############################################
+
+    def getSourceStatus(self, sourceid):
+        #This is just so the functionality can be shown off - in an actual module, you should query your chosen backend for installation status and respond appropriately.
+        # NOTE: Only 0, 1, and 2 are accepted status values for a module to return.
+        if sourceid == "itemsource": #Main item source is mandatory
+            return 2
+        if sourceid == "exampleobtainable":
+            if self.obtainablesourceinstalled == False:
+                return 0 #Unlike all other sources, this one should be uninstalled initially
+        return 1

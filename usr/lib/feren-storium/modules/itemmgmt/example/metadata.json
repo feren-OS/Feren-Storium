@@ -1,5 +1,5 @@
 {
-    "fullName": {
+    "fullname": {
         "C": "Example Applications Management Module"
     },
     "summary": {
@@ -14,7 +14,7 @@
             }
         }
     ],
-    "itemsourcesFullName": {
+    "itemsourcesFullname": {
         "C": "Example Module Sources"
     },
     "conditionFilesExist": {},

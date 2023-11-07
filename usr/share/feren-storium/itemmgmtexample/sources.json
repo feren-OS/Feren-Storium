@@ -1,5 +1,21 @@
 {
-    "itemsource-example1": {
+    "itemsource": {
+        "iconid": "package-install",
+        "iconurl": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/SMPTE_Color_Bars.svg/1200px-SMPTE_Color_Bars.svg.png",
+        "warnings": [
+            "info", {
+                "C": "This warning appears on this source when the module's main source appears in confirmation dialogs"
+            }
+        ],
+        "settingswarns": [
+            "info", {
+                "C": "This warning appears below the header of this module in settings"
+            }
+        ],
+        "subsources": {},
+        "defereasymode": true
+    },
+    "example1": {
         "fullname": {
             "C": "Example source"
         },
@@ -32,7 +48,7 @@
         },
         "defereasymode": true
     },
-    "itemsource-example2": {
+    "example2": {
         "fullname": {
             "C": "Example source 2"
         },
@@ -58,7 +74,7 @@
         "elevated": true,
         "defereasymode": false
     },
-    "itemsource-exampleobtainable": {
+    "exampleobtainable": {
         "fullname": {
             "C": "Example disabled source"
         },
