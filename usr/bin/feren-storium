@@ -106,7 +106,7 @@ class TaskManager():
         self.tasksOrder = {} #Combined tasks orders to provide to GUI
 
         #Tasks runner locks
-        self.runningPendingRunner = False #True when iterating pending tasks
+        self.runningPendingTriager = False #True when iterating pending tasks
         self.runningTaskRunners = [] #Put each moduleid in this once they start (then remove once out of tasks per each moduleid)
 
         #Tasks management settings
@@ -124,8 +124,11 @@ class TaskManager():
     def makeTask(self, itemid, moduleid, operation, sourceid, subsourceid, elevated, becauseof=None, dependson=None):
         result = {}
         #Form the task's data
-        # Item Information is reobtained via the module
-        result["itemInfo"] = self.api.getItemInformation(itemid, moduleid, sourceid)
+        # Item/Source Information is reobtained via the module
+        if sourceid == "source":
+            result["info"] = self.api.getSourceInformation(moduleid, itemid)
+        else:
+            result["info"] = self.api.getItemInformation(itemid, moduleid, sourceid)
         result["itemid"] = itemid
         result["moduleid"] = moduleid
         result["sourceid"] = sourceid
@@ -149,8 +152,39 @@ class TaskManager():
 
         return result
 
+    def makeSourceTask(self, sourceid, moduleid, operation):
+        #If the source is mapped to an item, make a task for the item instead
+        if moduleid + ":" + sourceid in self.tasksapi.sourceItemMaps:
+            itemmap = self.tasksapi.sourceItemMaps[moduleid + ":" + sourceid]
+            elevated = self.api.getSourceInformation(itemmap["moduleid"], itemmap["sourceid"])["elevated"]
+            sourcetask = self.makeTask(itemmap["itemid"], itemmap["moduleid"], operation, itemmap["sourceid"], "", elevated, None, [])
+            #TODO: Obtain and use default subsource
+            taskid = self.generateTaskID(itemmap["itemid"], itemmap["moduleid"], operation, itemmap["sourceid"], elevated)
+            return sourcetask, taskid
+        else: #Otherwise, make a task for the source and return that
+            elevated = self.api.getSourceInformation(moduleid, sourceid)["sourceElevated"]
+            sourcetask = self.makeTask(sourceid, moduleid, operation, "source", "", elevated, None, [])
+            taskid = self.generateTaskID(sourceid, moduleid, operation, "source", elevated)
+            return sourcetask, taskid
+        #NOTE: Sources don't have becauseof nor can have a follows
 
-    def bulkNewTask(self, itemids, moduleids, operations, sourceids, subsourceids, becauseofs, dependsons):
+
+    def addToPending(self, taskid, taskbody):
+        self.myTasks["order"][taskid] = taskbody
+        #Add tasks to end of merged tasks list, instead of remerging the system-user tasks order, for optimisation reasons
+        self.tasksOrder[taskid] = taskbody
+
+
+    def generateTaskID(self, itemid, moduleid, operation, sourceid, elevated):
+        #Generates a task ID based on given criteria
+        result = moduleid + ":" + ("1" if elevated == True else "0") + ":" + operation + ":" + itemid + ":" + sourceid
+        if result in self.myTasks["order"]:
+            #Not that this should be possible, but just in case
+            raise StoriumBrainException(_("There is already a task called %s") % result)
+        return result
+
+
+    def bulkNewTask(self, itemids, moduleids, operations, sourceids, subsourceids, tasksintent, sourcesintent, becauseofs, dependsons):
         #NOTE: All of them are a list, but where X is the item's, for each item in itemids, index, index X of moduleids, etc. is used for said item, so make sure they all have equal lengths! (use None in subsourceids, becauseofs and dependsons when not applicable)
 
         #Adds a new task group to pending, after creating tasks for each given item and assembling them into a full task group
@@ -160,102 +194,92 @@ class TaskManager():
 
 
 
-    def newTask(self, itemid, moduleid, operation, sourceid, subsourceid, becauseof="", follows=[]):
+    def newTask(self, itemid, moduleid, operation, sourceid, subsourceid, tasksintent, sourcesintent, becauseof="", follows=[]):
         #Creates task given information supplied, and adds it to pending, staged or queue depending on multiple factors
         #NOTE: unlike becauseof, follows can be multiple values
 
         #TODO:
         #   - For 2.0, allow a module to trigger a mid-task changes dialog, such as once Major Updater has determined changes to make?
-        #   - For cross-module source dependencies ensure they have the same elevation as the current source
         #   - Add a timeout clause, if possible, where if dependency finding takes more than 40 seconds the pending task group is skipped over until the next loop, unless it is currently the only item in the list (which case the 40 second timeout extends by 40 more seconds until the next check, etc.)
         #   - Prevent confirmation of task groups until the source adding task(s) tasks in them follows has been completed - if not satisfied yet, skip to next group
         #   - Implement security updates section of Library
         #TODO: For systemd mode return the task id in response to the task creation signal that was just given.
         #Also TODO: Superuser tasks are stored in userland until confirmed in which case their task body is sent to systemd via signal, and also deleted from userland.
 
-
-        #Create two task groups: One for this created task and its dependencies, another for any source dependencies.
-        sourcegroup = {}
-        taskgroup = {}
+        #Create a task group for the tasks and later source dependencies
+        taskgroup = {"intent": tasksintent, "tasks": {}, "sourcesintent": sourcesintent, "sourcestasks": {}}
 
 
+        #   TODO: Task group intents (labels to show in confirmation dialogs)
+        #       in newTask, provide two new values: taskIntent and sourcesIntent?
+        #       The values being intent IDs that are then queried for full strings through the GUI Settings-instance module?
         #NOTE: When mapped to an item, the source's mapped item's source dependencies will be in sourcegroup, as well as the source, in the form of the mapped item.
+        #Plan:
+        #   TODO: When called for confirmation, the confirmation dialog will do getItemRequiredChanges itself assuming nothing is blocking checking currently
+        #   TODO: If a required source is mapped to an item, call getItemRequiredChanges on the mapped to item to determine tasks to add to sourcegroup.
 
-
-
-
-
-
-
-
-
-
-
-
-    def newTaskOld(self, itemid, moduleid, operation, sourceid, subsourceid, becauseof="", follows=[]):
-        #Creates task given information supplied, and adds it to pending, staged or queue depending on multiple factors
-
-
-
-
-        #Create a task group to store any source dependencies in
-        sourcesgroup = {}
-        #TODO: sourceelevated boolean to check if the source addition needs to be done as superuser
-
-        #Create another task group to store the single task in
-        #TODO: When confirmed, add dependencies to task group before converting task group into pinned tasks
-        group = {}
-        elevated = self.api.getSourceInformation(itemid, moduleid, sourceid)["elevated"]
-        rootused = "0" if elevated == False else "1"
-
-        #Check for source dependencies needed by itemid
-        # sourcedeps, crossdeps = self.tasksapi.getItemRequiredSources(itemid, moduleid, sourceid)
-        #FIXME: Should this be exclusive to install, or able to be used on update too?
-
-        #If any source dependencies were found:
-        # if crossdeps != []:
-        #     #Add them to the source dependencies group as tasks
-        #     for dep in crossdeps:
-        #         task = self.makeTask(dep["sourceid"], dep["moduleid"], "install", "itemsource", "", elevated, None, [])
-        #         taskid = dep["moduleid"] + ":" + rootused + ":" + dep["sourceid"] + ":itemsource"
-        #         sourcesgroup[taskid] = task
+        #TODO: Move to pending tasks runner as seen on left
+        #TODO: New makeSourceTask, serving as a proxy between makeTask to translate mapped sources to their items, before returning their ID and their task both
+        #   TODO: Make makeTask generate and return a task ID too
+        # #Create a follows tally to add required source's tasks onto
+        # follows = []
+        #
+        # if operation == "install" and sourceid != "source":
+        #     #Check the destination source is enabled
+        #     sourcestatus = self.api.getSourceStatus(moduleid, sourceid)
+        #     if sourcestatus == 0 or sourcestatus >= 3 or sourcestatus <= 6:
+        #         #If not, add a task for it
+        #         if moduleid + ":" + sourceid in self.tasksapi.sourceItemMaps:
+        #             itemmap = self.tasksapi.sourceItemMaps[moduleid + ":" + sourceid]
+        #             elevated = self.api.getSourceInformation(itemmap["moduleid"], itemmap["sourceid"])["elevated"]
+        #             sourcetask = self.makeTask(itemmap["itemid"], itemmap["moduleid"], "install", itemmap["sourceid"], "", elevated, None, [])
+        #             taskid = self.generateTaskID(itemmap["itemid"], itemmap["moduleid"], "install", itemmap["sourceid"], elevated)
+        #         else:
+        #             elevated = self.api.getSourceInformation(moduleid, sourceid)["sourceElevated"]
+        #             sourcetask = self.makeTask(sourceid, moduleid, "install", "source", "", elevated, None, []) #NOTE: There is no becauseof
+        #             #...and add to sources group
+        #             # First give it an ID:
+        #             taskid = self.generateTaskID(sourceid, moduleid, "install", "source", elevated)
+        #         # Then add it to the sources group:
+        #         sourcegroup[taskid] = sourcetask
+        #         # ...and add the task to follows so it must complete before the item can be installed:
         #         follows.append(taskid)
-        #     #TODO: Work out dependencies of sources when opening changes dialog
-        # if sourcedeps != []:
-        #     #...and these too.
-        #     for dep in sourcedeps:
-        #         task = self.makeTask(dep["sourceid"], moduleid, "install", "itemsource", "", elevated, None, [])
-        #         taskid = moduleid + ":" + rootused + ":" + dep["sourceid"] + ":itemsource"
-        #         sourcesgroup[taskid] = task
-        #         follows.append(taskid)
+        #
+        #
+        # #NOTE: 'update' is not checked for above as it'd be impossible for this item to even be updatable if its origin source isn't enabled.
+        # # However, extra sources could be needed by newer versions of an item, so they're checked for during an update as well.
+        # if (operation == "install" or operation == "update") and sourceid != "source":
+        #     #Check any extra sources required are enabled
+        #     extrasourcedeps = self.tasksapi.getItemRequiredExtraSources(itemid, moduleid, sourceid)
+        #     for i in extrasourcedeps:
+        #         sourcestatus = self.api.getSourceStatus(moduleid, i)
+        #         if sourcestatus == 0 or sourcestatus >= 3 or sourcestatus <= 6:
+        #             if moduleid + ":" + i in self.tasksapi.sourceItemMaps:
+        #                 itemmap = self.tasksapi.sourceItemMaps[moduleid + ":" + i]
+        #                 elevated = self.api.getSourceInformation(itemmap["moduleid"], itemmap["sourceid"])["elevated"]
+        #                 sourcetask = self.makeTask(itemmap["itemid"], itemmap["moduleid"], "install", itemmap["sourceid"], "", elevated, None, [])
+        #                 taskid = self.generateTaskID(itemmap["itemid"], itemmap["moduleid"], "install", itemmap["sourceid"], elevated)
+        #             else:
+        #                 elevated = self.api.getSourceInformation(moduleid, i)["sourceElevated"]
+        #                 sourcetask = self.makeTask(i, moduleid, "install", "source", "", elevated, None, [])
+        #                 #...and add each missing source to sources group
+        #                 taskid = self.generateTaskID(i, moduleid, "install", "source", elevated)
+        #             sourcegroup[taskid] = sourcetask
+        #             follows.append(taskid)
 
-        #Create the task, set to run after source dependencies (if there are any)
-        task = self.makeTask(itemid, moduleid, operation, sourceid, subsourceid, elevated, None, follows) #NOTE: There is no becauseof
+        #Now repeat with the item itself
+        elevated = self.api.getSourceInformation(moduleid, sourceid)["elevated"]
+        itemtask = self.makeTask(itemid, moduleid, operation, sourceid, subsourceid, elevated, None, follows)
+        taskid = self.generateTaskID(itemid, moduleid, operation, sourceid, elevated)
+        taskgroup["tasks"][taskid] = itemtask
 
-        #Give task an ID
-        taskid = moduleid + ":" + rootused + ":" + itemid + ":" + sourceid
-        if taskid in self.myTasks["order"]:
-            #Not that this should be possible, but just in case
-            raise StoriumBrainException(_("There is already a task called %s:%s:%s") % (rootused, itemid, sourceid))
-
-        #Add task into group
-        group[taskid] = task
-
-        self.addModuleToTasks(moduleid)
-        #Add both task groups to pending
-        #TODO: sources group
-        self.myTasks["pending"].append(sourcesgroup)
-        self.myTasks["pending"].append(group)
-        #...and link the individual tasks themselves onto myTasks order
-        #TODO: sources group's tasks
-        self.myTasks["order"][taskid] = task
-
-        print("TEMP: ADDED TASK, ORDER IS NOW: " + str(self.myTasks["order"]))
-
-        #Add tasks to end of merged tasks list, instead of remerging the system-user tasks order, for optimisation reasons
-        for i in sourcesgroup:
-            self.tasksOrder[i] = sourcesgroup[i]
-        self.tasksOrder[taskid] = task
+        #Add the task group to pending
+        # if sourcegroup != {}:
+        #     for i in sourcegroup:
+        #         self.myTasks["order"][i] = sourcegroup[i]
+        #         self.tasksOrder[i] = sourcegroup[i]
+        self.myTasks["pending"].append(taskgroup)
+        self.addToPending(taskid, itemtask)
 
         #Ask GUI to refresh its tasks list
         self.tasksapi.refreshTasksPage()
@@ -266,8 +290,11 @@ class TaskManager():
         #Ask GUI to refresh representations of the itemid of the added task
         self.tasksapi.refreshItemStatus(itemid, moduleid, sourceid)
 
-        #Execute the tasks runner of this module in a thread
-        pass #TODO
+        #Execute the tasks triager for pending tasks
+        thread = Thread(target=self.pendingTasksGroupsTriager,
+                        args=())
+        thread.daemon = True
+        thread.start()
 
         #Return the taskid so that it can be sent down to signal-sender (systemd) or have progress tracked for (single-instance)
         return taskid
@@ -288,58 +315,108 @@ class TaskManager():
         #   NOTE: Add call, that refreshTasksOrder calls at end, to Tasks API that tells GUI to refreshTasks?
 
 
-    def pendingTasksGroupsRunner(self):
-        if self.runningPendingRunner == True: #Don't run more than once at a time
+
+    def pendingTasksGroupsTriager(self):
+        if self.runningPendingTriager == True: #Don't run more than once at a time
             return
-        self.runningPendingRunner = True
+        self.runningPendingTriager = True
+
+        while True:
+            currentgroup = 0
+            #Iterate through each task group in pending to triage accordingly
+            while currentgroup < len(self.myTasks["pending"]):
+                group = self.myTasks["pending"][currentgroup]
+
+                #Check for and add source dependencies
+                for task in group["tasks"]:
+                    taskbody = group["tasks"][task]
+                    if taskbody["operation"] != "install" and taskbody["operation"] != "update" and taskbody["operation"] != "reinstall": #Only (re)installing and updating can yield source dependencies
+                        continue
+                    if taskbody["sourceid"] == "source": #Sources don't have dependencies
+                        continue
+
+                    #TODO: Check if all sources exist, and if not fail the group
+                    #   For mapped sources, make sure their item is available and if not fail the group
+
+                    #Collate ALL the required sources
+                    sourcedeps = self.tasksapi.getItemRequiredExtraSources(taskbody["itemid"], taskbody["moduleid"], taskbody["sourceid"])
+                    sourcedeps.append(taskbody["sourceid"])
+
+                    #Check if sources are installed
+                    for dep in sourcedeps:
+                        status, operation, staged = 0, None, False #TODO: getItemTaskStatus
+                        if status == 0: #Not installed, and no task
+                            sourcetask, taskid = self.makeSourceTask(dep, taskbody["moduleid"], "install")
+                            # Add the dependency to sources group
+                            if not taskid in group["sourcestasks"]:
+                                group["sourcestasks"][taskid] = sourcetask
+                                #Add to pending
+                                self.addToPending(taskid, sourcetask)
+                            # Make the dependency official
+                            group["tasks"][task]["dependson"].append(taskid)
+                        #TODO: Other conditions, as on left
+
+                    #Move the host task to the bottom of order
+                    self.myTasks["order"].pop(task)
+                    self.tasksOrder.pop(task)
+                    self.addToPending(task, taskbody)
+
+                #Now prepare the changes dialog for sources, and then tasks
+                for i in [group["sourcestasks"], group["tasks"]]:
+                    for task in i:
+                        if taskbody["sourceid"] != "source": #Sources don't have dependencies
+                            installs, updates, removals = self.tasksapi.getItemRequiredChanges(i[task]["itemid"], i[task]["moduleid"], i[task]["sourceid"])
+                            #Make tasks for the dependencies, but set to mirror the host task
+                            for ii in [[installs, "install"], [updates, "update"], [removals, "remove"]]:
+                                for iii in ii[0]:
+                                    itemtask, taskid = self.makeTask(iii["itemid"], i[task]["moduleid"], iii[1], iii["sourceid"], None, False, task, [])
+                                    #TODO: Auto-inherit 'elevated' on becauseof tasks
+                                    # Add the dependency to tasks group
+                                    if not taskid in i:
+                                        i[taskid] = itemtask
+                                    #Add to pending
+                                    self.addToPending(taskid, itemtask)
+
+                    #Refresh the visual queue
+                    self.tasksapi.refreshTasksPage()
+
+                    #And finally show the respective changes dialogs.
+                    #TODO: Bonuses
+                    print("TASK CONFIRMATION: " + str(i))
+                    pass #TODO
+
+                currentgroup += 1
+
+
+
+
+
+            if len(self.myTasks["pending"]) == 0:
+                #Quit the triager if there are no more tasks to triage, to save resources
+                self.runningPendingTriager = False
+                return
+            time.sleep(10) #Otherwise take a break and then loop.
 
 
 
 
 
 
-    
 
-    def add_module_to_data(self, moduleid): #Add moduleid to self.tasks sections so task information can be added between them
-        if not moduleid in self.tasks["pending"].keys():
-            self.tasks["pending"][moduleid] = {}
-        if not moduleid in self.tasks["queue"].keys():
-            self.tasks["queue"][moduleid] = {}
-        if not moduleid in self.tasks["staged"].keys():
-            self.tasks["staged"][moduleid] = {}
-        if not moduleid in self.tasks["currenttask"].keys():
-            self.tasks["currenttask"][moduleid] = ""
 
-        if not moduleid in self.tasks_running[0]: #Pending
-            self.tasks_running[0][moduleid] = False
-        if not moduleid in self.tasks_running[1]: #Queued
-            self.tasks_running[1][moduleid] = False
 
-    
-    def add_task(self, itemid, moduleid, operation, sourceid, subsourceid, becauseof="", dependson=[], preconfirmed=False):
-        #Create a Task Body for our new task
-        newtask = TaskBody(itemid, moduleid, operation, sourceid, subsourceid, becauseof, dependson)
-        #TODO: Give a task a progress callback, and a state-change callback
 
-        taskname = moduleid+"/"+itemid+"/"+str(operation)+"/"+sourceid+"/"+subsourceid
-        
-        if preconfirmed == False:
-            #Add to pending tasks
-            self.tasks["pending"][moduleid][taskname] = newtask
-            self.tasks["pending"]["order"][taskname] = newtask
-        else:
-            if self.stage_tasks == False:
-                self.tasks["queue"][moduleid][taskname] = newtask
-                self.tasks["queue"]["order"][taskname] = newtask
-            else:
-                self.tasks["staged"][moduleid][taskname] = newtask
-                self.tasks["staged"]["order"][taskname] = newtask
-        
-        #Refresh item state in GUI to make it now be known to be in-tasks
-        #TODO self.storeAPI.reloadPkgStates([moduleid], [itemid])
-        
-        #Trigger tasks launching in case it isn't doing tasks
-        self.begin_tasks_management()
+
+
+
+
+
+
+
+
+
+
+
     
         
     def cancel_task(self, taskid): #Cancel task
@@ -538,6 +615,9 @@ class StoriumBrain():
             "gui": [], \
             "gui:configs": []}
 
+        #Stores current maps of sources to items
+        self.sourceItemMaps = {}
+
         #Map the Storium API
         self.initialiseAPIs()
 
@@ -643,6 +723,7 @@ class StoriumBrain():
         self.genericapi.getImages = self.APIgetImages
         self.genericapi.getSourceInformation = self.APIgetSourceInformation
         self.genericapi.isItemMappedBySource = self.APIisItemMappedBySource
+        self.genericapi.getSourceStatus = self.APIgetSourceStatus
         self.genericapi.dictMerge = self.dictMerge
         self.genericapi.getTranslation = self.getTranslation
         self.genericapi.isInitialised = self.isInitialised
@@ -659,6 +740,7 @@ class StoriumBrain():
         self.tasksapi.updateTask = self.APIupdateTask
         self.tasksapi.setTaskCancellable = self.APIsetTaskCancellable
         self.tasksapi.getItemRequiredChanges = self.APIgetItemRequiredChanges
+        self.tasksapi.getItemRequiredExtraSources = self.APIgetItemRequiredExtraSources
         self.tasksapi.getItemBonuses = self.APIgetItemBonuses
         self.tasksapi.showItemErrorDialog = self.APIshowItemErrorDialog
         self.tasksapi.refreshTasksPage = self.APIrefreshTasksPage
@@ -670,6 +752,7 @@ class StoriumBrain():
         self.tasksapi.invalidateSourceInfoCache = self.APIinvalidateSourceInfoCache
         self.tasksapi.invalidateSourceStatusCache = self.APIinvalidateSourceStatusCache
         self.tasksapi.reinitModulesIfFileWatch = self.APIreinitModulesIfFileWatch
+        self.tasksapi.sourceItemMaps = self.sourceItemMaps
         ############################################
         # GUI API
         ############################################
@@ -678,8 +761,8 @@ class StoriumBrain():
         self.guiapi.allItemsFilterCategory = self.APIallItemsFilterCategory
         self.guiapi.allItemsInstalledFromSource = self.APIallItemsInstalledFromSource
         self.guiapi.getAvailableSources = self.APIgetAvailableSources
+        self.guiapi.getSourceExists = self.APIgetSourceExists
         self.guiapi.getItemStatus = self.APIgetItemStatus
-        self.guiapi.getSourceStatus = self.APIgetSourceStatus
         self.guiapi.getExtraItemButtons = self.APIgetExtraItemButtons
         self.guiapi.installItem = self.APIinstallItem
         self.guiapi.reinstallItem = self.APIreinstallItem
@@ -845,6 +928,8 @@ class StoriumBrain():
                     self.moduleinfo[moduleid] = moduleinfo
                     #Initiate filewatches for this module
                     result = {}
+                    #Add tasks lists for this module
+                    self.taskManager.addModuleToTasks(moduleid)
                     for i in filewatch:
                         try:
                             result[i] = os.path.getmtime(i)
@@ -1063,7 +1148,7 @@ class StoriumBrain():
         #Return information from task if there is one
         task = self.getTaskID(itemid, moduleid, sourceid)
         if task != None:
-            return copy.deepcopy(self.taskManager.tasksOrder[task]["itemInfo"])
+            return copy.deepcopy(self.taskManager.tasksOrder[task]["info"])
 
         result = copy.deepcopy(self.modules[moduleid].getItemInformation(itemid, sourceid))
         #Use only strings appropriate to the current language
@@ -1114,15 +1199,93 @@ class StoriumBrain():
         #Return information from task if there is one
         task = self.getTaskID(sourceid, moduleid, "source")
         if task != None:
-            return copy.deepcopy(self.taskManager.tasksOrder[task]["itemInfo"])
+            return copy.deepcopy(self.taskManager.tasksOrder[task]["info"])
+
+        #Source fallback information
+        defaults = {"elevated": False, "defereasymode": False, \
+            "sourceElevated": False, "priority": 50}
 
         #Returns information about a single source
-        return copy.deepcopy(self.modules[moduleid].getSourceInformation(sourceid))
+        result = copy.deepcopy(self.modules[moduleid].getSourceInformation(sourceid))
+        #Fill in missing optional values
+        for i in defaults:
+            if i not in result:
+                result[i] = defaults[i]
+        #Use only strings appropriate to the current language
+        return self.recurTranslate(result)
 
 
     def APIisItemMappedBySource(self, itemid, moduleid, sourceid):
         #Returns True if itemid from sourceid of moduleid is mapped to by any sources, otherwise False.
         pass #TODO
+
+
+    def APIgetSourceStatus(self, moduleid, sourceid):
+        #getItemStatus, but for sources instead.
+        # Not currently a task:
+        #  0: Not installed
+        #  1: Installed
+        #  2: Installed (mandatory)
+        # Queued:
+        #  3: Pending installation
+        #  4: Pending removal
+        # In progress:
+        #  5: Installing...
+        #  6: Removing...
+
+        #Check if the source is mapped to an item
+        if moduleid + ":" + sourceid in self.sourceItemMaps:
+            itemmap = self.sourceItemMaps[moduleid + ":" + sourceid]
+            #Get item status of the item
+            itemstatus = self.APIgetItemStatus(itemmap["itemid"], itemmap["moduleid"], itemmap["sourceid"])
+            #Translate and return the appropriate value
+            # NOTE: Update available -> Installed, Reinstalling -> Installing
+            if itemstatus == 1 or itemstatus == 2:
+                return 1
+            elif itemstatus == 3 or itemstatus == 4:
+                return 2
+            elif itemstatus == 5 or itemstatus == 6 or itemstatus == 7 or itemstatus == 13:
+                return 3
+            elif itemstatus == 8:
+                return 4
+            elif itemstatus == 9 or itemstatus == 10 or itemstatus == 11:
+                return 5
+            elif itemstatus == 12:
+                return 6
+            else: #Uninstalled, missing source, or unknown = Uninstalled
+                return 0
+
+        #Check there's a task
+        task = self.getTaskID(sourceid, moduleid, "source")
+        if task != None:
+            #Pending Tasks
+            for tgroup in self.taskManager.myTasks["pending"]:
+                for grouptype in ["sourcestasks", "tasks"]:
+                    if task in tgroup[grouptype]:
+                        if tgroup[grouptype][task]["operation"] == "install":
+                            return 3
+                        elif tgroup[grouptype][task]["operation"] == "remove":
+                            return 4
+            #Queued and/or Running Task(s)
+            #TODO: Have a way to determine running superuser tasks, then implement here
+            task = ":".join(task.split(":")[2:]) #Remove moduleid and superuser indicator
+            for ttype in ["queue", "staged"]:
+                #FIXME: Should source management be stagable?
+                if task in self.taskManager.myTasks[ttype][moduleid]:
+                    inprogress = True if ttype == "queue" and self.taskManager.myTasks[ttype][moduleid].index(taskid) == 0 else False
+                    taskbody = self.taskManager.myTasks[ttype][moduleid][taskid]
+                    if taskbody["operation"] == "install":
+                        if inprogress == True:
+                            return 5
+                        else:
+                            return 3
+                    elif taskbody["operation"] == "remove":
+                        if inprogress == True:
+                            return 6
+                        else:
+                            return 4
+        #No task? Query the module for the current status.
+        return copy.deepcopy(self.modules[moduleid].getSourceStatus(sourceid))
 
 
     def dictMerge(self, target, writeover):
@@ -1211,7 +1374,11 @@ class StoriumBrain():
 
     def APIgetItemRequiredChanges(self, itemid, moduleid, sourceid):
         #Queries moduleid and returns required installations, updates, and removals as 3 individual lists of dictionaries containing an itemid and sourceid each.
-        pass #TODO
+        return [], [], [] #TODO
+
+    def APIgetItemRequiredExtraSources(self, itemid, moduleid, sourceid):
+        #Queries moduleid and returns any extra sources that are required as a list containing a sourceid each.
+        return [] #TODO
 
     def APIgetItemBonuses(self, itemid, moduleid, sourceid, subsourceid):
         #Queries moduleid and returns the bonuses available to use on itemid from sourceid
@@ -1341,8 +1508,6 @@ class StoriumBrain():
 
     def APIgetAvailableSources(self, itemid):
         #Returns all available sources, from all modules, for this itemid
-        defaults = {"elevated": False, "defereasymode": False, \
-            "sourceElevated": False, "priority": 50}
         # Get non-sorted order of sources first, and segment by priority
         unsorted = {}
         for i in self.modules:
@@ -1352,11 +1517,10 @@ class StoriumBrain():
                     #Append full source information to the source if currently empty
                     if sources[source] == {}:
                         sources[source] = self.APIgetSourceInformation(i, source)
+                    else:
+                        #If pre-supplied, make sure it's only showing localised values
+                        sources[source] = self.recurTranslate(sources[source])
                     sourceid = i + "/" + source
-                    #Fill in missing optional values
-                    for ii in defaults:
-                        if ii not in sources[source]:
-                            sources[source][ii] = defaults[ii]
                     priority = sources[source]["priority"]
                     #Reduce priority of redirection sources
                     if "redirectitemid" in sources[source]:
@@ -1366,14 +1530,6 @@ class StoriumBrain():
                         unsorted[priority] = {}
                     unsorted[priority][sourceid] = sources[source]
                     del unsorted[priority][sourceid]["priority"] #Redundant
-        #Convert strings to their language-appropriate values
-        for priority in unsorted:
-            for i in unsorted[priority]:
-                target = unsorted[priority][i]
-                for ii in ["fullname"]:
-                    target[ii] = self.getTranslation(target[ii])
-                for ii in target["subsources"]:
-                    target["subsources"][ii]["fullname"] = self.getTranslation(target["subsources"][ii]["fullname"])
         #If there's only 0-1 sources, return them immediately as sorting is redundant
         if len(unsorted) == 0:
             return unsorted
@@ -1407,6 +1563,14 @@ class StoriumBrain():
         return i[0]
 
 
+    def APIgetSourceExists(self, moduleid, sourceid):
+        #Returns True if the specified source exists in moduleid
+        if self.modules[moduleid].getSourceExists(sourceid) == True:
+            return True
+        else:
+            return False
+
+
     def APIgetItemStatus(self, itemid, moduleid, sourceid):
         #Returns the item's status as an ID out of the following, as well as the subsource if installed:
         # Not currently a task:
@@ -1435,16 +1599,17 @@ class StoriumBrain():
         if task != None:
             #Pending Tasks
             for tgroup in self.taskManager.myTasks["pending"]:
-                if task in tgroup:
-                    if tgroup[task]["operation"] == "install":
-                        return 5, ""
-                        #No point supplying the subsource as it'll be checked for again post-task
-                    elif tgroup[task]["operation"] == "reinstall":
-                        return 6, ""
-                    elif tgroup[task]["operation"] == "update":
-                        return 7, ""
-                    elif tgroup[task]["operation"] == "remove":
-                        return 8, ""
+                for grouptype in ["sourcestasks", "tasks"]:
+                    if task in tgroup[grouptype]:
+                        if tgroup[grouptype][task]["operation"] == "install":
+                            return 5, ""
+                            #No point supplying the subsource as it'll be checked for again post-task
+                        elif tgroup[grouptype][task]["operation"] == "reinstall":
+                            return 6, ""
+                        elif tgroup[grouptype][task]["operation"] == "update":
+                            return 7, ""
+                        elif tgroup[grouptype][task]["operation"] == "remove":
+                            return 8, ""
             #Queued and/or Running Task(s)
             #TODO: Have a way to determine running superuser tasks, then implement here
             task = ":".join(task.split(":")[2:]) #Remove moduleid and superuser indicator
@@ -1486,53 +1651,6 @@ class StoriumBrain():
         return status, subsource
 
 
-    def APIgetSourceStatus(self, moduleid, sourceid):
-        #getItemStatus, but for sources instead.
-        # Not currently a task:
-        #  0: Not installed
-        #  1: Installed
-        #  2: Installed (mandatory)
-        # Queued:
-        #  3: Pending installation
-        #  4: Pending removal
-        # In progress:
-        #  5: Installing...
-        #  6: Removing...
-
-        #TODO: Support getting value of item instead if the source is mapped to one.
-
-        #Check there's a task
-        task = self.getTaskID(sourceid, moduleid, "source")
-        if task != None:
-            #Pending Tasks
-            for tgroup in self.taskManager.myTasks["pending"]:
-                if task in tgroup:
-                    if tgroup[task]["operation"] == "install":
-                        return 3
-                    elif tgroup[task]["operation"] == "remove":
-                        return 4
-            #Queued and/or Running Task(s)
-            #TODO: Have a way to determine running superuser tasks, then implement here
-            task = ":".join(task.split(":")[2:]) #Remove moduleid and superuser indicator
-            for ttype in ["queue", "staged"]:
-                #FIXME: Should source management be stagable?
-                if task in self.taskManager.myTasks[ttype][moduleid]:
-                    inprogress = True if ttype == "queue" and self.taskManager.myTasks[ttype][moduleid].index(taskid) == 0 else False
-                    taskbody = self.taskManager.myTasks[ttype][moduleid][taskid]
-                    if taskbody["operation"] == "install":
-                        if inprogress == True:
-                            return 5
-                        else:
-                            return 3
-                    elif taskbody["operation"] == "remove":
-                        if inprogress == True:
-                            return 6
-                        else:
-                            return 4
-        #No task? Query the module for the current status.
-        return copy.deepcopy(self.modules[moduleid].getSourceStatus(sourceid))
-
-
     def APIgetExtraItemButtons(self, itemid, moduleid, sourceid, status):
         #Returns extra buttons for displaying in the item details page, and installation notifications
         # Formatted as [{"text": "Test button", "tooltip": "An example button", "icon": "softwarecenter", callback: callbackHere}]
@@ -1553,20 +1671,20 @@ class StoriumBrain():
         return result
 
 
-    def APIinstallItem(self, itemid, moduleid, sourceid, subsourceid):
+    def APIinstallItem(self, itemid, moduleid, sourceid, subsourceid, tasksintent, sourcesintent):
         #Adds the item to pending tasks to be confirmed, before starting the tasks runner if it is not currently running
         #Also runs invalidateItemStatus cache on this specific itemid.
-        self.taskManager.newTask(itemid, moduleid, "install", sourceid, subsourceid, "", [])
+        self.taskManager.newTask(itemid, moduleid, "install", sourceid, subsourceid, tasksintent, sourcesintent, "", [])
 
-    def APIreinstallItem(self, itemid, moduleid, sourceid, subsourceid):
+    def APIreinstallItem(self, itemid, moduleid, sourceid, subsourceid, tasksintent, sourcesintent):
         #APIinstallitem, but reinstallation instead.
-        self.taskManager.newTask(itemid, moduleid, "reinstall", sourceid, subsourceid, "", [])
+        self.taskManager.newTask(itemid, moduleid, "reinstall", sourceid, subsourceid, tasksintent, sourcesintent, "", [])
 
-    def APIupdateItem(self, itemid, moduleid, sourceid, subsourceid):
-        self.taskManager.newTask(itemid, moduleid, "update", sourceid, subsourceid, "", [])
+    def APIupdateItem(self, itemid, moduleid, sourceid, subsourceid, tasksintent, sourcesintent):
+        self.taskManager.newTask(itemid, moduleid, "update", sourceid, subsourceid, tasksintent, sourcesintent, "", [])
 
-    def APIremoveItem(self, itemid, moduleid, sourceid, subsourceid):
-        self.taskManager.newTask(itemid, moduleid, "remove", sourceid, subsourceid, "", [])
+    def APIremoveItem(self, itemid, moduleid, sourceid, subsourceid, tasksintent, sourcesintent):
+        self.taskManager.newTask(itemid, moduleid, "remove", sourceid, subsourceid, tasksintent, sourcesintent, "", [])
 
 
     def APIgetAvailableBonuses(self, itemid, moduleid, sourceid, subsourceid):
@@ -1580,14 +1698,14 @@ class StoriumBrain():
         pass #TODO
 
 
-    def APIinstallSource(self, moduleid, sourceid):
+    def APIinstallSource(self, moduleid, sourceid, sourcesintent):
         #Adds the source to pending tasks to be confirmed, before starting the tasks runner if it is not currently running
         #Also runs invalidateSourceStatus on this specific sourceid.
-        self.taskManager.newTask(sourceid, moduleid, "install", "source", "", "", [])
+        self.taskManager.newTask(sourceid, moduleid, "install", "source", "", sourcesintent, "", "", [])
 
-    def APIremoveSource(self, moduleid, sourceid):
+    def APIremoveSource(self, moduleid, sourceid, sourcesintent):
         #installSource, but removal instead.
-        self.taskManager.newTask(sourceid, moduleid, "remove", "source", "", "", [])
+        self.taskManager.newTask(sourceid, moduleid, "remove", "source", "", sourcesintent, "", "", [])
 
 
     def APIgetTasks(self):
@@ -1651,13 +1769,23 @@ class StoriumBrain():
         pass #TODO
 
 
-    def APImapSourceToItem(self, moduleid, sourceid, targetmoduleid, targetsourceid, itemid):
+    def APImapSourceToItem(self, moduleid, sourceid, targetsourceid, itemid, targetmoduleid=None):
         #Maps the source specified to the specified item, so long as the targetmoduleid accepts the request
-        pass #TODO
+        if targetmoduleid == None:
+            #If set to None, targetmoduleid == moduleid
+            targetmoduleid = moduleid
+        else:
+            #Ask the targetmoduleid if we can go ahead with this
+            if self.modules[targetmoduleid].isOperationPermitted(moduleid, sourceid, "mapSourceToItem", targetmoduleid, itemid, targetsourceid) != True:
+                raise StoriumBrainException(_("%s rejected the source mapping request.") % targetmoduleid)
+        #Add the map to mapping storage
+        self.sourceItemMaps[moduleid + ":" + sourceid] = {"itemid": itemid, "sourceid": targetsourceid, "moduleid": targetmoduleid}
 
-    def APIunmapSourceToItem(self, moduleid, sourceid, targetmoduleid, itemid):
+
+    def APIunmapSourceToItem(self, moduleid, sourceid):
         #Removes the mapping of sourceid to itemid from currently mapped sources
-        pass #TODO
+        if moduleid + ":" + sourceid in self.sourceItemMaps:
+            self.sourceItemMaps.pop(moduleid + ":" + sourceid)
 
 
 

@@ -160,46 +160,57 @@ class configWindow(Gtk.Window):
 
 
 ############################################
-# Item Block
+# Item/Source Block
 ############################################
 class itemBlockButton(Gtk.VBox):
-    def __init__(self, module, itemid, manage=True, moduleid=None, sourceid=None):
-        #TODO: Add a dict of 'optional' fields of item information, mainly to accomodate for redirection sources, that have:
-        #   optionaliteminfovalue: function to call, with a value or None, that applies the information to the block or hides it depending on value provided?
+    def __init__(self, module, itemid, fullwidth=False, manage=True, moduleid=None, sourceid=None, subsourceid=None):
+        #TODO: Make some item information optional, such as ratings, etc.
 
+        #Keep record of the arguments supplied
         self.module = module
         self.itemid = itemid
-        self.sourceid = sourceid
         self.moduleid = moduleid
+        self.sourceid = sourceid
+        self.subsourceid = subsourceid
         self.manage = manage
-        #TODO: Support subsource direction
-        #Check criteria is met, first
-        # Does itemid have any available sources?
-        availsources = self.module.guiapi.getAvailableSources(self.itemid)
-        if availsources == {}:
-            raise DemoGUIException(_("%s has no available sources so cannot be added as an item button") % self.itemid)
-        # If a moduleid, or even a moduleid-sourceid combo, were specified, are there available sources within their criteria?
-        if self.moduleid != None:
-            if self.sourceid != None: # check if this module-source combo exists as an available source
-                if self.moduleid + "/" + self.sourceid not in availsources:
-                    raise DemoGUIException(_("%s has no available source %s in module %s so cannot be added as an item button") % (self.itemid, self.sourceid, self.moduleid))
-            else: # check if the module has any available sources - if so, use the first one from the module
-                for i in availsources:
-                    if i.startswith(self.moduleid + "/"):
-                        self.sourceid = i[len(self.moduleid + "/"):] #Trim out moduleid portion
-                        break
-                if self.sourceid == None:
-                    raise DemoGUIException(_("%s has no available sources in module %s so cannot be added as an item button") % (self.itemid, self.moduleid))
-        else: #Otherwise use the first available source
-            self.moduleid, self.sourceid = list(availsources.keys())[0].split("/")
-            #FIXME: We'd need to change this to only split the final / and not precursor ones
 
+        #Check for required criteria
+        if self.sourceid == "source":
+            # Does the source exist?
+            if self.module.guiapi.getSourceExists(self.moduleid, self.itemid) != True:
+                raise DemoGUIException(_("%s does not have the source %s, aborting item button creation.") % (self.moduleid, self.itemid))
+        else:
+            # Is the item even available?
+            availsources = self.module.guiapi.getAvailableSources(self.itemid)
+            if availsources == {}:
+                raise DemoGUIException(_("%s has no available sources, aborting item button creation.") % self.itemid)
+            # Otherwise, if a module/source/subsource is specified, ensure it exists
+            if self.moduleid != None:
+                if self.sourceid != None:
+                    if self.moduleid + "/" + self.sourceid not in availsources:
+                        raise DemoGUIException(_("%s has no available source %s in module %s so cannot be added as an item button") % (self.itemid, self.sourceid, self.moduleid))
+                else: # use the first available source if no source is specified
+                    for i in availsources:
+                        if i.startswith(self.moduleid + "/"):
+                            self.sourceid = i[len(self.moduleid + "/"):] #Trim out moduleid portion
+                            break
+                    if self.sourceid == None:
+                        raise DemoGUIException(_("%s has no available sources in module %s so cannot be added as an item button") % (self.itemid, self.moduleid))
+            else: #Otherwise use the first available source
+                self.moduleid, self.sourceid = list(availsources.keys())[0].split("/")
+                #FIXME: We'd need to change this to only split the final / and not precursor ones
+
+        #Create the body container
         Gtk.Box.__init__(self)
 
         #Add the main body
         self.itemicon = itemIcon(self, module)
-        self.fullname = Gtk.Label(ellipsize=Pango.EllipsizeMode.END, lines=1, wrap=True, max_width_chars=30, xalign=0.0)
-        self.summary = Gtk.Label(ellipsize=Pango.EllipsizeMode.END, lines=1, wrap=True, max_width_chars=30, xalign=0.0)
+        if fullwidth == True:
+            self.fullname = Gtk.Label(ellipsize=Pango.EllipsizeMode.END, lines=1, wrap=True, xalign=0.0)
+            self.summary = Gtk.Label(ellipsize=Pango.EllipsizeMode.END, lines=1, wrap=True, xalign=0.0)
+        else:
+            self.fullname = Gtk.Label(ellipsize=Pango.EllipsizeMode.END, lines=1, wrap=True, max_width_chars=30, xalign=0.0)
+            self.summary = Gtk.Label(ellipsize=Pango.EllipsizeMode.END, lines=1, wrap=True, max_width_chars=30, xalign=0.0)
 
         fullnameBox = Gtk.Box()
         summaryBox = Gtk.Box()
@@ -212,9 +223,10 @@ class itemBlockButton(Gtk.VBox):
         fullnameSummaryBox.pack_end(summaryBox, False, False, 0)
 
         #TODO: Add Warnings summary
-        #TODO: Do as shown in diagram before returning one self
 
-        if manage == True:
+        self.set_size_request(340, 52)
+
+        if manage == True and sourceid != "source":
             self.body = Gtk.Button()
             infobox = Gtk.Box()
             #Swapped the element with spacing here as they look better with the icon not having padding here,
@@ -228,16 +240,6 @@ class itemBlockButton(Gtk.VBox):
             self.body.pack_start(self.itemicon, False, False, 0)
             self.body.pack_start(fullnameSummaryBox, True, True, 8)
 
-        self.set_size_request(340, 52)
-        self.pack_start(self.body, True, True, 0)
-
-        #Get item's information in the background
-        thread = Thread(target=self.loadItemInformation,
-                    args=())
-        thread.daemon = True
-        thread.start()
-
-        #Add the button if manage is on
         if manage == True:
             #NOTE: Due to a design issue in GTK, this button is not inside the button, but rather next to it, to prevent the hitbox of the parent button overriding that of the itemmgmt button
             self.buttonsstack = Gtk.Stack()
@@ -292,11 +294,20 @@ class itemBlockButton(Gtk.VBox):
             stthread.daemon = True
             stthread.start()
 
+        self.pack_start(self.body, True, True, 0)
         self.show_all()
+
+        #Get item's information
+        self.loadItemInformation()
+        #TODO: Destroy and raise exception if loading item information fails
+        #TODO:  When summoning this button, have a dummy placeholder in its place until it's loaded which case destroy the placeholder and put me in its place.
 
 
     def loadItemInformation(self):
-        iteminfo = self.module.api.getItemInformation(self.itemid, self.moduleid, self.sourceid)
+        if self.sourceid == "source":
+            iteminfo = self.module.api.getSourceInformation(self.moduleid, self.itemid)
+        else:
+            iteminfo = self.module.api.getItemInformation(self.itemid, self.moduleid, self.sourceid)
 
         thread = Thread(target=self.itemicon.setIcon,
                         args=(iteminfo["iconid"], iteminfo["iconurl"], self.itemid, self.moduleid, self.sourceid))
@@ -607,7 +618,7 @@ class categoricalPage(Gtk.Box):
             GLib.idle_add(i.destroy)
         #TODO: Placeholder screen for no items
         for i in items:
-            iblock = itemBlockButton(self.module, i, True)
+            iblock = itemBlockButton(self.module, i, False, True)
             self.parent.known_itemboxes.append(iblock)
             GLib.idle_add(self.listingsPane.insert, iblock, -1)
         GLib.idle_add(self.listingsPane.show_all)
@@ -706,17 +717,25 @@ class tasksLibraryPage(Gtk.ScrolledWindow):
 
     def refreshTasksList(self):
         taskslist = self.module.guiapi.getTasks()
-        #Remove existing items
         for i in self.tasksList.get_children():
             for iblock in i.get_children(): #Get itemblock out of FlowBoxChild
                 if iblock in self.parent.known_itemboxes:
                     self.parent.known_itemboxes.pop(self.parent.known_itemboxes.index(iblock))
-            GLib.idle_add(i.destroy)
-        #Generate new item blocks for the tasks
+        taskblocks = []
         for i in taskslist:
-            iblock = itemBlockButton(self.module, taskslist[i]["itemid"], True, taskslist[i]["moduleid"], taskslist[i]["sourceid"])
+            iblock = itemBlockButton(self.module, taskslist[i]["itemid"], True, True, taskslist[i]["moduleid"], taskslist[i]["sourceid"])
             self.parent.known_itemboxes.append(iblock)
-            GLib.idle_add(self.tasksList.insert, iblock, -1)
+            taskblocks.append(iblock)
+        GLib.idle_add(self.loadTasksList, taskblocks)
+
+
+    def loadTasksList(self, taskblocks):
+        #Remove existing items
+        for i in self.tasksList.get_children():
+            i.destroy()
+        #Generate new item blocks for the tasks
+        for i in taskblocks:
+            self.tasksList.insert(i, -1)
 
 
 
@@ -1117,19 +1136,27 @@ class itemDetailsHeader(Gtk.Box):
 
     def onInstall(self, button):
         moduleid, sourceid = self.parent.currentModuleSource.split("/")
-        self.module.guiapi.installItem(self.parent.currentItem, moduleid, sourceid, self.parent.currentSubsource)
+        sourcesintent = ["beforeinstall", self.parent.currentItem, moduleid, sourceid]
+        tasksintent = ["install", self.parent.currentItem, moduleid, sourceid]
+        self.module.guiapi.installItem(self.parent.currentItem, moduleid, sourceid, self.parent.currentSubsource, tasksintent, sourcesintent)
 
     def onUpdate(self, button):
         moduleid, sourceid = self.parent.currentModuleSource.split("/")
-        self.module.guiapi.updateItem(self.parent.currentItem, moduleid, sourceid, self.parent.currentSubsource)
+        sourcesintent = ["beforeupdate", self.parent.currentItem, moduleid, sourceid]
+        tasksintent = ["update", self.parent.currentItem, moduleid, sourceid]
+        self.module.guiapi.updateItem(self.parent.currentItem, moduleid, sourceid, self.parent.currentSubsource, tasksintent, sourcesintent)
 
     def onReinstall(self, button):
         moduleid, sourceid = self.parent.currentModuleSource.split("/")
-        self.module.guiapi.reinstallItem(self.parent.currentItem, moduleid, sourceid, self.parent.currentSubsource)
+        sourcesintent = ["beforereinstall", self.parent.currentItem, moduleid, sourceid]
+        tasksintent = ["reinstall", self.parent.currentItem, moduleid, sourceid]
+        self.module.guiapi.reinstallItem(self.parent.currentItem, moduleid, sourceid, self.parent.currentSubsource, tasksintent, sourcesintent)
 
     def onRemove(self, button):
         moduleid, sourceid = self.parent.currentModuleSource.split("/")
-        self.module.guiapi.removeItem(self.parent.currentItem, moduleid, sourceid, self.parent.currentSubsource)
+        tasksintent = ["remove", self.parent.currentItem, moduleid, sourceid]
+        self.module.guiapi.removeItem(self.parent.currentItem, moduleid, sourceid, self.parent.currentSubsource, tasksintent, None)
+        #NOTE: Removals should never be able to populate the sources group, thus we only provide an intent for the tasks group.
 
     #TODO: Change bonuses button
 
@@ -1365,8 +1392,6 @@ class window(Gtk.Window):
         thread.daemon = True
         thread.start()
 
-        #TODO: Tell header to load available sources
-        # Then the header can tell itself and body to load the item information of the default source
         #TODO: Any way to prevent source changing twice technically if we supply a command to open Storium immediately to an item with a source override and module override?
 
 

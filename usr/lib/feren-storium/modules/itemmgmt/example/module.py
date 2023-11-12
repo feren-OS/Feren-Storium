@@ -108,6 +108,12 @@ class module():
         #   - TODO: Should the module just list all installed IDs and then we query for attributes afterwards like up-to-date or redirection source, or should that befall the module's own duty?
 
 
+    def getSourceExists(self, sourceid):
+        if sourceid == "main":
+            return True #'main' is the header source
+        return sourceid in self.sources
+
+
     def getRequiredCrossSources(self, itemid, sourceid):
         #TODO: Should there be an example of this added?
         return []
